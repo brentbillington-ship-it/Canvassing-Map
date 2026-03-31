@@ -188,22 +188,16 @@ const App = {
   },
 
   // ── Create turf from draw (new) ───────────────────────────────────────────
-  async createTurfFromDraw({ letter, color, volunteer, geojson, parcels }) {
+  async createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels }) {
     UI.toast('Creating turf…', 'info');
     try {
-      // Create turf
-      const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]');
+      const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]', mode || 'hanger');
       if (tRes.error) { UI.toast(tRes.error, 'error'); return; }
-
-      // Save boundary
       await SheetsAPI.saveTurfPolygon(letter, geojson);
-
-      // Bulk import houses
-      const houses = parcels.map(p => ({ address: p.address, owner: p.owner, lat: p.lat, lon: p.lon }));
+      const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
       if (houses.length) {
-        await SheetsAPI.bulkImport([{ letter, color, volunteer: volunteer || '[UNASSIGNED]', houses }]);
+        await SheetsAPI.bulkImport([{ letter, color, volunteer: volunteer || '[UNASSIGNED]', mode: mode || 'hanger', houses }]);
       }
-
       await this.loadData();
       UI.toast(`Turf ${letter} created with ${parcels.length} houses ✓`, 'success');
     } catch(e) { UI.toast('Failed to create turf', 'error'); console.error(e); }

@@ -8,51 +8,35 @@
  *  ✅ Same URL — no config.js change needed
  * ─────────────────────────────────────────────────────────────
  *
- * Chaka Door Canvass — Google Sheets Backend
+ * Chaka Door Canvass — Google Sheets Backend v4.3
  *
- * SETUP:
- * 1. Create a new Google Sheet
- * 2. Open Extensions → Apps Script
- * 3. Paste this entire file, replacing the default code
- * 4. Deploy → New deployment
- *    - Type: Web app
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 5. Copy the deployment URL into config.js → SHEETS_API_URL
- *
- * SHEETS AUTO-CREATED ON FIRST REQUEST:
- *
- *  "houses"   — id | turf | name | address | lat | lon | notes |
+ *  "houses"   — id | turf | owner | address | lat | lon | notes |
  *               result | result_date | result_by | sort_order
  *
- *  "turfs"    — letter | color | volunteer | polygon_geojson | created_date
+ *  "turfs"    — letter | color | volunteer | mode | polygon_geojson | created_date
  *
  *  "presence" — session_id | name | last_seen
+ *
+ * ── EXISTING SHEET MIGRATION ──────────────────────────────────
+ * If you already have a houses sheet, add these columns manually:
+ *   • Insert a column after "name" → header: owner
+ * If you already have a turfs sheet, add:
+ *   • Insert a column after "volunteer" → header: mode
+ * ─────────────────────────────────────────────────────────────
  */
-
-// ─── Entry Points ─────────────────────────────────────────────────────────────
 
 function doGet(e) {
   try {
     if (e.parameter.payload) {
       return handleAction(JSON.parse(decodeURIComponent(e.parameter.payload)));
     }
-    const action = e.parameter.action || 'getAll';
-    if (action === 'getAll') {
-      return json(getAllData());
-    }
-    return json({ error: 'Unknown action: ' + action });
-  } catch (err) {
-    return json({ error: err.toString() });
-  }
+    return json(getAllData());
+  } catch (err) { return json({ error: err.toString() }); }
 }
 
 function doPost(e) {
-  try {
-    return handleAction(JSON.parse(e.postData.contents));
-  } catch (err) {
-    return json({ error: err.toString() });
-  }
+  try { return handleAction(JSON.parse(e.postData.contents)); }
+  catch (err) { return json({ error: err.toString() }); }
 }
 
 function handleAction(data) {
@@ -64,7 +48,7 @@ function handleAction(data) {
       case 'updateHouse':     return json(updateHouse(data.id, data.fields));
       case 'setResult':       return json(setResult(data.id, data.result, data.result_by));
       case 'clearResult':     return json(clearResult(data.id));
-      case 'addTurf':         return json(addTurf(data.letter, data.color, data.volunteer));
+      case 'addTurf':         return json(addTurf(data.letter, data.color, data.volunteer, data.mode));
       case 'deleteTurf':      return json(deleteTurf(data.letter));
       case 'updateTurf':      return json(updateTurf(data.letter, data.fields));
       case 'saveTurfPolygon': return json(saveTurfPolygon(data.letter, data.geojson));
@@ -74,9 +58,7 @@ function handleAction(data) {
       case 'getPresence':     return json(getPresence());
       default:                return json({ error: 'Unknown action: ' + data.action });
     }
-  } catch (err) {
-    return json({ error: err.toString() });
-  }
+  } catch (err) { return json({ error: err.toString() }); }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -92,9 +74,9 @@ function getSheet(name) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (name === 'houses') {
-      sheet.appendRow(['id','turf','name','address','lat','lon','notes','result','result_date','result_by','sort_order']);
+      sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order']);
     } else if (name === 'turfs') {
-      sheet.appendRow(['letter','color','volunteer','polygon_geojson','created_date']);
+      sheet.appendRow(['letter','color','volunteer','mode','polygon_geojson','created_date']);
     } else if (name === 'presence') {
       sheet.appendRow(['session_id','name','last_seen']);
     }
@@ -102,20 +84,14 @@ function getSheet(name) {
   return sheet;
 }
 
-function uid() {
-  return Utilities.getUuid().substring(0, 8);
-}
+function uid() { return Utilities.getUuid().substring(0, 8); }
 
 function sheetToObjects(sheet) {
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
   const headers = data[0];
   return data.slice(1)
-    .map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i]; });
-      return obj;
-    })
+    .map(row => { const obj = {}; headers.forEach((h, i) => { obj[h] = row[i]; }); return obj; })
     .filter(obj => obj[headers[0]] !== '');
 }
 
@@ -129,13 +105,14 @@ function getAllData() {
     letter:          t.letter,
     color:           t.color || '',
     volunteer:       t.volunteer || '[UNASSIGNED]',
+    mode:            t.mode || 'hanger',
     polygon_geojson: t.polygon_geojson || '',
     houses: housesData
       .filter(h => h.turf === t.letter)
       .sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0))
       .map(h => ({
         id:          h.id,
-        name:        h.name || '',
+        owner:       h.owner || '',
         address:     h.address || '',
         lat:         parseFloat(h.lat),
         lon:         parseFloat(h.lon),
@@ -161,8 +138,8 @@ function addHouse(house) {
   const id = uid();
   sheet.appendRow([
     id, house.turf || 'A',
-    house.name || '', house.address || '',
-    house.lat  || 0,  house.lon     || 0,
+    house.owner || '', house.address || '',
+    house.lat   || 0,  house.lon     || 0,
     house.notes || '', '', '', '',
     maxOrder + 1
   ]);
@@ -251,11 +228,11 @@ function reorderHouses(turfLetter, orderIds) {
 
 // ─── Turf CRUD ────────────────────────────────────────────────────────────────
 
-function addTurf(letter, color, volunteer) {
+function addTurf(letter, color, volunteer, mode) {
   const sheet    = getSheet('turfs');
   const existing = sheetToObjects(sheet);
   if (existing.some(t => t.letter === letter)) return { error: 'Turf ' + letter + ' already exists' };
-  sheet.appendRow([letter, color || '', volunteer || '[UNASSIGNED]', '', new Date().toISOString()]);
+  sheet.appendRow([letter, color || '', volunteer || '[UNASSIGNED]', mode || 'hanger', '', new Date().toISOString()]);
   SpreadsheetApp.flush();
   return { success: true };
 }
@@ -263,7 +240,7 @@ function addTurf(letter, color, volunteer) {
 function deleteTurf(letter) {
   const houses = sheetToObjects(getSheet('houses'));
   if (houses.some(h => h.turf === letter)) {
-    return { error: 'Cannot delete turf ' + letter + ' — it still has houses. Remove them first.' };
+    return { error: 'Cannot delete turf ' + letter + ' — remove its houses first.' };
   }
   const sheet = getSheet('turfs');
   const data  = sheet.getDataRange().getValues();
@@ -310,47 +287,63 @@ function saveTurfPolygon(letter, geojson) {
 }
 
 // ─── Bulk Import ──────────────────────────────────────────────────────────────
+// Additive — does NOT wipe existing data. Skips turfs that already exist.
 
 function bulkImport(turfs) {
   const housesSheet = getSheet('houses');
   const turfsSheet  = getSheet('turfs');
-  if (housesSheet.getLastRow() > 1) housesSheet.deleteRows(2, housesSheet.getLastRow() - 1);
-  if (turfsSheet.getLastRow()  > 1) turfsSheet.deleteRows(2,  turfsSheet.getLastRow()  - 1);
+  const existingTurfs  = sheetToObjects(turfsSheet).map(t => t.letter);
+  const existingHouses = sheetToObjects(housesSheet);
+  const defaultColors  = ['#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#7c4dcc','#c4487a','#1a9e9e','#c27a1a'];
 
-  const defaultColors = ['#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#7c4dcc','#c4487a','#1a9e9e','#c27a1a'];
+  let addedTurfs = 0, addedHouses = 0;
+
   turfs.forEach((turf, ti) => {
-    turfsSheet.appendRow([
-      turf.letter,
-      turf.color || defaultColors[ti % defaultColors.length],
-      turf.volunteer || '[UNASSIGNED]',
-      turf.polygon_geojson ? JSON.stringify(turf.polygon_geojson) : '',
-      new Date().toISOString()
-    ]);
-    turf.houses.forEach((house, hi) => {
+    // Add turf row if not already present
+    if (!existingTurfs.includes(turf.letter)) {
+      turfsSheet.appendRow([
+        turf.letter,
+        turf.color || defaultColors[ti % defaultColors.length],
+        turf.volunteer || '[UNASSIGNED]',
+        turf.mode || 'hanger',
+        turf.polygon_geojson ? JSON.stringify(turf.polygon_geojson) : '',
+        new Date().toISOString()
+      ]);
+      addedTurfs++;
+    }
+
+    // Find max sort order for this turf
+    const turfHouses = existingHouses.filter(h => h.turf === turf.letter);
+    let maxOrder = turfHouses.reduce((max, h) => Math.max(max, parseInt(h.sort_order) || 0), 0);
+
+    // Add houses (skip duplicates by address)
+    const existingAddrs = new Set(turfHouses.map(h => (h.address || '').toUpperCase().trim()));
+    (turf.houses || []).forEach(house => {
+      const addrKey = (house.address || '').toUpperCase().trim();
+      if (existingAddrs.has(addrKey)) return;
+      existingAddrs.add(addrKey);
+      maxOrder++;
       housesSheet.appendRow([
         uid(), turf.letter,
-        house.name || '', house.address || '',
-        house.lat  || 0,  house.lon     || 0,
+        house.owner || '', house.address || '',
+        house.lat   || 0,  house.lon     || 0,
         house.notes || '', '', '', '',
-        hi + 1
+        maxOrder
       ]);
+      addedHouses++;
     });
   });
+
   SpreadsheetApp.flush();
-  return {
-    success: true,
-    turfs: turfs.length,
-    houses: turfs.reduce((s, t) => s + t.houses.length, 0)
-  };
+  return { success: true, turfs: addedTurfs, houses: addedHouses };
 }
 
 // ─── Presence ─────────────────────────────────────────────────────────────────
 
 function heartbeat(name, sessionId) {
   const sheet = getSheet('presence');
-  if (sheet.getLastRow() === 0) sheet.appendRow(['session_id','name','last_seen']);
-  const rows    = sheet.getDataRange().getValues();
-  const hdrs    = rows[0];
+  const rows  = sheet.getDataRange().getValues();
+  const hdrs  = rows[0];
   const sidCol  = hdrs.indexOf('session_id') + 1;
   const nameCol = hdrs.indexOf('name') + 1;
   const seenCol = hdrs.indexOf('last_seen') + 1;

@@ -278,7 +278,18 @@ const TurfDraw = (() => {
         <span class="pop-count-label"> residential parcels found</span>
       </div>
       ${exclHtml}
-      <label class="f-label" style="margin-top:12px">Turf letter</label>
+      <label class="f-label" style="margin-top:12px">Turf mode</label>
+      <div class="mode-toggle-row">
+        <label class="mode-opt selected" id="mode-hanger">
+          <input type="radio" name="turf-mode" value="hanger" checked style="display:none"/>
+          🗂 Hanger Route
+        </label>
+        <label class="mode-opt" id="mode-doorknock">
+          <input type="radio" name="turf-mode" value="doorknock" style="display:none"/>
+          🚪 Door Knock
+        </label>
+      </div>
+      <label class="f-label" style="margin-top:8px">Turf letter</label>
       <input id="f-letter" class="f-input" type="text" maxlength="2" value="${nextLetter}" placeholder="A"/>
       <label class="f-label">Volunteer name (optional)</label>
       <input id="f-volunteer" class="f-input" type="text" placeholder="Volunteer name"/>
@@ -289,6 +300,7 @@ const TurfDraw = (() => {
       const volunteer = (document.getElementById('f-volunteer')?.value || '').trim();
       const color     = document.querySelector('.color-swatch.selected')?.dataset.color || colors[0];
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
+      const mode      = document.querySelector('input[name="turf-mode"]:checked')?.value || 'hanger';
 
       if (!letter) { UI.toast('Letter required', 'error'); return false; }
       if (turfs.some(t => t.letter === letter)) { UI.toast(`Turf ${letter} already exists`, 'error'); return false; }
@@ -296,12 +308,13 @@ const TurfDraw = (() => {
       const { residential } = ParcelsUtil.parcelsInPolygon(ring, inclComm);
       if (!residential.length) { UI.toast('No parcels found — try a different area', 'error'); return false; }
       const centroid     = ParcelsUtil.leafletRingCentroid(ring);
-      const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
+      const finalParcels = mode === 'hanger'
+        ? ParcelsUtil.walkOrder(residential, centroid)
+        : residential.slice().sort((a, b) => a.address.localeCompare(b.address));
 
-      _drawnLayers.addLayer(layer);
-      _turfLetters[_drawnLayers.getLayerId(layer)] = letter;
+      // Don't add layer to _drawnLayers here — let loadTurfs rebuild after save
       const geojson = layer.toGeoJSON().geometry;
-      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels });
+      App.createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels: finalParcels });
       return true;
     }, 'Create Turf');
   }
@@ -352,7 +365,9 @@ const TurfDraw = (() => {
     }
     if (!pt && withoutResult.length) pt = withoutResult[0];
 
-    const sorted = ParcelsUtil.walkOrder(withoutResult, pt || { lat: 32.972, lon: -96.978 });
+    const sorted = turf.mode === 'doorknock'
+      ? withoutResult.slice().sort((a, b) => a.address.localeCompare(b.address))
+      : ParcelsUtil.walkOrder(withoutResult, pt || { lat: 32.972, lon: -96.978 });
     App.reorderTurfHouses(letter, [...withResult, ...sorted]);
     UI.toast(`Turf ${letter} re-sorted ✓`, 'success');
   }

@@ -4,37 +4,38 @@ const MapModule = {
   map: null,
   turfPolygonGroup: null,
   houseGroup: null,
+  addressLabelGroup: null,
   houseMarkers: {},
   _legend: null,
   _gpsPanDone: false,
+  _labelZoomMin: 15,
 
   init() {
     this.map = L.map('map', { zoomControl: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
 
-    // Street (non-default, available in layer control)
     const street = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       { attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>', maxZoom: 20, subdomains: 'abcd' }
     );
-
-    // Aerial (default base layer)
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: '© Esri', maxZoom: 20, opacity: 0.6 }
     );
 
-    // Road labels pane — sits above markers
     this.map.createPane('labelsPane');
     this.map.getPane('labelsPane').style.zIndex = 650;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
 
-    // Carto labels overlay — on by default with aerial
     const labels = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
-    // Default: aerial + labels
+    // Address label pane — above tiles, below markers
+    this.map.createPane('addrPane');
+    this.map.getPane('addrPane').style.zIndex = 400;
+    this.map.getPane('addrPane').style.pointerEvents = 'none';
+
     satellite.addTo(this.map);
     labels.addTo(this.map);
 
@@ -46,11 +47,13 @@ const MapModule = {
 
     this.turfPolygonGroup = L.layerGroup().addTo(this.map);
     this.houseGroup       = L.layerGroup().addTo(this.map);
+    this.addressLabelGroup = L.layerGroup({ pane: 'addrPane' }).addTo(this.map);
 
     setTimeout(() => this.map.invalidateSize(), 100);
-
-    // Auto-pan to GPS on first load
     this._tryInitialGPS();
+
+    // Rebuild address labels on zoom
+    this.map.on('zoomend', () => this._renderAddressLabels());
   },
 
   _tryInitialGPS() {
@@ -60,6 +63,38 @@ const MapModule = {
       this._gpsPanDone = true;
       this.map.setView([pos.coords.latitude, pos.coords.longitude], Math.max(this.map.getZoom(), 16));
     }, () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
+  },
+
+  // ── Address labels from parcels.js — always on, zoom-gated ───────────────
+  _renderAddressLabels() {
+    this.addressLabelGroup.clearLayers();
+    if (typeof PARCELS_GEOJSON === 'undefined') return;
+    if (this.map.getZoom() < this._labelZoomMin) return;
+
+    const bounds = this.map.getBounds().pad(0.1); // slight padding beyond viewport
+
+    for (const f of PARCELS_GEOJSON.features) {
+      const addr2 = (f.properties.addr2 || '').trim();
+      if (!addr2) continue;
+      const num = addr2.match(/^(\d+)/)?.[1];
+      if (!num) continue;
+
+      const c = ParcelsUtil.featureCentroid(f);
+      if (!c) continue;
+      if (!bounds.contains([c.lat, c.lon])) continue;
+
+      L.marker([c.lat, c.lon], {
+        icon: L.divIcon({
+          html: `<div class="addr-label">${num}</div>`,
+          className: '',
+          iconSize: null,
+          iconAnchor: [0, -14],  // offset up so dot doesn't overlap
+        }),
+        pane: 'addrPane',
+        interactive: false,
+        zIndexOffset: -1000,
+      }).addTo(this.addressLabelGroup);
+    }
   },
 
   // ── Full render ───────────────────────────────────────────────────────────
@@ -72,6 +107,7 @@ const MapModule = {
       this._renderTurfPolygon(turf, color);
       turf.houses.forEach((house, idx) => this._renderHouse(house, turf, idx, color));
     });
+    this._renderAddressLabels();
     this._renderLegend();
   },
 
@@ -97,33 +133,30 @@ const MapModule = {
     } catch(e) {}
   },
 
-  // ── House marker — shows street number when unvisited ────────────────────
+  // ── House dot — blank, color = result status, shape = turf mode ──────────
   _renderHouse(house, turf, idx, color) {
-    const marker = this._makeMarker(house, idx);
+    const marker = this._makeMarker(house, turf);
     marker.on('click', () => this._openHousePopup(house, turf, color));
     marker.addTo(this.houseGroup);
     this.houseMarkers[house.id] = marker;
   },
 
-  _makeMarker(house, idx) {
+  _makeMarker(house, turf) {
     const result    = house.result || '';
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
+    const dotColor  = resultDef ? resultDef.color : '#6b7280';
     const isDone    = !!result;
+    const isDoorKnock = (turf?.mode || 'hanger') === 'doorknock';
 
-    // Always show street number — extract leading digits from address
-    const streetNum = (house.address || '').trim().match(/^(\d+)/)?.[1] || String(idx + 1);
+    // Circle = hanger, diamond = door knock
+    const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}`;
 
-    // Dot background: gray when unvisited, result color when visited
-    const dotColor = resultDef ? resultDef.color : '#6b7280';
-
-    // Ring (border) color: white when unvisited, bright white when done
-    // Result is communicated via dot background color — number always visible
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
-        html: `<div class="house-dot${isDone ? ' done' : ''}" style="--dc:${dotColor}">${_esc(streetNum)}</div>`,
+        html: `<div class="${cls}" style="--dc:${dotColor}"></div>`,
         className: '',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],  // centered on parcel centroid; addr label offset above
       }),
       zIndexOffset: isDone ? 0 : 100,
     });
@@ -133,7 +166,7 @@ const MapModule = {
     const old = this.houseMarkers[house.id];
     if (!old) return;
     const color   = turf.color || CONFIG.TURF_COLORS[0];
-    const updated = this._makeMarker(house, idx);
+    const updated = this._makeMarker(house, turf);
     updated.on('click', () => this._openHousePopup(house, turf, color));
     this.houseGroup.removeLayer(old);
     updated.addTo(this.houseGroup);
@@ -169,7 +202,7 @@ const MapModule = {
           onclick="MapModule._saveNotes('${house.id}',document.getElementById('pnotes-${house.id}').value)">Save</button>
       </div>
       <div class="popup-chips">
-        ${['Dog 🐕','Spanish 🗣️','Interested ✅','Voter reg 📋','Call back 📞'].map(c =>
+        ${['Kids in CISD 🏫','Talked 💬','Khanh Supporter ✕','Spanish 🗣️','Interested ✅'].map(c =>
           `<span class="note-chip" onclick="MapModule._appendChip('${house.id}',this.textContent)">${c}</span>`
         ).join('')}
       </div>`;
@@ -186,14 +219,18 @@ const MapModule = {
       ? `<button class="popup-clear-btn" onclick="MapModule._handlePopupResult('${house.id}','')">↩ Clear result</button>`
       : '';
 
+    const modeBadge = (turf.mode || 'hanger') === 'doorknock'
+      ? `<span class="mode-badge doorknock">Door Knock</span>`
+      : `<span class="mode-badge hanger">Hanger</span>`;
+
     const html = `
       <div class="house-popup">
         <div class="popup-header" style="border-color:${color}">
           <div class="popup-turf-badge" style="background:${color}">Turf ${_esc(turf.letter)}</div>
           <div class="popup-addr">
-            <div class="popup-name">${_esc(house.name || house.address)}</div>
-            ${house.name ? `<div class="popup-sub">${_esc(house.address)}</div>` : ''}
+            <div class="popup-name">${_esc(house.address)}</div>
             ${house.owner ? `<div class="popup-sub owner-line">${_esc(house.owner)}</div>` : ''}
+            ${modeBadge}
           </div>
         </div>
         ${statusHtml}
@@ -209,13 +246,8 @@ const MapModule = {
       .openOn(this.map);
   },
 
-  _handlePopupResult(houseId, resultKey) {
-    this.map.closePopup();
-    App.setResult(houseId, resultKey);
-  },
-
+  _handlePopupResult(houseId, resultKey) { this.map.closePopup(); App.setResult(houseId, resultKey); },
   _saveNotes(houseId, notes) { App.saveNotes(houseId, notes); UI.toast('Notes saved'); },
-
   _appendChip(houseId, chip) {
     const inp = document.getElementById('pnotes-' + houseId);
     if (!inp) return;
@@ -239,6 +271,10 @@ const MapModule = {
         `<div class="legend-row">
           <span class="legend-dot" style="background:#9ca3af"></span>
           <span class="legend-label">Not visited</span>
+         </div>
+         <div class="legend-row" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1)">
+           <span class="legend-dot" style="border-radius:3px;background:#6b7280"></span>
+           <span class="legend-label">◆ Door Knock</span>
          </div>`;
       L.DomEvent.disableClickPropagation(div);
       return div;

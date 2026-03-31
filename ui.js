@@ -3,6 +3,7 @@
 const UI = {
   isAdmin:      false,
   currentUser:  '',
+  userMode:     'hanger',   // 'hanger' or 'doorknock' — set at login for non-admins
   turfFilter:   null,
   resultFilter: null,
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
@@ -17,6 +18,7 @@ const UI = {
     if (saved) {
       this.currentUser = saved.name;
       this.isAdmin     = saved.isAdmin;
+      this.userMode    = saved.userMode || 'hanger';
       this._postLogin();
     } else {
       this._showLoginModal();
@@ -24,8 +26,8 @@ const UI = {
   },
 
   // ── Login persistence ─────────────────────────────────────────────────────
-  _saveLogin(name, isAdmin) {
-    localStorage.setItem('ck_user', JSON.stringify({ name, isAdmin }));
+  _saveLogin(name, isAdmin, userMode) {
+    localStorage.setItem('ck_user', JSON.stringify({ name, isAdmin, userMode: userMode || 'hanger' }));
   },
   _loadSavedLogin() {
     try { return JSON.parse(localStorage.getItem('ck_user') || 'null'); } catch(e) { return null; }
@@ -84,6 +86,17 @@ const UI = {
           <label class="login-label" id="pw-label" style="display:none">Admin password</label>
           <input id="login-pw" class="login-input" type="password" placeholder="Password" style="display:none" autocomplete="off"/>
           <button class="login-admin-toggle" id="admin-toggle" onclick="UI._toggleAdminLogin()">🔒 Admin login</button>
+          <div id="login-mode-row" class="login-mode-row">
+            <div class="login-mode-label">I'm here to:</div>
+            <div class="mode-toggle-row">
+              <label class="mode-opt selected" id="lmode-hanger" onclick="UI._setLoginMode('hanger')">
+                🗂 Drop Hangers
+              </label>
+              <label class="mode-opt" id="lmode-doorknock" onclick="UI._setLoginMode('doorknock')">
+                🚪 Door Knock
+              </label>
+            </div>
+          </div>
           <button class="login-btn" onclick="UI._submitLogin()">Enter</button>
           <div id="login-error" class="login-error"></div>
         </div>
@@ -94,14 +107,24 @@ const UI = {
     document.getElementById('login-pw')?.addEventListener('keydown',   e => { if (e.key === 'Enter') this._submitLogin(); });
   },
 
+  _setLoginMode(mode) {
+    this._pendingMode = mode;
+    document.getElementById('lmode-hanger')?.classList.toggle('selected', mode === 'hanger');
+    document.getElementById('lmode-doorknock')?.classList.toggle('selected', mode === 'doorknock');
+  },
+
+  _pendingMode: 'hanger',
+
   _toggleAdminLogin() {
-    const pwLabel = document.getElementById('pw-label');
-    const pwInput = document.getElementById('login-pw');
-    const toggle  = document.getElementById('admin-toggle');
-    const show    = pwInput.style.display === 'none';
-    pwLabel.style.display = show ? 'block' : 'none';
-    pwInput.style.display = show ? 'block' : 'none';
-    toggle.textContent    = show ? '← Back to field login' : '🔒 Admin login';
+    const pwLabel  = document.getElementById('pw-label');
+    const pwInput  = document.getElementById('login-pw');
+    const toggle   = document.getElementById('admin-toggle');
+    const modeRow  = document.getElementById('login-mode-row');
+    const show     = pwInput.style.display === 'none';
+    pwLabel.style.display  = show ? 'block' : 'none';
+    pwInput.style.display  = show ? 'block' : 'none';
+    if (modeRow) modeRow.style.display = show ? 'none' : 'flex';
+    toggle.textContent     = show ? '← Back to field login' : '🔒 Admin login';
     if (show) setTimeout(() => pwInput.focus(), 50);
   },
 
@@ -114,7 +137,8 @@ const UI = {
       this.isAdmin = true;
     }
     this.currentUser = name;
-    this._saveLogin(name, this.isAdmin);
+    this.userMode    = this.isAdmin ? 'all' : (this._pendingMode || 'hanger');
+    this._saveLogin(name, this.isAdmin, this.userMode);
     document.getElementById('login-overlay')?.remove();
     this._postLogin();
   },
@@ -222,7 +246,9 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    const filtered = this.turfFilter ? turfs.filter(t => t.letter === this.turfFilter) : turfs;
+    // Non-admins only see turfs matching their mode
+    const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
+    const filtered = this.turfFilter ? modeFiltered.filter(t => t.letter === this.turfFilter) : modeFiltered;
 
     if (!filtered.length) {
       list.innerHTML = `<div class="sb-empty">${this.isAdmin ? 'No turfs yet. Use <strong>✏️ Draw Turf</strong> to create one.' : 'No data loaded.'}</div>`;
@@ -381,12 +407,18 @@ const UI = {
     this._modal(`Edit Turf ${letter}`, `
       <label class="f-label">Volunteer</label>
       <input id="f-volunteer" class="f-input" type="text" value="${_esc(turf.volunteer === '[UNASSIGNED]' ? '' : turf.volunteer)}" placeholder="Volunteer name"/>
+      <label class="f-label">Mode</label>
+      <div class="mode-toggle-row">
+        <label class="mode-opt${(turf.mode||'hanger')==='hanger' ? ' selected' : ''}" id="emode-hanger" onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">🗂 Hanger</label>
+        <label class="mode-opt${(turf.mode||'hanger')==='doorknock' ? ' selected' : ''}" id="emode-doorknock" onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">🚪 Door Knock</label>
+      </div>
       <label class="f-label">Color</label>
       <div class="color-row">${colorOpts}</div>
     `, () => {
       const volunteer = (document.getElementById('f-volunteer')?.value || '').trim() || '[UNASSIGNED]';
       const color     = document.querySelector('.color-swatch.selected')?.dataset.color || turf.color;
-      App.updateTurf(letter, { volunteer, color });
+      const mode      = document.getElementById('emode-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
+      App.updateTurf(letter, { volunteer, color, mode });
       return true;
     });
   },

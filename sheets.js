@@ -14,7 +14,7 @@ const SheetsAPI = {
   updateHouse(id, fields)               { return this._call({ action: 'updateHouse', id, fields }); },
   setResult(id, result, result_by)      { return this._call({ action: 'setResult', id, result, result_by }); },
   clearResult(id)                       { return this._call({ action: 'clearResult', id }); },
-  addTurf(letter, color, volunteer)     { return this._call({ action: 'addTurf', letter, color, volunteer }); },
+  addTurf(letter, color, volunteer, mode) { return this._call({ action: 'addTurf', letter, color, volunteer, mode }); },
   deleteTurf(letter)                    { return this._call({ action: 'deleteTurf', letter }); },
   updateTurf(letter, fields)            { return this._call({ action: 'updateTurf', letter, fields }); },
   saveTurfPolygon(letter, geojson)      { return this._call({ action: 'saveTurfPolygon', letter, geojson }); },

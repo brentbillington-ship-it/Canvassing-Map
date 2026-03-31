@@ -89,7 +89,6 @@ const UI = {
       </div>
       <div id="turf-list"></div>`;
   },
-  },
 
   // ── Login modal ─────────────────────────────────────────────────────────────
   _showLoginModal() {

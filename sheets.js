@@ -22,4 +22,7 @@ const SheetsAPI = {
   bulkImport(turfs)                     { return this._call({ action: 'bulkImport', turfs }); },
   heartbeat(name, sessionId)            { return this._call({ action: 'heartbeat', name, sessionId }); },
   getPresence()                         { return this._call({ action: 'getPresence' }); },
+  sendChat(name, sessionId, message)    { return this._call({ action: 'sendChat', name, sessionId, message }); },
+  getChat(since)                        { return this._call({ action: 'getChat', since: since || 0 }); },
+  logLogin(name, sessionId, mode)       { return this._call({ action: 'logLogin', name, sessionId, mode }); },
 };

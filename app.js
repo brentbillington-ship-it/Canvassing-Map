@@ -7,6 +7,7 @@ const App = {
   _presenceTimer: null,
   _lastHash: '',
   _flushing: false,
+  _writeLock: {},   // houseId → expiry timestamp
 
   async init() {
     MapModule.init();
@@ -16,6 +17,7 @@ const App = {
     this._showLoadingOverlay(false);
     this._startTimers();
     this._flushQueue();
+    UI.startChatPoll();
     window.addEventListener('online',  () => { UI.setOffline(false); this._flushQueue(); });
     window.addEventListener('offline', () => UI.setOffline(true));
     window.addEventListener('focus',   () => this._flushQueue());
@@ -55,6 +57,7 @@ const App = {
     UI.renderSidebar(turfs);
     MapModule.renderAll(turfs);
     TurfDraw.loadTurfs(this.state.turfs);
+    UI.checkZoneCompletion(this.state.turfs);
   },
 
   _visibleTurfs() {
@@ -79,6 +82,20 @@ const App = {
       const hash = JSON.stringify(data.turfs.map(t => t.houses.map(h => h.result + h.result_by + h.notes)));
       if (hash === this._lastHash) return;
       this._lastHash   = hash;
+      // Apply write lock — don't overwrite recently-set local results
+      const now = Date.now();
+      data.turfs.forEach(turf => {
+        turf.houses.forEach(house => {
+          if (this._writeLock[house.id] && this._writeLock[house.id] > now) {
+            const local = this._findHouse(house.id);
+            if (local.house) {
+              house.result      = local.house.result;
+              house.result_by   = local.house.result_by;
+              house.result_date = local.house.result_date;
+            }
+          }
+        });
+      });
       this.state.turfs = data.turfs;
       this.render();
       TurfDraw.loadTurfs(data.turfs);
@@ -120,9 +137,14 @@ const App = {
     if (!house) return;
     house.result    = resultKey;
     house.result_by = UI.currentUser;
+    house.result_date = new Date().toISOString();
+    // Lock this house for 10s to prevent silent refresh overwrite
+    this._writeLock[houseId] = Date.now() + 10000;
     MapModule.updateHouseMarker(house, turf, idx);
     UI.renderSidebar(this._visibleTurfs());
     UI.updateStats(this.state.turfs);
+    UI.updateNextDoor();
+    UI.setSyncStatus('syncing');
 
     const item = { _qid: this._newQid(), id: houseId, result: resultKey, by: UI.currentUser };
     this._offlineQueue.push(item);
@@ -135,9 +157,27 @@ const App = {
       if (res.error) throw new Error(res.error);
       this._offlineQueue = this._offlineQueue.filter(q => q._qid !== item._qid);
       this._saveQueue();
+      UI.setSyncStatus('ok');
       const icon = CONFIG.RESULTS.find(r => r.key === resultKey)?.icon || '';
       UI.toast(resultKey ? `${icon} Saved` : 'Result cleared', 'success');
-    } catch(e) { UI.toast('Saved locally — will sync when online', 'info'); }
+    } catch(e) {
+      UI.setSyncStatus('error');
+      UI.toast('Saved locally — will sync when online', 'info');
+    }
+  },
+
+  async clearTurfHouses(letter) {
+    const turf = this.state.turfs.find(t => t.letter === letter);
+    if (!turf) return;
+    UI.toast('Clearing houses…', 'info');
+    try {
+      for (const h of turf.houses) {
+        await SheetsAPI.removeHouse(h.id);
+      }
+      turf.houses = [];
+      this.render();
+      UI.toast(`Turf ${letter} cleared ✓`, 'success');
+    } catch(e) { UI.toast('Failed to clear some houses', 'error'); }
   },
 
   async saveNotes(houseId, notes) {
@@ -153,8 +193,8 @@ const App = {
       const turf = this.state.turfs.find(t => t.letter === letter);
       if (turf) Object.assign(turf, fields);
       this.render();
-      UI.toast(`Turf ${letter} updated`, 'success');
-    } catch(e) { UI.toast('Failed to update turf', 'error'); }
+      UI.toast(`Zone ${letter} updated`, 'success');
+    } catch(e) { UI.toast('Failed to update zone', 'error'); }
   },
 
   async deleteTurf(letter) {
@@ -164,8 +204,8 @@ const App = {
       this.state.turfs = this.state.turfs.filter(t => t.letter !== letter);
       TurfDraw.removeTurfLayer(letter);
       this.render();
-      UI.toast(`Turf ${letter} deleted`);
-    } catch(e) { UI.toast('Failed to delete turf', 'error'); }
+      UI.toast(`Zone ${letter} deleted`);
+    } catch(e) { UI.toast('Failed to delete zone', 'error'); }
   },
 
   async saveTurfPolygon(letter, geojson) {
@@ -189,7 +229,7 @@ const App = {
 
   // ── Create turf from draw (new) ───────────────────────────────────────────
   async createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels }) {
-    UI.toast('Creating turf…', 'info');
+    App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
     try {
       const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]', mode || 'hanger');
       if (tRes.error) { UI.toast(tRes.error, 'error'); return; }
@@ -199,8 +239,18 @@ const App = {
         await SheetsAPI.bulkImport([{ letter, color, volunteer: volunteer || '[UNASSIGNED]', mode: mode || 'hanger', houses }]);
       }
       await this.loadData();
-      UI.toast(`Turf ${letter} created with ${parcels.length} houses ✓`, 'success');
-    } catch(e) { UI.toast('Failed to create turf', 'error'); console.error(e); }
+      UI.toast(`Zone ${letter} created with ${parcels.length} houses ✓`, 'success');
+    } catch(e) { UI.toast('Failed to create zone', 'error'); console.error(e); }
+    finally { App._showCreatingOverlay(false); }
+  },
+
+  _showCreatingOverlay(show, msg = 'Working…') {
+    document.getElementById('creating-overlay')?.remove();
+    if (!show) return;
+    const el = document.createElement('div');
+    el.id = 'creating-overlay';
+    el.innerHTML = `<div class="creating-spinner"></div><div class="creating-text">${msg}</div>`;
+    document.getElementById('map-wrap')?.appendChild(el);
   },
 
   // ── Update turf boundary (edit) ────────────────────────────────────────────

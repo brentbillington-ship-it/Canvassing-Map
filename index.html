@@ -6,7 +6,8 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <title>Chaka Door Canvass</title>
+  <title>Chaka Canvassing</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
   <link rel="stylesheet" href="style.css"/>
@@ -14,12 +15,25 @@
 <body>
   <div id="offline-banner"></div>
   <div id="header"></div>
+  <div id="sync-bar"></div>
   <div class="container">
     <div id="map-wrap"><div id="map"></div></div>
     <div id="sidebar"></div>
   </div>
+  <div id="chat-panel" class="chat-panel">
+    <div class="chat-header">
+      <span>💬 Team Chat</span>
+      <button class="chat-close-btn" onclick="ChatModule.close()">✕</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" class="chat-input" type="text" placeholder="Message the team…" maxlength="300"
+        onkeydown="if(event.key==='Enter')ChatModule.send()"/>
+      <button class="chat-send-btn" onclick="ChatModule.send()">Send</button>
+    </div>
+  </div>
   <div id="toast-container"></div>
-  <div class="app-footer">By Brent Billington for Chaka Campaign &middot; v4.0</div>
+  <div class="app-footer">By Brent Billington for Chaka Campaign &middot; v4.6</div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -27,6 +41,7 @@
   <!-- Parcel data + utils must load before app modules -->
   <script src="parcels.js"></script>
   <script src="parcels_utils.js"></script>
+  <script src="cisd_boundary.js"></script>
 
   <!-- App modules -->
   <script src="config.js"></script>

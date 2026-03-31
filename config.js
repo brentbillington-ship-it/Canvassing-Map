@@ -18,13 +18,21 @@ const CONFIG = {
   ],
 
   // Contact result definitions — drives markers, buttons, legend, and stats
+  // Group 1: hanger workflow. Group 2: door knock workflow (divided in legend)
   RESULTS: [
-    { key: 'knocked',  label: 'Knocked',     short: 'KN', icon: '✊', color: '#2d9e5f', bg: '#e6f7ee' },
     { key: 'hanger',   label: 'Hanger Left', short: 'HG', icon: '📬', color: '#2d9e5f', bg: '#e6f7ee' },
+    { key: 'skip',     label: 'Skip',         short: 'SK', icon: '⤭',  color: '#1f2937', bg: '#f0f1f3' },
+    { key: 'knocked',  label: 'Knocked',      short: 'KN', icon: '✊', color: '#2e6ec2', bg: '#e8f0fc' },
     { key: 'not_home', label: 'Not Home',     short: 'NH', icon: '🚪', color: '#c9831a', bg: '#fdf3e3' },
     { key: 'refused',  label: 'Refused',      short: 'RF', icon: '⛔', color: '#c44848', bg: '#fde8e8' },
-    { key: 'skip',     label: 'Skip',         short: 'SK', icon: '⤭',  color: '#1f2937', bg: '#f0f1f3' },
+    { key: 'moved',    label: 'Moved/Wrong',  short: 'MV', icon: '📦', color: '#7c4dcc', bg: '#f3eeff' },
   ],
+
+  // Legend grouping: keys before divider = group 1, after = group 2
+  LEGEND_DIVIDER_AFTER: 'skip',
+
+  // Talking points shown in house popup — update with your actual script
+  CANVASS_SCRIPT: `Hi, I'm a neighbor volunteering for Kevin Chaka, who's running for Coppell ISD Place 5 School Board. We're focused on keeping our schools excellent and fiscally responsible. Do you have a moment to hear more?`,
 
   REFRESH_INTERVAL: 15000,
   PRESENCE_TIMEOUT: 90000,

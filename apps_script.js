@@ -8,21 +8,14 @@
  *  ✅ Same URL — no config.js change needed
  * ─────────────────────────────────────────────────────────────
  *
- * Chaka Door Canvass — Google Sheets Backend v4.3
+ * Chaka Door Canvass — Google Sheets Backend v4.6
  *
  *  "houses"   — id | turf | owner | address | lat | lon | notes |
  *               result | result_date | result_by | sort_order
- *
  *  "turfs"    — letter | color | volunteer | mode | polygon_geojson | created_date
- *
  *  "presence" — session_id | name | last_seen
- *
- * ── EXISTING SHEET MIGRATION ──────────────────────────────────
- * If you already have a houses sheet, add these columns manually:
- *   • Insert a column after "name" → header: owner
- * If you already have a turfs sheet, add:
- *   • Insert a column after "volunteer" → header: mode
- * ─────────────────────────────────────────────────────────────
+ *  "logins"   — timestamp | name | mode | session_id
+ *  "chat"     — id | timestamp | name | session_id | message
  */
 
 function doGet(e) {
@@ -54,8 +47,15 @@ function handleAction(data) {
       case 'saveTurfPolygon': return json(saveTurfPolygon(data.letter, data.geojson));
       case 'reorderHouses':   return json(reorderHouses(data.turf, data.order));
       case 'bulkImport':      return json(bulkImport(data.turfs));
+      case 'clearTurf':       return json(clearTurf(data.letter));
       case 'heartbeat':       return json(heartbeat(data.name, data.sessionId));
       case 'getPresence':     return json(getPresence());
+      case 'logLogin':        return json(logLogin(data.name, data.mode, data.sessionId));
+      case 'getLogins':       return json(getLogins());
+      case 'sendChat':        return json(sendChat(data.name, data.sessionId, data.message));
+      case 'getChat':         return json(getChat(data.since));
+      case 'getLeaderboard':  return json(getLeaderboard());
+      case 'exportCSV':       return json(exportCSV());
       default:                return json({ error: 'Unknown action: ' + data.action });
     }
   } catch (err) { return json({ error: err.toString() }); }
@@ -73,13 +73,11 @@ function getSheet(name) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    if (name === 'houses') {
-      sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order']);
-    } else if (name === 'turfs') {
-      sheet.appendRow(['letter','color','volunteer','mode','polygon_geojson','created_date']);
-    } else if (name === 'presence') {
-      sheet.appendRow(['session_id','name','last_seen']);
-    }
+    if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order']);
+    else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','polygon_geojson','created_date']);
+    else if (name === 'presence') sheet.appendRow(['session_id','name','last_seen']);
+    else if (name === 'logins')   sheet.appendRow(['timestamp','name','mode','session_id']);
+    else if (name === 'chat')     sheet.appendRow(['id','timestamp','name','session_id','message']);
   }
   return sheet;
 }
@@ -100,7 +98,6 @@ function sheetToObjects(sheet) {
 function getAllData() {
   const housesData = sheetToObjects(getSheet('houses'));
   const turfsData  = sheetToObjects(getSheet('turfs'));
-
   const turfs = turfsData.map(t => ({
     letter:          t.letter,
     color:           t.color || '',
@@ -111,19 +108,13 @@ function getAllData() {
       .filter(h => h.turf === t.letter)
       .sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0))
       .map(h => ({
-        id:          h.id,
-        owner:       h.owner || '',
-        address:     h.address || '',
-        lat:         parseFloat(h.lat),
-        lon:         parseFloat(h.lon),
-        notes:       h.notes || '',
-        result:      h.result || '',
-        result_date: h.result_date || '',
-        result_by:   h.result_by || '',
-        sort_order:  parseInt(h.sort_order) || 0
+        id: h.id, owner: h.owner || '', address: h.address || '',
+        lat: parseFloat(h.lat), lon: parseFloat(h.lon),
+        notes: h.notes || '', result: h.result || '',
+        result_date: h.result_date || '', result_by: h.result_by || '',
+        sort_order: parseInt(h.sort_order) || 0
       }))
   }));
-
   return { turfs, timestamp: new Date().toISOString() };
 }
 
@@ -132,17 +123,11 @@ function getAllData() {
 function addHouse(house) {
   const sheet = getSheet('houses');
   const all   = sheetToObjects(sheet);
-  const maxOrder = all
-    .filter(h => h.turf === house.turf)
+  const maxOrder = all.filter(h => h.turf === house.turf)
     .reduce((max, h) => Math.max(max, parseInt(h.sort_order) || 0), 0);
   const id = uid();
-  sheet.appendRow([
-    id, house.turf || 'A',
-    house.owner || '', house.address || '',
-    house.lat   || 0,  house.lon     || 0,
-    house.notes || '', '', '', '',
-    maxOrder + 1
-  ]);
+  sheet.appendRow([id, house.turf||'A', house.owner||'', house.address||'',
+    house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder + 1]);
   SpreadsheetApp.flush();
   return { success: true, id };
 }
@@ -151,59 +136,49 @@ function removeHouse(id) {
   const sheet = getSheet('houses');
   const data  = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(id)) {
-      sheet.deleteRow(i + 1);
-      SpreadsheetApp.flush();
-      return { success: true };
-    }
+    if (String(data[i][0]) === String(id)) { sheet.deleteRow(i + 1); SpreadsheetApp.flush(); return { success: true }; }
   }
   return { error: 'House not found: ' + id };
 }
 
 function updateHouse(id, fields) {
-  const sheet   = getSheet('houses');
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const sheet = getSheet('houses');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
-      for (const [key, value] of Object.entries(fields)) {
-        const col = headers.indexOf(key);
-        if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(value);
-      }
-      SpreadsheetApp.flush();
-      return { success: true };
+      for (const [k, v] of Object.entries(fields)) { const c = hdrs.indexOf(k); if (c >= 0) sheet.getRange(i+1,c+1).setValue(v); }
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
   return { error: 'House not found: ' + id };
 }
 
 function setResult(id, result, resultBy) {
-  const sheet   = getSheet('houses');
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const sheet = getSheet('houses');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
-      sheet.getRange(i + 1, headers.indexOf('result')      + 1).setValue(result);
-      sheet.getRange(i + 1, headers.indexOf('result_date') + 1).setValue(new Date().toISOString());
-      sheet.getRange(i + 1, headers.indexOf('result_by')   + 1).setValue(resultBy || '');
-      SpreadsheetApp.flush();
-      return { success: true };
+      sheet.getRange(i+1, hdrs.indexOf('result')+1).setValue(result);
+      sheet.getRange(i+1, hdrs.indexOf('result_date')+1).setValue(new Date().toISOString());
+      sheet.getRange(i+1, hdrs.indexOf('result_by')+1).setValue(resultBy||'');
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
   return { error: 'House not found: ' + id };
 }
 
 function clearResult(id) {
-  const sheet   = getSheet('houses');
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const sheet = getSheet('houses');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
-      sheet.getRange(i + 1, headers.indexOf('result')      + 1).setValue('');
-      sheet.getRange(i + 1, headers.indexOf('result_date') + 1).setValue('');
-      sheet.getRange(i + 1, headers.indexOf('result_by')   + 1).setValue('');
-      SpreadsheetApp.flush();
-      return { success: true };
+      sheet.getRange(i+1, hdrs.indexOf('result')+1).setValue('');
+      sheet.getRange(i+1, hdrs.indexOf('result_date')+1).setValue('');
+      sheet.getRange(i+1, hdrs.indexOf('result_by')+1).setValue('');
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
   return { error: 'House not found: ' + id };
@@ -216,14 +191,25 @@ function reorderHouses(turfLetter, orderIds) {
   const sortCol = headers.indexOf('sort_order');
   orderIds.forEach((id, idx) => {
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(id)) {
-        sheet.getRange(i + 1, sortCol + 1).setValue(idx + 1);
-        break;
-      }
+      if (String(data[i][0]) === String(id)) { sheet.getRange(i+1, sortCol+1).setValue(idx+1); break; }
     }
   });
   SpreadsheetApp.flush();
   return { success: true };
+}
+
+// ─── Clear Turf Houses ────────────────────────────────────────────────────────
+
+function clearTurf(letter) {
+  const sheet = getSheet('houses');
+  const data  = sheet.getDataRange().getValues();
+  const toDelete = [];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]) === String(letter)) toDelete.push(i + 1);
+  }
+  for (let i = toDelete.length - 1; i >= 0; i--) sheet.deleteRow(toDelete[i]);
+  SpreadsheetApp.flush();
+  return { success: true, deleted: toDelete.length };
 }
 
 // ─── Turf CRUD ────────────────────────────────────────────────────────────────
@@ -232,108 +218,79 @@ function addTurf(letter, color, volunteer, mode) {
   const sheet    = getSheet('turfs');
   const existing = sheetToObjects(sheet);
   if (existing.some(t => t.letter === letter)) return { error: 'Turf ' + letter + ' already exists' };
-  sheet.appendRow([letter, color || '', volunteer || '[UNASSIGNED]', mode || 'hanger', '', new Date().toISOString()]);
+  sheet.appendRow([letter, color||'', volunteer||'[UNASSIGNED]', mode||'hanger', '', new Date().toISOString()]);
   SpreadsheetApp.flush();
   return { success: true };
 }
 
 function deleteTurf(letter) {
   const houses = sheetToObjects(getSheet('houses'));
-  if (houses.some(h => h.turf === letter)) {
-    return { error: 'Cannot delete turf ' + letter + ' — remove its houses first.' };
-  }
+  if (houses.some(h => h.turf === letter)) return { error: 'Cannot delete turf ' + letter + ' — remove its houses first.' };
   const sheet = getSheet('turfs');
   const data  = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === letter) {
-      sheet.deleteRow(i + 1);
-      SpreadsheetApp.flush();
-      return { success: true };
-    }
+    if (data[i][0] === letter) { sheet.deleteRow(i+1); SpreadsheetApp.flush(); return { success: true }; }
   }
   return { error: 'Turf not found: ' + letter };
 }
 
 function updateTurf(letter, fields) {
-  const sheet   = getSheet('turfs');
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
+  const sheet = getSheet('turfs');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === letter) {
-      for (const [key, value] of Object.entries(fields)) {
-        const col = headers.indexOf(key);
-        if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(value);
-      }
-      SpreadsheetApp.flush();
-      return { success: true };
+      for (const [k, v] of Object.entries(fields)) { const c = hdrs.indexOf(k); if (c >= 0) sheet.getRange(i+1,c+1).setValue(v); }
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
   return { error: 'Turf not found: ' + letter };
 }
 
 function saveTurfPolygon(letter, geojson) {
-  const sheet   = getSheet('turfs');
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const col     = headers.indexOf('polygon_geojson') + 1;
+  const sheet = getSheet('turfs');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
+  const col   = hdrs.indexOf('polygon_geojson') + 1;
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === letter) {
-      sheet.getRange(i + 1, col).setValue(geojson ? JSON.stringify(geojson) : '');
-      SpreadsheetApp.flush();
-      return { success: true };
+      sheet.getRange(i+1, col).setValue(geojson ? JSON.stringify(geojson) : '');
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
   return { error: 'Turf not found: ' + letter };
 }
 
 // ─── Bulk Import ──────────────────────────────────────────────────────────────
-// Additive — does NOT wipe existing data. Skips turfs that already exist.
 
 function bulkImport(turfs) {
-  const housesSheet = getSheet('houses');
-  const turfsSheet  = getSheet('turfs');
+  const housesSheet    = getSheet('houses');
+  const turfsSheet     = getSheet('turfs');
   const existingTurfs  = sheetToObjects(turfsSheet).map(t => t.letter);
   const existingHouses = sheetToObjects(housesSheet);
   const defaultColors  = ['#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#7c4dcc','#c4487a','#1a9e9e','#c27a1a'];
-
   let addedTurfs = 0, addedHouses = 0;
 
   turfs.forEach((turf, ti) => {
-    // Add turf row if not already present
     if (!existingTurfs.includes(turf.letter)) {
-      turfsSheet.appendRow([
-        turf.letter,
-        turf.color || defaultColors[ti % defaultColors.length],
-        turf.volunteer || '[UNASSIGNED]',
-        turf.mode || 'hanger',
-        turf.polygon_geojson ? JSON.stringify(turf.polygon_geojson) : '',
-        new Date().toISOString()
-      ]);
+      turfsSheet.appendRow([turf.letter, turf.color||defaultColors[ti%defaultColors.length],
+        turf.volunteer||'[UNASSIGNED]', turf.mode||'hanger',
+        turf.polygon_geojson ? JSON.stringify(turf.polygon_geojson) : '', new Date().toISOString()]);
       addedTurfs++;
     }
-
-    // Find max sort order for this turf
-    const turfHouses = existingHouses.filter(h => h.turf === turf.letter);
-    let maxOrder = turfHouses.reduce((max, h) => Math.max(max, parseInt(h.sort_order) || 0), 0);
-
-    // Add houses (skip duplicates by address)
-    const existingAddrs = new Set(turfHouses.map(h => (h.address || '').toUpperCase().trim()));
-    (turf.houses || []).forEach(house => {
-      const addrKey = (house.address || '').toUpperCase().trim();
+    const turfHouses    = existingHouses.filter(h => h.turf === turf.letter);
+    let maxOrder        = turfHouses.reduce((max, h) => Math.max(max, parseInt(h.sort_order)||0), 0);
+    const existingAddrs = new Set(turfHouses.map(h => (h.address||'').toUpperCase().trim()));
+    (turf.houses||[]).forEach(house => {
+      const addrKey = (house.address||'').toUpperCase().trim();
       if (existingAddrs.has(addrKey)) return;
       existingAddrs.add(addrKey);
       maxOrder++;
-      housesSheet.appendRow([
-        uid(), turf.letter,
-        house.owner || '', house.address || '',
-        house.lat   || 0,  house.lon     || 0,
-        house.notes || '', '', '', '',
-        maxOrder
-      ]);
+      housesSheet.appendRow([uid(), turf.letter, house.owner||'', house.address||'',
+        house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder]);
       addedHouses++;
     });
   });
-
   SpreadsheetApp.flush();
   return { success: true, turfs: addedTurfs, houses: addedHouses };
 }
@@ -344,21 +301,17 @@ function heartbeat(name, sessionId) {
   const sheet = getSheet('presence');
   const rows  = sheet.getDataRange().getValues();
   const hdrs  = rows[0];
-  const sidCol  = hdrs.indexOf('session_id') + 1;
-  const nameCol = hdrs.indexOf('name') + 1;
-  const seenCol = hdrs.indexOf('last_seen') + 1;
-  const now     = new Date().toISOString();
+  const sidCol = hdrs.indexOf('session_id')+1, nameCol = hdrs.indexOf('name')+1, seenCol = hdrs.indexOf('last_seen')+1;
+  const now   = new Date().toISOString();
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][sidCol - 1]) === String(sessionId)) {
-      sheet.getRange(i + 1, nameCol).setValue(name || 'Unknown');
-      sheet.getRange(i + 1, seenCol).setValue(now);
-      SpreadsheetApp.flush();
-      return { success: true };
+    if (String(rows[i][sidCol-1]) === String(sessionId)) {
+      sheet.getRange(i+1,nameCol).setValue(name||'Unknown');
+      sheet.getRange(i+1,seenCol).setValue(now);
+      SpreadsheetApp.flush(); return { success: true };
     }
   }
-  sheet.appendRow([sessionId, name || 'Unknown', now]);
-  SpreadsheetApp.flush();
-  return { success: true };
+  sheet.appendRow([sessionId, name||'Unknown', now]);
+  SpreadsheetApp.flush(); return { success: true };
 }
 
 function getPresence() {
@@ -366,12 +319,109 @@ function getPresence() {
   if (sheet.getLastRow() < 2) return { users: [] };
   const rows    = sheet.getDataRange().getValues();
   const hdrs    = rows[0];
-  const sidCol  = hdrs.indexOf('session_id');
-  const nameCol = hdrs.indexOf('name');
-  const seenCol = hdrs.indexOf('last_seen');
+  const sidCol  = hdrs.indexOf('session_id'), nameCol = hdrs.indexOf('name'), seenCol = hdrs.indexOf('last_seen');
   const cutoff  = Date.now() - 90000;
   const users   = rows.slice(1)
     .filter(r => r[seenCol] && new Date(r[seenCol]).getTime() >= cutoff)
-    .map(r => ({ sessionId: String(r[sidCol]), name: r[nameCol] || 'Unknown', last_seen: r[seenCol] }));
+    .map(r => ({ sessionId: String(r[sidCol]), name: r[nameCol]||'Unknown', last_seen: r[seenCol] }));
   return { users };
+}
+
+// ─── Login Log ────────────────────────────────────────────────────────────────
+
+function logLogin(name, mode, sessionId) {
+  const sheet = getSheet('logins');
+  sheet.appendRow([new Date().toISOString(), name||'Unknown', mode||'hanger', sessionId||'']);
+  SpreadsheetApp.flush();
+  return { success: true };
+}
+
+function getLogins() {
+  const sheet = getSheet('logins');
+  if (sheet.getLastRow() < 2) return { logins: [] };
+  const rows = sheet.getDataRange().getValues();
+  const hdrs = rows[0];
+  return { logins: rows.slice(1).map(r => { const o={}; hdrs.forEach((h,i)=>{ o[h]=r[i]; }); return o; }).filter(r=>r.timestamp) };
+}
+
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+function sendChat(name, sessionId, message) {
+  if (!message || !message.trim()) return { error: 'Empty message' };
+  const sheet = getSheet('chat');
+  const id = uid(), now = new Date().toISOString();
+  sheet.appendRow([id, now, name||'Unknown', sessionId||'', message.trim()]);
+  SpreadsheetApp.flush();
+  return { success: true, id, timestamp: now };
+}
+
+function getChat(since) {
+  const sheet = getSheet('chat');
+  if (sheet.getLastRow() < 2) return { messages: [] };
+  const rows   = sheet.getDataRange().getValues();
+  const hdrs   = rows[0];
+  const cutoff = since ? new Date(since).getTime() : 0;
+  const messages = rows.slice(1)
+    .map(r => { const o={}; hdrs.forEach((h,i)=>{ o[h]=r[i]; }); return o; })
+    .filter(m => m.id && m.timestamp && (!since || new Date(m.timestamp).getTime() > cutoff))
+    .map(m => ({ id:String(m.id), timestamp:String(m.timestamp), name:String(m.name),
+                 sessionId:String(m.session_id), message:String(m.message) }));
+  return { messages: messages.slice(-200) };
+}
+
+// ─── Leaderboard ──────────────────────────────────────────────────────────────
+
+function getLeaderboard() {
+  const houses = sheetToObjects(getSheet('houses'));
+  // Today in CT
+  const ctNow    = new Date(Date.now() + (-6 * 60 * 60000));
+  const todayStr = ctNow.toISOString().slice(0, 10);
+  const allTime = {}, today = {};
+
+  houses.forEach(h => {
+    if (!h.result || !h.result_by || h.result === 'skip') return;
+    const by = String(h.result_by).trim();
+    if (!by) return;
+    if (!allTime[by]) allTime[by] = { name:by, total:0, hangers:0, knocked:0, not_home:0, refused:0, last_active:'' };
+    allTime[by].total++;
+    if (h.result === 'hanger')   allTime[by].hangers++;
+    if (h.result === 'knocked')  allTime[by].knocked++;
+    if (h.result === 'not_home') allTime[by].not_home++;
+    if (h.result === 'refused')  allTime[by].refused++;
+    if (!allTime[by].last_active || String(h.result_date) > allTime[by].last_active)
+      allTime[by].last_active = String(h.result_date);
+    const day = h.result_date ? String(h.result_date).slice(0,10) : '';
+    if (day === todayStr) {
+      if (!today[by]) today[by] = { name:by, total:0, hangers:0, knocked:0, not_home:0, refused:0 };
+      today[by].total++;
+      if (h.result === 'hanger')   today[by].hangers++;
+      if (h.result === 'knocked')  today[by].knocked++;
+      if (h.result === 'not_home') today[by].not_home++;
+      if (h.result === 'refused')  today[by].refused++;
+    }
+  });
+  return {
+    allTime: Object.values(allTime).sort((a,b) => b.total - a.total),
+    today:   Object.values(today).sort((a,b) => b.total - a.total)
+  };
+}
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+
+function exportCSV() {
+  const houses  = sheetToObjects(getSheet('houses'));
+  const turfs   = sheetToObjects(getSheet('turfs'));
+  const turfMap = {};
+  turfs.forEach(t => { turfMap[t.letter] = t; });
+  const rows = [['turf','volunteer','mode','address','owner','lat','lon','result','result_by','result_date','notes']];
+  houses.forEach(h => {
+    const t = turfMap[h.turf] || {};
+    rows.push([h.turf||'', t.volunteer||'', t.mode||'hanger', h.address||'', h.owner||'',
+               h.lat||'', h.lon||'', h.result||'', h.result_by||'', h.result_date||'', h.notes||'']);
+  });
+  const csv = rows.map(r => r.map(c => {
+    const s = String(c).replace(/"/g,'""');
+    return (s.includes(',')||s.includes('"')||s.includes('\n')) ? `"${s}"` : s;
+  }).join(',')).join('\n');
+  return { success: true, csv };
 }

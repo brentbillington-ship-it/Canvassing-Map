@@ -255,17 +255,11 @@ const TurfDraw = (() => {
   // ── Populate modal ────────────────────────────────────────────────────────
   function _showPopulateModal({ layer, ring, sorted, excluded }) {
     const turfs      = App.state.turfs;
-    // Auto-assign next available letter (A-Z, then A2-Z2, etc.)
+    // Auto-assign next available integer (1, 2, 3...)
     const usedLetters = new Set(turfs.map(t => t.letter));
-    let nextLetter = '';
-    outer: for (let suffix = ['', '2', '3', '4']; ; ) {
-      for (let s of ['', '2', '3', '4']) {
-        for (let i = 0; i < 26; i++) {
-          const candidate = String.fromCharCode(65 + i) + s;
-          if (!usedLetters.has(candidate)) { nextLetter = candidate; break outer; }
-        }
-      }
-      break;
+    let nextLetter = '1';
+    for (let i = 1; i < 1000; i++) {
+      if (!usedLetters.has(String(i))) { nextLetter = String(i); break; }
     }
     const colors     = CONFIG.TURF_COLORS;
     const colorOpts  = colors.map((c, i) =>
@@ -283,7 +277,7 @@ const TurfDraw = (() => {
          </div>`
       : '';
 
-    UI._modal('Create Turf from Drawing', `
+    UI._modal('Create Zone from Drawing', `
       <div class="pop-count-row">
         <span class="pop-count-badge" id="pop-count-badge">${sorted.length}</span>
         <span class="pop-count-label"> residential parcels found</span>
@@ -293,7 +287,7 @@ const TurfDraw = (() => {
         <span class="pop-letter-label">Turf letter:</span>
         <span class="pop-letter-badge">${nextLetter}</span>
       </div>
-      <label class="f-label" style="margin-top:12px">Turf mode</label>
+      <label class="f-label" style="margin-top:12px">Zone mode</label>
       <div class="mode-toggle-row">
         <label class="mode-opt selected" id="mode-hanger">
           <input type="radio" name="turf-mode" value="hanger" checked style="display:none"/>
@@ -316,7 +310,7 @@ const TurfDraw = (() => {
       const mode      = document.querySelector('input[name="turf-mode"]:checked')?.value || 'hanger';
 
       if (!letter) { UI.toast('No available letter — check existing turfs', 'error'); return false; }
-      if (turfs.some(t => t.letter === letter)) { UI.toast(`Turf ${letter} already exists`, 'error'); return false; }
+      if (turfs.some(t => t.letter === letter)) { UI.toast(`Zone ${letter} already exists`, 'error'); return false; }
 
       const { residential } = ParcelsUtil.parcelsInPolygon(ring, inclComm);
       if (!residential.length) { UI.toast('No parcels found — try a different area', 'error'); return false; }
@@ -329,13 +323,13 @@ const TurfDraw = (() => {
       const geojson = layer.toGeoJSON().geometry;
       App.createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels: finalParcels });
       return true;
-    }, 'Create Turf');
+    }, 'Create Zone');
   }
 
   // ── Diff modal ────────────────────────────────────────────────────────────
   function _showDiffModal({ letter, layer, toKeep, toRemove, toAdd, excluded }) {
     const kept = toKeep.filter(h => !!h.result).length;
-    UI._modal(`Edit Turf ${letter} Boundary`, `
+    UI._modal(`Edit Zone ${letter} Boundary`, `
       <div class="diff-summary">
         <div class="diff-row diff-add"><span class="diff-icon">＋</span><strong>${toAdd.length}</strong> new parcels will be added</div>
         <div class="diff-row diff-remove"><span class="diff-icon">−</span><strong>${toRemove.length}</strong> parcels removed (no action taken)</div>
@@ -382,7 +376,7 @@ const TurfDraw = (() => {
       ? withoutResult.slice().sort((a, b) => a.address.localeCompare(b.address))
       : ParcelsUtil.walkOrder(withoutResult, pt || { lat: 32.972, lon: -96.978 });
     App.reorderTurfHouses(letter, [...withResult, ...sorted]);
-    UI.toast(`Turf ${letter} re-sorted ✓`, 'success');
+    UI.toast(`Zone ${letter} re-sorted ✓`, 'success');
   }
 
   function _getOuterRing(layer) {

@@ -1,26 +1,30 @@
 // ─── Parcels Utility Module ───────────────────────────────────────────────────
-// Centroid, point-in-polygon, commercial filtering, dedup, nearest-neighbor sort.
-// Requires: PARCELS_GEOJSON (loaded from parcels.js)
 
 const ParcelsUtil = (() => {
 
-  // ── Centroid of a ring (array of [lon,lat]) ──────────────────────────────
+  // ── Centroid of a ring ([lon,lat] array) ─────────────────────────────────
   function _ringCentroid(ring) {
     let lat = 0, lon = 0;
     ring.forEach(([lo, la]) => { lon += lo; lat += la; });
     return { lat: lat / ring.length, lon: lon / ring.length };
   }
 
-  // ── Centroid of a Feature (Polygon or MultiPolygon) ──────────────────────
   function featureCentroid(feature) {
     const g = feature.geometry;
-    if (g.type === 'Polygon') return _ringCentroid(g.coordinates[0]);
+    if (g.type === 'Polygon')      return _ringCentroid(g.coordinates[0]);
     if (g.type === 'MultiPolygon') return _ringCentroid(g.coordinates[0][0]);
     return null;
   }
 
-  // ── Ray-casting point-in-polygon  ────────────────────────────────────────
-  // pt: {lat,lon}  ring: [[lon,lat],...]
+  // ── Count vertices — used to pick best feature for a duplicate address ───
+  function _vertexCount(feature) {
+    const g = feature.geometry;
+    if (g.type === 'Polygon')      return g.coordinates[0].length;
+    if (g.type === 'MultiPolygon') return g.coordinates[0][0].length;
+    return 0;
+  }
+
+  // ── Ray-casting point-in-polygon ─────────────────────────────────────────
   function _ptInRing(pt, ring) {
     let inside = false;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -33,10 +37,7 @@ const ParcelsUtil = (() => {
     return inside;
   }
 
-  // Test a point against a drawn Leaflet polygon's latlngs
-  // drawnRing: [[lat,lon],...] from layer.getLatLngs()[0]
   function ptInDrawnRing(pt, drawnRing) {
-    // Convert Leaflet {lat,lng} objects or [lat,lon] pairs → [lon,lat] for ray cast
     const ring = drawnRing.map(ll =>
       Array.isArray(ll) ? [ll[1], ll[0]] : [ll.lng, ll.lat]
     );
@@ -59,28 +60,33 @@ const ParcelsUtil = (() => {
     const addr  = (addr2 || '').toUpperCase();
     if (OWNER_EXCL.some(k => owner.includes(k))) return true;
     if (ADDR_EXCL_WORDS.some(k => addr.includes(k))) return true;
-    if (!(/^\d/.test(addr))) return true;          // no street number
+    if (!(/^\d/.test(addr))) return true;
     if (addr.length > 45) return true;
     return false;
   }
 
-  function _isApartment(props, addr2) {
+  function _isApartment(addr2) {
     const addr = (addr2 || '').toUpperCase();
     return APT_WORDS.some(k => addr.includes(k));
   }
 
-  // ── Deduplicate on addr2 (keep first occurrence) ─────────────────────────
-  function _dedupByAddr(features) {
-    const seen = new Set();
-    return features.filter(f => {
+  // ── Dedup: group features by addr2, return best representative per group ─
+  // "Best" = most vertices (richest geometry = most accurate centroid).
+  // This replaces the old first-seen filter that dropped co-owner records.
+  function _bestFeaturePerAddr(features) {
+    const groups = {};
+    features.forEach(f => {
       const key = (f.properties.addr2 || '').trim().toUpperCase();
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
+      if (!key) return;
+      if (!groups[key]) { groups[key] = f; return; }
+      // Keep the feature with the most vertices
+      if (_vertexCount(f) > _vertexCount(groups[key])) groups[key] = f;
     });
+    return Object.values(groups);
   }
 
-  // Count duplicates per addr2 — used to detect apartments (3+ same address)
+  // Count how many distinct addr2 values resolve to same key — used for
+  // apartment detection (3+ records sharing exact same address string)
   function _buildAddrCounts(features) {
     const counts = {};
     features.forEach(f => {
@@ -90,18 +96,14 @@ const ParcelsUtil = (() => {
     return counts;
   }
 
-  // ── Nearest-neighbor walk-order sort ────────────────────────────────────
-  // houses: [{lat,lon,...}]  startPt: {lat,lon} (GPS or polygon centroid)
-  // Returns houses in walk order.
+  // ── Nearest-neighbor walk-order sort ─────────────────────────────────────
   function walkOrder(houses, startPt) {
     if (!houses.length) return houses;
     const remaining = [...houses];
     const ordered   = [];
     let cur = startPt;
-
     while (remaining.length) {
-      let bestIdx = 0;
-      let bestDist = Infinity;
+      let bestIdx = 0, bestDist = Infinity;
       remaining.forEach((h, i) => {
         const d = _dist(cur, h);
         if (d < bestDist) { bestDist = d; bestIdx = i; }
@@ -113,14 +115,12 @@ const ParcelsUtil = (() => {
     return ordered;
   }
 
-  // Haversine-ish squared distance (good enough for short distances, fast)
   function _dist(a, b) {
     const dlat = a.lat - b.lat;
     const dlon = (a.lon - b.lon) * Math.cos((a.lat + b.lat) * Math.PI / 360);
     return dlat * dlat + dlon * dlon;
   }
 
-  // ── Polygon centroid from Leaflet latlngs ────────────────────────────────
   function leafletRingCentroid(ring) {
     let lat = 0, lon = 0;
     ring.forEach(ll => {
@@ -130,40 +130,41 @@ const ParcelsUtil = (() => {
     return { lat: lat / ring.length, lon: lon / ring.length };
   }
 
-  // ── Main: find parcels inside a drawn polygon ────────────────────────────
-  // Returns { residential: [...], excluded: [...] }
-  // Each item: { lat, lon, address, owner, _feature }
-  // includeCommercial: admin override flag
+  // ── Main: parcels inside a drawn polygon ─────────────────────────────────
   function parcelsInPolygon(drawnRing, includeCommercial = false) {
     if (typeof PARCELS_GEOJSON === 'undefined') return { residential: [], excluded: [] };
 
-    const features = PARCELS_GEOJSON.features;
-    const addrCounts = _buildAddrCounts(features);
+    const allFeatures = PARCELS_GEOJSON.features;
 
-    const inside = features.filter(f => {
+    // Step 1: find all features whose centroid is inside the drawn ring
+    const inside = allFeatures.filter(f => {
       const c = featureCentroid(f);
       return c && ptInDrawnRing(c, drawnRing);
     });
 
+    // Step 2: deduplicate — pick best-geometry feature per address
+    // (fixes co-owner records dropping half the houses)
+    const deduped = _bestFeaturePerAddr(inside);
+
+    // Step 3: count records per address within this drawn area only
+    // (apartment detection: 3+ separate records for same address in local area)
+    const localCounts = _buildAddrCounts(inside);  // uses raw inside, not deduped
+
     const residential = [];
     const excluded    = [];
 
-    // Deduplicate
-    const seen = new Set();
-
-    inside.forEach(f => {
+    deduped.forEach(f => {
       const addr2 = (f.properties.addr2 || '').trim();
-      const key   = addr2.toUpperCase();
-      const c     = featureCentroid(f);
-      if (!c || !addr2 || seen.has(key)) return;
-      seen.add(key);
+      if (!addr2) return;
+      const key = addr2.toUpperCase();
+      const c   = featureCentroid(f);
+      if (!c) return;
 
       const isComm = _isCommercial(f.properties, addr2);
-      const isApt  = _isApartment(f.properties, addr2) || (addrCounts[key] || 0) >= 3;
+      const isApt  = _isApartment(addr2) || (localCounts[key] || 0) >= 3;
 
       const entry = {
-        lat: c.lat,
-        lon: c.lon,
+        lat: c.lat, lon: c.lon,
         address: addr2,
         owner: f.properties.owner || '',
       };
@@ -178,23 +179,25 @@ const ParcelsUtil = (() => {
     return { residential, excluded };
   }
 
-  // ── Parcel search (for Add House picker) ────────────────────────────────
-  // Returns up to maxResults parcels matching query string (addr or owner)
+  // ── Parcel search (Add House picker) ─────────────────────────────────────
   function searchParcels(query, maxResults = 30) {
     if (typeof PARCELS_GEOJSON === 'undefined' || !query || query.length < 2) return [];
     const q = query.toUpperCase().trim();
+    const seen = new Set();
     const results = [];
     for (const f of PARCELS_GEOJSON.features) {
       const addr  = (f.properties.addr2  || '').toUpperCase();
       const owner = (f.properties.owner  || '').toUpperCase();
+      if (!addr) continue;
+      if (seen.has(addr)) continue;   // skip co-owner duplicates in search too
       if (addr.includes(q) || owner.includes(q)) {
         const c = featureCentroid(f);
         if (!c) continue;
+        seen.add(addr);
         results.push({
-          lat: c.lat,
-          lon: c.lon,
+          lat: c.lat, lon: c.lon,
           address: f.properties.addr2 || '',
-          owner: f.properties.owner   || '',
+          owner:   f.properties.owner || '',
         });
         if (results.length >= maxResults) break;
       }

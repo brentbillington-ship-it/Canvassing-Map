@@ -23,7 +23,7 @@ const CONFIG = {
     { key: 'hanger',   label: 'Hanger Left', short: 'HG', icon: '📎', color: '#2e6ec2', bg: '#e8f0fc' },
     { key: 'not_home', label: 'Not Home',     short: 'NH', icon: '🚪', color: '#c9831a', bg: '#fdf3e3' },
     { key: 'refused',  label: 'Refused',      short: 'RF', icon: '⛔', color: '#c44848', bg: '#fde8e8' },
-    { key: 'skip',     label: 'Skip',         short: 'SK', icon: '⤭',  color: '#8b949e', bg: '#f0f1f3' },
+    { key: 'skip',     label: 'Skip',         short: 'SK', icon: '⤭',  color: '#1f2937', bg: '#f0f1f3' },
   ],
 
   REFRESH_INTERVAL: 15000,

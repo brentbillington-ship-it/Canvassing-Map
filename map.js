@@ -108,16 +108,19 @@ const MapModule = {
   _makeMarker(house, idx) {
     const result    = house.result || '';
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
-    const dotColor  = resultDef ? resultDef.color : '#6b7280';
     const isDone    = !!result;
 
-    // Street number: leading digits from address (e.g. "745" from "745 CANONGATE DR")
+    // Always show street number — extract leading digits from address
     const streetNum = (house.address || '').trim().match(/^(\d+)/)?.[1] || String(idx + 1);
-    const label     = isDone ? resultDef.short : streetNum;
 
+    // Dot background: gray when unvisited, result color when visited
+    const dotColor = resultDef ? resultDef.color : '#6b7280';
+
+    // Ring (border) color: white when unvisited, bright white when done
+    // Result is communicated via dot background color — number always visible
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
-        html: `<div class="house-dot${isDone ? ' done' : ''}" style="--dc:${dotColor}">${_esc(label)}</div>`,
+        html: `<div class="house-dot${isDone ? ' done' : ''}" style="--dc:${dotColor}">${_esc(streetNum)}</div>`,
         className: '',
         iconSize: [34, 34],
         iconAnchor: [17, 17],

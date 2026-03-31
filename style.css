@@ -241,21 +241,25 @@ body {
 
 /* ─── House dot markers (Fix #17) ───────────────────────────────────────── */
 .house-dot {
-  width: 32px; height: 32px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   background: var(--dc, #6b7280);
-  border: 2px solid rgba(255,255,255,0.9);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+  border: 2.5px solid rgba(255,255,255,0.95);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 900; color: #111;
-  text-shadow: 0 0 3px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.6);
+  font-size: 10px; font-weight: 900; color: #fff;
+  /* Outlined text — black stroke on all sides, readable on any bg color */
+  text-shadow:
+    -1px -1px 0 #000,  1px -1px 0 #000,
+    -1px  1px 0 #000,  1px  1px 0 #000,
+    0    -1px 0 #000,  0     1px 0 #000,
+    -1px  0   0 #000,  1px   0   0 #000;
   line-height: 1; white-space: nowrap;
-  opacity: 0.85;
+  opacity: 0.9;
   transition: transform 0.15s, opacity 0.15s;
   cursor: pointer;
 }
-.house-dot.done { opacity: 0.95; border-color: #fff; color: #fff;
-  text-shadow: 0 0 3px rgba(0,0,0,0.6); }
+.house-dot.done { opacity: 0.95; }
 .house-dot:hover { transform: scale(1.25); opacity: 1; z-index: 9999; }
 
 /* Leaflet.draw toolbar — ensure it's always above map controls */
@@ -440,6 +444,18 @@ body {
   .stat-track   { display: none; }
   .presence-bar { display: none; }
   .stat-pills   { display: flex; }
+
+  /* Legend — shift right so it doesn't hug the left edge */
+  .map-legend { margin-left: 10px; }
+
+  /* Layer control — add bottom margin so it clears the sidebar */
+  .leaflet-bottom.leaflet-right { margin-bottom: 4px; margin-right: 6px; }
+
+  /* Legend bottom clearance — sits above sidebar */
+  .leaflet-bottom.leaflet-left { margin-bottom: 6px; margin-left: 10px; }
+
+  /* Footer credit — nudge up on mobile */
+  .app-footer { bottom: 2px; right: 6px; font-size: 9px; }
 }
 
 /* ─── Leaflet.draw overrides ─────────────────────────────────────────────── */
@@ -512,4 +528,17 @@ body {
   font-style: italic; pointer-events: none;
   text-shadow: 0 1px 3px rgba(0,0,0,0.7);
   letter-spacing: 0.01em;
+}
+
+/* ─── Mobile rectangle draw banner ─────────────────────────────────────────── */
+.mobile-rect-banner {
+  position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
+  z-index: 9001; background: #1a4db5; color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 20px; border-radius: 12px; font-size: .9rem; font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4); text-align: center; max-width: 280px;
+}
+.mobile-rect-banner button {
+  background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5);
+  color: #fff; padding: 6px 18px; border-radius: 6px; cursor: pointer; font-size: .85rem;
 }

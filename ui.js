@@ -288,8 +288,8 @@ const UI = {
         title="${r.label}">${r.icon}</button>`;
     }).join('');
 
-    // Street number label in the number bubble
-    const streetNum = (house.address || '').match(/^(\d+)/)?.[1] || String(idx + 1);
+    // Street number label — always the actual house number
+    const streetNum = (house.address || '').trim().match(/^(\d+)/)?.[1] || String(idx + 1);
 
     window._houseCache = window._houseCache || {};
     window._houseCache[house.id] = { house, turf, color };

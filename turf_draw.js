@@ -262,10 +262,6 @@ const TurfDraw = (() => {
       if (!usedLetters.has(String(i))) { nextLetter = String(i); break; }
     }
     const colors     = CONFIG.TURF_COLORS;
-    const colorOpts  = colors.map((c, i) =>
-      `<span class="color-swatch${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c}"
-        onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')"></span>`
-    ).join('');
 
     const exclHtml = excluded.length
       ? `<div class="pop-excl-row">
@@ -277,6 +273,16 @@ const TurfDraw = (() => {
          </div>`
       : '';
 
+    // Auto color = next in palette not already used
+    const usedColors  = new Set(turfs.map(t => t.color));
+    const autoColor   = colors.find(c => !usedColors.has(c)) || colors[turfs.length % colors.length];
+    const colorOpts   = `<span class="color-swatch color-auto selected" data-color="auto" title="Auto"
+        onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')">✦</span>` +
+      colors.map(c =>
+        `<span class="color-swatch" data-color="${c}" style="background:${c}"
+          onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')"></span>`
+      ).join('');
+
     UI._modal('Create Zone from Drawing', `
       <div class="pop-count-row">
         <span class="pop-count-badge" id="pop-count-badge">${sorted.length}</span>
@@ -284,7 +290,7 @@ const TurfDraw = (() => {
       </div>
       ${exclHtml}
       <div class="pop-letter-row">
-        <span class="pop-letter-label">Turf letter:</span>
+        <span class="pop-letter-label">Zone ID:</span>
         <span class="pop-letter-badge">${nextLetter}</span>
       </div>
       <label class="f-label" style="margin-top:12px">Zone mode</label>
@@ -305,7 +311,8 @@ const TurfDraw = (() => {
     `, () => {
       const letter    = nextLetter;
       const volunteer = (document.getElementById('f-volunteer')?.value || '').trim();
-      const color     = document.querySelector('.color-swatch.selected')?.dataset.color || colors[0];
+      const rawColor  = document.querySelector('.color-swatch.selected')?.dataset.color || 'auto';
+      const color     = rawColor === 'auto' ? autoColor : rawColor;
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
       const mode      = document.querySelector('input[name="turf-mode"]:checked')?.value || 'hanger';
 

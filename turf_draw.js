@@ -17,7 +17,7 @@ const TurfDraw = (() => {
     _drawnLayers = new L.FeatureGroup().addTo(_map);
 
     _drawControl = new L.Control.Draw({
-      position: 'topleft',
+      position: 'topright',
       draw: {
         polygon:   { allowIntersection: false, showArea: false,
                      shapeOptions: { color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2 } },

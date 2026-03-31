@@ -20,7 +20,7 @@ const MapModule = {
     // Aerial (default base layer)
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 20 }
+      { attribution: '© Esri', maxZoom: 20, opacity: 0.6 }
     );
 
     // Road labels pane — sits above markers
@@ -112,15 +112,15 @@ const MapModule = {
     const isDone    = !!result;
 
     // Street number: leading digits from address (e.g. "745" from "745 CANONGATE DR")
-    const streetNum = (house.address || '').match(/^(\d+)/)?.[1] || String(idx + 1);
+    const streetNum = (house.address || '').trim().match(/^(\d+)/)?.[1] || String(idx + 1);
     const label     = isDone ? resultDef.short : streetNum;
 
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
         html: `<div class="house-dot${isDone ? ' done' : ''}" style="--dc:${dotColor}">${_esc(label)}</div>`,
         className: '',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
       }),
       zIndexOffset: isDone ? 0 : 100,
     });

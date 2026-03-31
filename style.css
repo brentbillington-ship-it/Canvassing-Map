@@ -241,20 +241,26 @@ body {
 
 /* ─── House dot markers (Fix #17) ───────────────────────────────────────── */
 .house-dot {
-  width: 26px; height: 26px;
+  width: 32px; height: 32px;
   border-radius: 50%;
   background: var(--dc, #6b7280);
-  border: 2px solid rgba(255,255,255,0.85);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 800; color: #fff;
+  font-size: 10px; font-weight: 900; color: #111;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.6);
   line-height: 1; white-space: nowrap;
-  opacity: 0.72;
+  opacity: 0.85;
   transition: transform 0.15s, opacity 0.15s;
   cursor: pointer;
 }
-.house-dot.done { opacity: 0.95; border-color: #fff; }
+.house-dot.done { opacity: 0.95; border-color: #fff; color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,0.6); }
 .house-dot:hover { transform: scale(1.25); opacity: 1; z-index: 9999; }
+
+/* Leaflet.draw toolbar — ensure it's always above map controls */
+.leaflet-draw { z-index: 1000 !important; }
+.leaflet-draw-toolbar a { z-index: 1001 !important; }
 
 /* ─── Turf label ─────────────────────────────────────────────────────────── */
 .turf-label {
@@ -498,3 +504,12 @@ body {
 .logout-btn { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4);
   color:#fff; font-size:.75rem; padding:3px 8px; border-radius:4px; cursor:pointer; margin-left:6px; }
 .logout-small { font-size:.75rem; padding:3px 8px; }
+
+/* ─── App footer credit ─────────────────────────────────────────────────────── */
+.app-footer {
+  position: fixed; bottom: 4px; right: 8px; z-index: 500;
+  font-size: 10px; color: rgba(255,255,255,0.55);
+  font-style: italic; pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  letter-spacing: 0.01em;
+}

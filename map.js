@@ -7,7 +7,7 @@ const MapModule = {
   houseMarkers: {},
   _legend: null,
   _gpsPanDone: false,
-  _labelZoomMin: 20,
+  _labelZoomMin: 18,
 
   init() {
     this.map = L.map('map', { zoomControl: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
@@ -187,7 +187,11 @@ const MapModule = {
     const result    = house.result || '';
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
 
-    const btnRows = CONFIG.RESULTS.map(r => {
+    const isHanger = (turf.mode || 'hanger') === 'hanger';
+    const visibleResults = isHanger
+      ? CONFIG.RESULTS.filter(r => r.key === 'hanger' || r.key === 'skip')
+      : CONFIG.RESULTS;
+    const btnRows = visibleResults.map(r => {
       const active = r.key === result;
       return `<button class="popup-result-btn${active ? ' active' : ''}" style="--rc:${r.color};--rbg:${r.bg}"
         onclick="MapModule._handlePopupResult('${house.id}','${r.key}')">
@@ -228,6 +232,7 @@ const MapModule = {
       ? `<span class="mode-badge doorknock">Door Knock</span>`
       : `<span class="mode-badge hanger">Hanger</span>`;
 
+    const gridCols = visibleResults.length <= 2 ? 2 : 3;
     const html = `
       <div class="house-popup">
         <div class="popup-header" style="border-color:${color}">
@@ -239,7 +244,7 @@ const MapModule = {
           </div>
         </div>
         ${statusHtml}
-        <div class="popup-result-grid">${btnRows}</div>
+        <div class="popup-result-grid" style="grid-template-columns:repeat(${gridCols},1fr)">${btnRows}</div>
         ${notesHtml}
         ${clearBtn}
       </div>`;
@@ -351,7 +356,7 @@ const MapModule = {
   _updateLocationMarker(pos) {
     const { latitude: lat, longitude: lon, accuracy } = pos.coords;
     if (this._locationCircle)
-      this._locationCircle.setLatLng([lat, lon]).setRadius(accuracy);
+      this._locationCircle.setLatLnd([lat, lon]).setRadius(accuracy);
     else
       this._locationCircle = L.circle([lat, lon], {
         radius: accuracy, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1

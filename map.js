@@ -119,8 +119,8 @@ const MapModule = {
       icon: L.divIcon({
         html: `<div class="house-dot${isDone ? ' done' : ''}" style="--dc:${dotColor}">${_esc(label)}</div>`,
         className: '',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
       }),
       zIndexOffset: isDone ? 0 : 100,
     });

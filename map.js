@@ -1,5 +1,4 @@
-// ─── Map Module ───────────────────────────────────────────────────────────────
-
+// ─── Map Module ──────────────────────────────────────────────────────────────
 const MapModule = {
   map: null,
   turfPolygonGroup: null,
@@ -8,7 +7,7 @@ const MapModule = {
   houseMarkers: {},
   _legend: null,
   _gpsPanDone: false,
-  _labelZoomMin: 15,
+  _labelZoomMin: 20,
 
   init() {
     this.map = L.map('map', { zoomControl: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
@@ -25,7 +24,6 @@ const MapModule = {
     this.map.createPane('labelsPane');
     this.map.getPane('labelsPane').style.zIndex = 650;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
-
     const labels = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
@@ -38,7 +36,6 @@ const MapModule = {
 
     satellite.addTo(this.map);
     labels.addTo(this.map);
-
     L.control.layers(
       { 'Aerial': satellite, 'Street': street },
       { 'Road Labels': labels },
@@ -61,21 +58,26 @@ const MapModule = {
     navigator.geolocation.getCurrentPosition(pos => {
       if (this._gpsPanDone) return;
       this._gpsPanDone = true;
-      this.map.setView([pos.coords.latitude, pos.coords.longitude], Math.max(this.map.getZoom(), 16));
+      this.map.setView([pos.coords.latitude, pos.coords.longitude],
+        Math.max(this.map.getZoom(), 16));
     }, () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
   },
 
-  // ── Address labels from parcels.js — always on, zoom-gated ───────────────
+  // ── Address labels from parcels.js — always on, zoom-gated ──────────────
   _renderAddressLabels() {
     this.addressLabelGroup.clearLayers();
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
 
-    const bounds = this.map.getBounds().pad(0.1); // slight padding beyond viewport
+    const bounds = this.map.getBounds().pad(0.1);
+    const seen = new Set();
 
     for (const f of PARCELS_GEOJSON.features) {
       const addr2 = (f.properties.addr2 || '').trim();
       if (!addr2) continue;
+      if (seen.has(addr2)) continue;         // skip co-owner duplicates
+      seen.add(addr2);
+
       const num = addr2.match(/^(\d+)/)?.[1];
       if (!num) continue;
 
@@ -88,7 +90,7 @@ const MapModule = {
           html: `<div class="addr-label">${num}</div>`,
           className: '',
           iconSize: null,
-          iconAnchor: [0, -14],  // offset up so dot doesn't overlap
+          iconAnchor: [0, 0],   // anchor at top-left; CSS centers the label
         }),
         pane: 'addrPane',
         interactive: false,
@@ -97,7 +99,7 @@ const MapModule = {
     }
   },
 
-  // ── Full render ───────────────────────────────────────────────────────────
+  // ── Full render ────────────────────────────────────────────────────────────
   renderAll(turfs) {
     this.turfPolygonGroup.clearLayers();
     this.houseGroup.clearLayers();
@@ -115,7 +117,9 @@ const MapModule = {
   _renderTurfPolygon(turf, color) {
     if (!turf.polygon_geojson) return;
     let geojson = turf.polygon_geojson;
-    if (typeof geojson === 'string') { try { geojson = JSON.parse(geojson); } catch(e) { return; } }
+    if (typeof geojson === 'string') {
+      try { geojson = JSON.parse(geojson); } catch(e) { return; }
+    }
     try {
       const poly = L.geoJSON(geojson, {
         style: { color, fillColor: color, fillOpacity: 0.10, weight: 2, opacity: 0.6, dashArray: '5,4' }
@@ -125,15 +129,18 @@ const MapModule = {
         L.marker(bounds.getCenter(), {
           icon: L.divIcon({
             html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
-            className: '', iconSize: [28, 28], iconAnchor: [14, 14]
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
           }),
-          interactive: false, zIndexOffset: -500
+          interactive: false,
+          zIndexOffset: -500
         }).addTo(this.turfPolygonGroup);
       }
     } catch(e) {}
   },
 
-  // ── House dot — blank, color = result status, shape = turf mode ──────────
+  // ── House dot — blank, color = result status, shape = turf mode ───────────
   _renderHouse(house, turf, idx, color) {
     const marker = this._makeMarker(house, turf);
     marker.on('click', () => this._openHousePopup(house, turf, color));
@@ -145,18 +152,17 @@ const MapModule = {
     const result    = house.result || '';
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
     const dotColor  = resultDef ? resultDef.color : '#6b7280';
-    const isDone    = !!result;
-    const isDoorKnock = (turf?.mode || 'hanger') === 'doorknock';
+    const isDone       = !!result;
+    const isDoorKnock  = (turf?.mode || 'hanger') === 'doorknock';
 
     // Circle = hanger, diamond = door knock
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}`;
-
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
         html: `<div class="${cls}" style="--dc:${dotColor}"></div>`,
         className: '',
         iconSize: [20, 20],
-        iconAnchor: [10, 10],  // centered on parcel centroid; addr label offset above
+        iconAnchor: [10, 10],   // centered on parcel centroid; addr label offset above
       }),
       zIndexOffset: isDone ? 0 : 100,
     });
@@ -173,7 +179,7 @@ const MapModule = {
     this.houseMarkers[house.id] = updated;
   },
 
-  // ── House popup ───────────────────────────────────────────────────────────
+  // ── House popup ────────────────────────────────────────────────────────────
   _openHousePopup(house, turf, color) {
     window._houseCache = window._houseCache || {};
     window._houseCache[house.id] = { house, turf, color };
@@ -183,8 +189,7 @@ const MapModule = {
 
     const btnRows = CONFIG.RESULTS.map(r => {
       const active = r.key === result;
-      return `<button class="popup-result-btn${active ? ' active' : ''}"
-        style="--rc:${r.color};--rbg:${r.bg}"
+      return `<button class="popup-result-btn${active ? ' active' : ''}" style="--rc:${r.color};--rbg:${r.bg}"
         onclick="MapModule._handlePopupResult('${house.id}','${r.key}')">
         <span class="pbtn-icon">${r.icon}</span>
         <span class="pbtn-label">${r.label}</span>
@@ -202,16 +207,16 @@ const MapModule = {
           onclick="MapModule._saveNotes('${house.id}',document.getElementById('pnotes-${house.id}').value)">Save</button>
       </div>
       <div class="popup-chips">
-        ${['Kids in CISD 🏫','Talked 💬','Khanh Supporter ✕','Spanish 🗣️','Interested ✅'].map(c =>
+        ${['Kids in CISD 🏫','Talked 💬','Khanh Supporter ✕','Spanish 🗣️','Hindi 🗣️','Interested ✅'].map(c =>
           `<span class="note-chip" onclick="MapModule._appendChip('${house.id}',this.textContent)">${c}</span>`
         ).join('')}
       </div>`;
 
     const statusHtml = result
       ? `<div class="popup-status" style="background:${resultDef.bg};color:${resultDef.color}">
-          ${resultDef.icon} ${resultDef.label}
-          ${house.result_by   ? ` · <em>${_esc(house.result_by)}</em>` : ''}
-          ${house.result_date ? ` · ${_fmtDate(house.result_date)}` : ''}
+           ${resultDef.icon} ${resultDef.label}
+           ${house.result_by  ? ` · <em>${_esc(house.result_by)}</em>`  : ''}
+           ${house.result_date ? ` · ${_fmtDate(house.result_date)}`     : ''}
          </div>`
       : `<div class="popup-status unpopulated">No contact recorded</div>`;
 
@@ -246,8 +251,16 @@ const MapModule = {
       .openOn(this.map);
   },
 
-  _handlePopupResult(houseId, resultKey) { this.map.closePopup(); App.setResult(houseId, resultKey); },
-  _saveNotes(houseId, notes) { App.saveNotes(houseId, notes); UI.toast('Notes saved'); },
+  _handlePopupResult(houseId, resultKey) {
+    this.map.closePopup();
+    App.setResult(houseId, resultKey);
+  },
+
+  _saveNotes(houseId, notes) {
+    App.saveNotes(houseId, notes);
+    UI.toast('Notes saved');
+  },
+
   _appendChip(houseId, chip) {
     const inp = document.getElementById('pnotes-' + houseId);
     if (!inp) return;
@@ -255,22 +268,21 @@ const MapModule = {
     inp.focus();
   },
 
-  // ── Legend ────────────────────────────────────────────────────────────────
+  // ── Legend ──────────────────────────────────────────────────────────────────
   _renderLegend() {
     if (this._legend) this._legend.remove();
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {
       const div = L.DomUtil.create('div', 'map-legend');
-      div.innerHTML =
-        CONFIG.RESULTS.map(r =>
-          `<div class="legend-row">
-            <span class="legend-dot" style="background:${r.color}"></span>
-            <span class="legend-label">${r.icon} ${r.label}</span>
-           </div>`
-        ).join('') +
+      div.innerHTML = CONFIG.RESULTS.map(r =>
         `<div class="legend-row">
-          <span class="legend-dot" style="background:#9ca3af"></span>
-          <span class="legend-label">Not visited</span>
+           <span class="legend-dot" style="background:${r.color}"></span>
+           <span class="legend-label">${r.icon} ${r.label}</span>
+         </div>`
+      ).join('')
+      + `<div class="legend-row">
+           <span class="legend-dot" style="background:#9ca3af"></span>
+           <span class="legend-label">Not visited</span>
          </div>
          <div class="legend-row" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1)">
            <span class="legend-dot" style="border-radius:3px;background:#6b7280"></span>
@@ -283,7 +295,7 @@ const MapModule = {
     this._legend = legend;
   },
 
-  // ── Focus helpers ─────────────────────────────────────────────────────────
+  // ── Focus helpers ──────────────────────────────────────────────────────────
   focusTurf(turf) {
     const coords = turf.houses.map(h => [h.lat, h.lon]).filter(c => !isNaN(c[0]));
     if (!coords.length) return;
@@ -292,11 +304,15 @@ const MapModule = {
 
   focusHouse(house) {
     this.map.setView([house.lat, house.lon], Math.max(this.map.getZoom(), 17));
-    if (window.innerWidth <= 680) document.getElementById('map-wrap')?.scrollIntoView({ behavior: 'smooth' });
+    if (window.innerWidth <= 680)
+      document.getElementById('map-wrap')?.scrollIntoView({ behavior: 'smooth' });
   },
 
-  // ── My Location ──────────────────────────────────────────────────────────
-  _locationWatchId: null, _locationMarker: null, _locationCircle: null, _locationActive: false,
+  // ── My Location ────────────────────────────────────────────────────────────
+  _locationWatchId: null,
+  _locationMarker:  null,
+  _locationCircle:  null,
+  _locationActive:  false,
 
   toggleMyLocation() { this._locationActive ? this._stopLocation() : this._startLocation(); },
 
@@ -309,18 +325,22 @@ const MapModule = {
       this._gpsPanDone = true;
       if (btn) { btn.textContent = '📍 Stop'; btn.classList.add('active-btn'); }
       this._updateLocationMarker(pos);
-      this.map.setView([pos.coords.latitude, pos.coords.longitude], Math.max(this.map.getZoom(), 16));
+      this.map.setView([pos.coords.latitude, pos.coords.longitude],
+        Math.max(this.map.getZoom(), 16));
       UI.toast('Location found', 'success');
       this._locationWatchId = navigator.geolocation.watchPosition(
-        p => this._updateLocationMarker(p),
-        e => this._locationError(e),
+        p  => this._updateLocationMarker(p),
+        e  => this._locationError(e),
         { enableHighAccuracy: true, maximumAge: 5000 }
       );
     }, err => this._locationError(err), { enableHighAccuracy: true, timeout: 10000 });
   },
 
   _stopLocation() {
-    if (this._locationWatchId !== null) { navigator.geolocation.clearWatch(this._locationWatchId); this._locationWatchId = null; }
+    if (this._locationWatchId !== null) {
+      navigator.geolocation.clearWatch(this._locationWatchId);
+      this._locationWatchId = null;
+    }
     if (this._locationMarker) { this._locationMarker.remove(); this._locationMarker = null; }
     if (this._locationCircle) { this._locationCircle.remove(); this._locationCircle = null; }
     this._locationActive = false;
@@ -330,13 +350,25 @@ const MapModule = {
 
   _updateLocationMarker(pos) {
     const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-    if (this._locationCircle) this._locationCircle.setLatLng([lat, lon]).setRadius(accuracy);
-    else this._locationCircle = L.circle([lat, lon], { radius: accuracy, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1 }).addTo(this.map);
-    if (this._locationMarker) this._locationMarker.setLatLng([lat, lon]);
-    else this._locationMarker = L.marker([lat, lon], {
-      icon: L.divIcon({ html: '<div class="loc-dot"><div class="loc-pulse"></div></div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] }),
-      zIndexOffset: 2000
-    }).addTo(this.map);
+    if (this._locationCircle)
+      this._locationCircle.setLatLng([lat, lon]).setRadius(accuracy);
+    else
+      this._locationCircle = L.circle([lat, lon], {
+        radius: accuracy, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1
+      }).addTo(this.map);
+
+    if (this._locationMarker)
+      this._locationMarker.setLatLng([lat, lon]);
+    else
+      this._locationMarker = L.marker([lat, lon], {
+        icon: L.divIcon({
+          html: '<div class="loc-dot"><div class="loc-pulse"></div></div>',
+          className: '',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        zIndexOffset: 2000
+      }).addTo(this.map);
   },
 
   _locationError(err) {
@@ -354,8 +386,10 @@ const MapModule = {
 };
 
 function _esc(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
 function _fmtDate(iso) {
   try {
     return new Date(iso).toLocaleString('en-US', {

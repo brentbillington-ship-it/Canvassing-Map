@@ -324,7 +324,7 @@ const UI = {
       onclick="UI._cardClick('${house.id}')">
       <div class="house-num" style="background:${result ? (resultDef?.color || '#9ca3af') : '#d1d5db'}">${streetNum}</div>
       <div class="house-body">
-        <div class="house-addr">${_esc(house.address)}</div>
+        <div class="house-addr">${_esc(house.address)}${house.notes ? '<span class="note-star"> ✱</span>' : ''}</div>
         ${house.owner ? `<div class="house-name">${_esc(house.owner)}</div>` : ''}
         ${house.notes ? `<div class="house-notes">📝 ${_esc(house.notes)}</div>` : ''}
         <div class="house-footer">${badgeHtml}</div>

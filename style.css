@@ -507,6 +507,14 @@ body {
 .mobile-rect-banner button { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5); color: #fff; padding: 6px 18px; border-radius: 6px; cursor: pointer; font-size: .85rem; }
 
 /* ─── Address number labels (from parcels.js) ───────────────────────────────── */
+.note-star {
+  font-size: 10px;
+  color: #2e6ec2;
+  font-style: normal;
+  margin-left: 3px;
+  font-weight: 700;
+}
+
 .addr-label {
   font-size: 9px;
   font-weight: 800;

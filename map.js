@@ -356,7 +356,7 @@ const MapModule = {
   _updateLocationMarker(pos) {
     const { latitude: lat, longitude: lon, accuracy } = pos.coords;
     if (this._locationCircle)
-      this._locationCircle.setLatLnd([lat, lon]).setRadius(accuracy);
+      this._locationCircle.setLatLng([lat, lon]).setRadius(accuracy);
     else
       this._locationCircle = L.circle([lat, lon], {
         radius: accuracy, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1

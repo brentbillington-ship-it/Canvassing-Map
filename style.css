@@ -11,7 +11,7 @@
   --text2: #334155;
   --text3: #64748b;
   --text4: #94a3b8;
-  --header-bg: #1c355e;
+  --header-bg: #9b1c1c;
   --header-text: #ffffff;
   --shadow: 0 1px 4px rgba(0,0,0,.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,.12);
@@ -190,12 +190,14 @@ body {
 
 /* ─── Turf List ──────────────────────────────────────────────────────────── */
 #turf-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
-.turf-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.turf-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .turf-header {
   display: flex; align-items: center; gap: 8px; padding: 10px;
   cursor: pointer; border-left: 4px solid var(--tc, #94a3b8);
+  border-radius: var(--radius) var(--radius) 0 0;
   transition: background 0.12s; user-select: none;
 }
+.turf-block:not(.turf-expanded) .turf-header { border-radius: var(--radius); }
 .turf-header:hover { background: var(--bg2); }
 .turf-letter-badge {
   width: 30px; height: 30px; border-radius: 50%; color: #fff;
@@ -506,7 +508,10 @@ body {
 }
 .mobile-rect-banner button { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5); color: #fff; padding: 6px 18px; border-radius: 6px; cursor: pointer; font-size: .85rem; }
 
-/* ─── Address number labels (from parcels.js) ───────────────────────────────── */
+/* ─── Turf draw populate modal — auto-letter display ───────────────────────── */
+.pop-letter-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; }
+.pop-letter-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.pop-letter-badge { font-size: 20px; font-weight: 800; color: var(--header-bg); background: var(--bg2); border-radius: 6px; padding: 2px 12px; border: 2px solid var(--border); }
 .note-star {
   font-size: 10px;
   color: #2e6ec2;
@@ -518,12 +523,18 @@ body {
 .addr-label {
   font-size: 9px;
   font-weight: 800;
-  color: #fff;
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  color: #ffffff !important;
+  text-shadow:
+    -1px -1px 0 #000,  1px -1px 0 #000,
+    -1px  1px 0 #000,  1px  1px 0 #000,
+    -2px  0   0 #000,  2px  0   0 #000,
+     0   -2px 0 #000,  0    2px 0 #000;
   white-space: nowrap;
   pointer-events: none;
   line-height: 1;
   transform: translate(-50%, -50%);
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── House dot ─────────────────────────────────────────────────────────────── */

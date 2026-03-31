@@ -6,6 +6,7 @@ const UI = {
   userMode:     'hanger',   // 'hanger' or 'doorknock' — set at login for non-admins
   turfFilter:   null,
   resultFilter: null,
+  modeFilter:   null,       // null = all, 'hanger', 'doorknock'
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
   _expandedTurfs: new Set(),
 
@@ -64,6 +65,13 @@ const UI = {
             <option value="">All Results</option>
             <option value="none">Not visited</option>
             ${CONFIG.RESULTS.map(r => `<option value="${r.key}">${r.icon} ${r.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="sb-filter-row" id="mode-filter-row">
+          <select id="mode-filter-sel" onchange="UI.setModeFilter(this.value)" style="flex:1">
+            <option value="">All Modes</option>
+            <option value="hanger">🗂 Hangers Only</option>
+            <option value="doorknock">🚪 Knocking Only</option>
           </select>
         </div>
         <div id="admin-tools" class="admin-tools" style="display:none"></div>
@@ -202,6 +210,7 @@ const UI = {
     if (val) { const t = App.state.turfs.find(t => t.letter === val); if (t) MapModule.focusTurf(t); }
   },
   setResultFilter(val) { this.resultFilter = val || null; App.render(); },
+  setModeFilter(val)   { this.modeFilter   = val || null; App.render(); },
 
   // ── Stats bar ────────────────────────────────────────────────────────────────
   updateStats(turfs) {
@@ -248,7 +257,9 @@ const UI = {
     if (!list) return;
     // Non-admins only see turfs matching their mode
     const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
-    const filtered = this.turfFilter ? modeFiltered.filter(t => t.letter === this.turfFilter) : modeFiltered;
+    // Apply explicit mode filter (from dropdown)
+    const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
+    const filtered = this.turfFilter ? modeApplied.filter(t => t.letter === this.turfFilter) : modeApplied;
 
     if (!filtered.length) {
       list.innerHTML = `<div class="sb-empty">${this.isAdmin ? 'No turfs yet. Use <strong>✏️ Draw Turf</strong> to create one.' : 'No data loaded.'}</div>`;
@@ -270,7 +281,7 @@ const UI = {
         <button class="turf-action-btn" title="Re-sort walk order" onclick="event.stopPropagation();TurfDraw.resortTurf('${turf.letter}',MapModule.getCurrentLatLon())">🔄</button>
         <button class="turf-action-btn danger" title="Delete" onclick="event.stopPropagation();UI.confirmDeleteTurf('${turf.letter}')">✕</button>` : '';
 
-      return `<div class="turf-block" id="turf-block-${turf.letter}">
+      return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge" style="background:${color}">${turf.letter}</div>
           <div class="turf-info">
@@ -305,14 +316,22 @@ const UI = {
       ? `<span class="house-badge" style="background:${resultDef.bg};color:${resultDef.color}">${resultDef.icon} ${resultDef.label}</span>`
       : `<span class="house-badge unvisited">Not visited</span>`;
 
-    const quickBtns = ['knocked', 'hanger'].map(key => {
-      const r = CONFIG.RESULTS.find(x => x.key === key);
-      const active = house.result === key;
-      return `<button class="quick-btn${active ? ' qbtn-active' : ''}"
+    // Done key depends on mode: hanger turfs → 'hanger', doorknock → 'knocked'
+    const doneKey = (turf.mode || 'hanger') === 'doorknock' ? 'knocked' : 'hanger';
+    const doneR   = CONFIG.RESULTS.find(x => x.key === doneKey);
+    const skipR   = CONFIG.RESULTS.find(x => x.key === 'skip');
+    const isDone  = house.result === doneKey;
+    const isSkip  = house.result === 'skip';
+
+    const quickBtns = [
+      { r: doneR, key: doneKey, active: isDone, label: '✓' },
+      { r: skipR, key: 'skip',  active: isSkip, label: '⤭' },
+    ].map(({ r, key, active, label }) =>
+      `<button class="quick-btn${active ? ' qbtn-active' : ''}"
         style="--qc:${r.color};--qbg:${r.bg}"
         onclick="event.stopPropagation();App.setResult('${house.id}','${active ? '' : key}')"
-        title="${r.label}">${r.icon}</button>`;
-    }).join('');
+        title="${r.label}">${label}</button>`
+    ).join('');
 
     // Street number label — always the actual house number
     const streetNum = (house.address || '').trim().match(/^(\d+)/)?.[1] || String(idx + 1);
@@ -342,12 +361,14 @@ const UI = {
   },
 
   _toggleTurf(letter) {
-    const el   = document.getElementById('houses-' + letter);
-    const chev = document.getElementById('chev-' + letter);
+    const el    = document.getElementById('houses-' + letter);
+    const chev  = document.getElementById('chev-' + letter);
+    const block = document.getElementById('turf-block-' + letter);
     if (!el) return;
     const open = el.style.display !== 'none';
     el.style.display = open ? 'none' : 'block';
-    if (chev) chev.textContent = open ? '▸' : '▾';
+    if (chev)  chev.textContent = open ? '▸' : '▾';
+    if (block) block.classList.toggle('turf-expanded', !open);
     if (open) this._expandedTurfs.delete(letter); else this._expandedTurfs.add(letter);
   },
 

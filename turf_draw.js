@@ -23,7 +23,7 @@ const TurfDraw = (() => {
       draw: {
         polygon:      { allowIntersection: false, showArea: false,
                         shapeOptions: { color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2 } },
-        rectangle:    { shapeOptions: { color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2 } },
+        rectangle:    false,
         polyline:     false, circle: false, circlemarker: false, marker: false,
       },
       edit: { featureGroup: _drawnLayers, remove: false }
@@ -255,7 +255,18 @@ const TurfDraw = (() => {
   // ── Populate modal ────────────────────────────────────────────────────────
   function _showPopulateModal({ layer, ring, sorted, excluded }) {
     const turfs      = App.state.turfs;
-    const nextLetter = String.fromCharCode(65 + turfs.length);
+    // Auto-assign next available letter (A-Z, then A2-Z2, etc.)
+    const usedLetters = new Set(turfs.map(t => t.letter));
+    let nextLetter = '';
+    outer: for (let suffix = ['', '2', '3', '4']; ; ) {
+      for (let s of ['', '2', '3', '4']) {
+        for (let i = 0; i < 26; i++) {
+          const candidate = String.fromCharCode(65 + i) + s;
+          if (!usedLetters.has(candidate)) { nextLetter = candidate; break outer; }
+        }
+      }
+      break;
+    }
     const colors     = CONFIG.TURF_COLORS;
     const colorOpts  = colors.map((c, i) =>
       `<span class="color-swatch${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c}"
@@ -278,6 +289,10 @@ const TurfDraw = (() => {
         <span class="pop-count-label"> residential parcels found</span>
       </div>
       ${exclHtml}
+      <div class="pop-letter-row">
+        <span class="pop-letter-label">Turf letter:</span>
+        <span class="pop-letter-badge">${nextLetter}</span>
+      </div>
       <label class="f-label" style="margin-top:12px">Turf mode</label>
       <div class="mode-toggle-row">
         <label class="mode-opt selected" id="mode-hanger">
@@ -289,20 +304,18 @@ const TurfDraw = (() => {
           🚪 Door Knock
         </label>
       </div>
-      <label class="f-label" style="margin-top:8px">Turf letter</label>
-      <input id="f-letter" class="f-input" type="text" maxlength="2" value="${nextLetter}" placeholder="A"/>
-      <label class="f-label">Volunteer name (optional)</label>
+      <label class="f-label" style="margin-top:8px">Volunteer name (optional)</label>
       <input id="f-volunteer" class="f-input" type="text" placeholder="Volunteer name"/>
       <label class="f-label">Color</label>
       <div class="color-row">${colorOpts}</div>
     `, () => {
-      const letter    = (document.getElementById('f-letter')?.value || '').toUpperCase().trim();
+      const letter    = nextLetter;
       const volunteer = (document.getElementById('f-volunteer')?.value || '').trim();
       const color     = document.querySelector('.color-swatch.selected')?.dataset.color || colors[0];
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
       const mode      = document.querySelector('input[name="turf-mode"]:checked')?.value || 'hanger';
 
-      if (!letter) { UI.toast('Letter required', 'error'); return false; }
+      if (!letter) { UI.toast('No available letter — check existing turfs', 'error'); return false; }
       if (turfs.some(t => t.letter === letter)) { UI.toast(`Turf ${letter} already exists`, 'error'); return false; }
 
       const { residential } = ParcelsUtil.parcelsInPolygon(ring, inclComm);

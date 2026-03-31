@@ -29,9 +29,9 @@ const MapModule = {
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
-    // Address label pane — above tiles, below markers
+    // Address label pane — above house markers
     this.map.createPane('addrPane');
-    this.map.getPane('addrPane').style.zIndex = 400;
+    this.map.getPane('addrPane').style.zIndex = 650;
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
@@ -94,7 +94,6 @@ const MapModule = {
         }),
         pane: 'addrPane',
         interactive: false,
-        zIndexOffset: -1000,
       }).addTo(this.addressLabelGroup);
     }
   },

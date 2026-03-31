@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Chaka Door Canvass</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div id="offline-banner"></div>
+  <div id="header"></div>
+  <div class="container">
+    <div id="map-wrap"><div id="map"></div></div>
+    <div id="sidebar"></div>
+  </div>
+  <div id="toast-container"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <!-- Parcel data + utils must load before app modules -->
+  <script src="parcels.js"></script>
+  <script src="parcels_utils.js"></script>
+
+  <!-- App modules -->
+  <script src="config.js"></script>
+  <script src="sheets.js"></script>
+  <script src="map.js"></script>
+  <script src="turf_draw.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => UI.init());
+  </script>
+</body>
+</html>

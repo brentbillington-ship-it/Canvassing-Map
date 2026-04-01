@@ -510,28 +510,59 @@ const UI = {
     if (this.isAdmin) this._renderTop3();
     const bar = document.getElementById('stats-bar');
     if (!bar) return;
-    const allH      = turfs.flatMap(t => t.houses);
-    const total     = allH.length;
-    const byResult  = {};
-    CONFIG.RESULTS.forEach(r => { byResult[r.key] = 0; });
-    allH.forEach(h => { if (h.result) byResult[h.result] = (byResult[h.result] || 0) + 1; });
-    const contacted = allH.filter(h => h.result && h.result !== 'skip').length;
-    const pct       = total ? Math.round(contacted / total * 100) : 0;
 
-    bar.innerHTML = `
-      <div class="stat-chip">${contacted}<span class="stat-chip-label">/${total} contacted</span></div>
-      <div class="stat-chip">${byResult['hanger'] || 0}<span class="stat-chip-label"> hangers</span></div>
-      <div class="stat-chip">${byResult['knocked'] || 0}<span class="stat-chip-label"> knocked</span></div>
-      <div class="stat-chip">${byResult['not_home'] || 0}<span class="stat-chip-label"> NH</span></div>
+    // Hanger turfs only
+    const hangerHouses = turfs.filter(t => (t.mode || 'hanger') === 'hanger').flatMap(t => t.houses);
+    const hTotal   = hangerHouses.length;
+    const hDone    = hangerHouses.filter(h => h.result === 'hanger' || h.result === 'skip' || h.result === 'not_home').length;
+    const hHangers = hangerHouses.filter(h => h.result === 'hanger').length;
+    const hPct     = hTotal ? Math.round(hDone / hTotal * 100) : 0;
+
+    // Door knock turfs only
+    const knockHouses = turfs.filter(t => (t.mode || 'hanger') === 'doorknock').flatMap(t => t.houses);
+    const kTotal   = knockHouses.length;
+    const kDone    = knockHouses.filter(h => h.result === 'knocked' || h.result === 'not_home').length;
+    const kKnocked = knockHouses.filter(h => h.result === 'knocked').length;
+    const kPct     = kTotal ? Math.round(kDone / kTotal * 100) : 0;
+
+    // Segment colors from config
+    const col = {};
+    CONFIG.RESULTS.forEach(r => { col[r.key] = r.color; });
+
+    const hangerBar = hTotal ? `
       <div class="stat-track-wrap">
         <div class="stat-track">
-          ${CONFIG.RESULTS.filter(r => r.key !== 'skip').map(r => {
-            const w = total ? (byResult[r.key] / total * 100).toFixed(1) : 0;
-            return `<div class="stat-seg" style="width:${w}%;background:${r.color}" title="${r.label}: ${byResult[r.key]}"></div>`;
-          }).join('')}
+          <div class="stat-seg" style="width:${hTotal ? (hangerHouses.filter(h=>h.result==='hanger').length/hTotal*100).toFixed(1) : 0}%;background:${col.hanger}" title="Hanger: ${hHangers}"></div>
+          <div class="stat-seg" style="width:${hTotal ? (hangerHouses.filter(h=>h.result==='skip').length/hTotal*100).toFixed(1) : 0}%;background:${col.skip}" title="Skip"></div>
+          <div class="stat-seg" style="width:${hTotal ? (hangerHouses.filter(h=>h.result==='not_home').length/hTotal*100).toFixed(1) : 0}%;background:${col.not_home}" title="NH"></div>
         </div>
-        <span class="stat-pct">${pct}%</span>
-      </div>`;
+        <span class="stat-pct">${hPct}%</span>
+      </div>` : '';
+
+    const knockBar = kTotal ? `
+      <div class="stat-track-wrap">
+        <div class="stat-track">
+          <div class="stat-seg" style="width:${kTotal ? (knockHouses.filter(h=>h.result==='knocked').length/kTotal*100).toFixed(1) : 0}%;background:${col.knocked}" title="Knocked: ${kKnocked}"></div>
+          <div class="stat-seg" style="width:${kTotal ? (knockHouses.filter(h=>h.result==='not_home').length/kTotal*100).toFixed(1) : 0}%;background:${col.not_home}" title="NH"></div>
+        </div>
+        <span class="stat-pct">${kPct}%</span>
+      </div>` : '';
+
+    const hangerGroup = hTotal ? `
+      <div class="stat-group">
+        <div class="stat-chip">📬 ${hHangers}<span class="stat-chip-label">/${hTotal}</span></div>
+        ${hangerBar}
+      </div>` : '';
+
+    const knockGroup = kTotal ? `
+      <div class="stat-group">
+        <div class="stat-chip">✊ ${kKnocked}<span class="stat-chip-label">/${kTotal}</span></div>
+        ${knockBar}
+      </div>` : '';
+
+    const divider = (hTotal && kTotal) ? '<div class="stat-divider"></div>' : '';
+
+    bar.innerHTML = hangerGroup + divider + knockGroup;
   },
 
   // ── Sidebar ──────────────────────────────────────────────────────────────────
@@ -761,6 +792,33 @@ const UI = {
     setTimeout(() => overlay.querySelector('input')?.focus(), 50);
   },
 
+  // ── Promise-based confirm modal (for async delete flows) ───────────────────
+  _confirm(title, bodyHtml, confirmLabel = 'Confirm', danger = false) {
+    return new Promise(resolve => {
+      document.getElementById('modal-overlay')?.remove();
+      const overlay = document.createElement('div');
+      overlay.id = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal-card">
+          <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="modal-close" id="modal-x-btn">✕</button>
+          </div>
+          <div class="modal-body">${bodyHtml}</div>
+          <div class="modal-footer">
+            <button class="modal-cancel" id="modal-cancel-btn">Cancel</button>
+            <button class="modal-confirm${danger ? ' danger' : ''}" id="modal-confirm-btn">${confirmLabel}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const close = (val) => { overlay.remove(); resolve(val); };
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+      document.getElementById('modal-x-btn').addEventListener('click', () => close(false));
+      document.getElementById('modal-cancel-btn').addEventListener('click', () => close(false));
+      document.getElementById('modal-confirm-btn').addEventListener('click', () => close(true));
+    });
+  },
+
   // ── Edit zone (volunteer/color only — boundary uses startEditBoundary) ────────
 
   // ── User dropdown helper ──────────────────────────────────────────────────
@@ -816,15 +874,16 @@ const UI = {
     });
   },
 
-  _confirmClearTurf(letter) {
+  async _confirmClearTurf(letter) {
     document.getElementById('modal-overlay')?.remove();
     const turf = App.state.turfs.find(t => t.letter === letter);
     if (!turf) return;
     const withResults = turf.houses.filter(h => h.result).length;
     const msg = withResults > 0
-      ? `⚠️ ${withResults} house${withResults > 1 ? 's have' : ' has'} recorded results that will be permanently deleted.\n\nAre you sure you want to clear all ${turf.houses.length} houses from Zone ${letter}?`
-      : `Clear all ${turf.houses.length} houses from Zone ${letter}? This cannot be undone.`;
-    if (!confirm(msg)) return;
+      ? `⚠️ <strong>${withResults}</strong> house${withResults > 1 ? 's have' : ' has'} recorded results that will be permanently deleted.<br><br>Clear all ${turf.houses.length} houses from Zone ${letter}?`
+      : `Clear all <strong>${turf.houses.length}</strong> houses from Zone ${letter}? This cannot be undone.`;
+    const ok = await this._confirm(`Clear Zone ${letter}`, msg, 'Clear All', true);
+    if (!ok) return;
     App.clearTurfHouses(letter);
   },
 
@@ -833,23 +892,25 @@ const UI = {
     if (!turf) return;
     const resultCount = turf.houses.filter(h => h.result && h.result !== '').length;
     const houseCount  = turf.houses.length;
+    const vol = turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? ` (${turf.volunteer})` : '';
 
     // First confirm
-    const vol = turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? ` (${turf.volunteer})` : '';
     const msg1 = resultCount > 0
-      ? `Zone ${letter}${vol} has ${resultCount} recorded result${resultCount > 1 ? 's' : ''} out of ${houseCount} houses.\n\nThis data will be backed up but removed from the map. Continue?`
-      : `Delete Zone ${letter}${vol}? This will remove all ${houseCount} houses. This cannot be undone.`;
-    if (!confirm(msg1)) return;
+      ? `Zone ${letter}${vol} has <strong>${resultCount}</strong> recorded result${resultCount > 1 ? 's' : ''} out of ${houseCount} houses.<br><br>This data will be backed up but removed from the map.`
+      : `Delete Zone ${letter}${vol}?<br><br>This will remove all <strong>${houseCount}</strong> houses. This cannot be undone.`;
+    const ok1 = await this._confirm(`Delete Zone ${letter}`, msg1, 'Delete', true);
+    if (!ok1) return;
 
-    // Second confirm only if there are results
+    // Second confirm + backup if results exist
     if (resultCount > 0) {
-      if (!confirm(`Final confirmation: permanently delete Zone ${letter} and all its data?`)) return;
-      // Backup before delete
+      const ok2 = await this._confirm(`Confirm Delete Zone ${letter}`, `Final confirmation — permanently delete Zone ${letter} and all its data?`, 'Yes, Delete', true);
+      if (!ok2) return;
       try {
         await SheetsAPI.backupZone(letter);
-        this.toast(`Zone ${letter} backed up to deleted_zones sheet`, 'info');
+        this.toast(`Zone ${letter} backed up`, 'info');
       } catch(e) {
-        if (!confirm('Backup failed. Delete anyway?')) return;
+        const ok3 = await this._confirm('Backup Failed', 'Could not back up zone data. Delete anyway?', 'Delete Anyway', true);
+        if (!ok3) return;
       }
     }
     await App.deleteTurf(letter);
@@ -933,8 +994,9 @@ const UI = {
     if (results) results.innerHTML = '';
   },
 
-  confirmDeleteHouse(id) {
-    if (!confirm('Remove this house?')) return;
+  async confirmDeleteHouse(id) {
+    const ok = await this._confirm('Remove House', 'Remove this house from the zone?', 'Remove', true);
+    if (!ok) return;
     App.removeHouse(id);
   },
 
@@ -1118,7 +1180,7 @@ const UI = {
     if (!el) return;
     const msgs    = this._chatMessages || [];
     const isStrip = elId === 'sc-messages';
-    const display = isStrip ? msgs.slice(-4) : msgs;
+    const display = msgs;
     if (!display.length) {
       el.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
       return;
@@ -1150,7 +1212,12 @@ const UI = {
       }
       return html;
     }).join('');
-    this._scrollChatBottom(elId);
+    // Only auto-scroll if user is already near the bottom (or it's a fresh send)
+    const scrollEl = document.getElementById(elId);
+    if (scrollEl) {
+      const nearBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 60;
+      if (nearBottom) this._scrollChatBottom(elId);
+    }
   },
 
   _scrollChatBottom(elId) {

@@ -54,7 +54,11 @@ const MapModule = {
 
     L.control.layers(
       { 'Aerial': satellite, 'Street': street },
-      { 'Road Labels': labels, ...(this._cisdLayer ? { 'CISD Boundary': this._cisdLayer } : {}) },
+      {
+        'Road Labels': labels,
+        ...(this._cisdLayer ? { 'CISD Boundary': this._cisdLayer } : {}),
+        ...(this._schoolLayer ? { 'School Labels': this._schoolLayer } : {}),
+      },
       { position: 'bottomright', collapsed: true }
     ).addTo(this.map);
 
@@ -135,10 +139,10 @@ const MapModule = {
     }
   },
 
-  // ── School labels — persistent at all zoom levels ─────────────────────────
+  // ── School labels — toggleable layer ─────────────────────────────────────
   _renderSchoolLabels() {
     if (typeof CISD_SCHOOLS === 'undefined') return;
-    const schoolLabelGroup = L.layerGroup().addTo(this.map);
+    this._schoolLayer = L.layerGroup();
     CISD_SCHOOLS.forEach(s => {
       const sizeClass = s.type === 'hs' ? 'school-label-hs' : s.type === 'ms' ? 'school-label-ms' : 'school-label-es';
       L.marker([s.lat, s.lon], {
@@ -151,8 +155,9 @@ const MapModule = {
         pane: 'schoolPane',
         interactive: false,
         zIndexOffset: 900,
-      }).addTo(schoolLabelGroup);
+      }).addTo(this._schoolLayer);
     });
+    this._schoolLayer.addTo(this.map); // on by default
   },
 
   // ── Full render ────────────────────────────────────────────────────────────

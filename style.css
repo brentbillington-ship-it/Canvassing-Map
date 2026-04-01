@@ -154,7 +154,9 @@ body {
 .top3-more-btn:hover { color: #fff; }
 
 /* ─── Stats Bar ──────────────────────────────────────────────────────────── */
-.stats-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
+.stats-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+.stat-group { display: flex; align-items: center; gap: 5px; }
+.stat-divider { width: 1px; height: 14px; background: rgba(255,255,255,0.25); flex-shrink: 0; }
 .stat-chip {
   background: rgba(0,0,0,0.25); color: #fff;
   padding: 2px 8px; border-radius: 12px;
@@ -162,7 +164,7 @@ body {
 }
 .stat-chip-label { font-weight: 400; opacity: 0.8; }
 .stat-track-wrap { display: flex; align-items: center; gap: 5px; }
-.stat-track { display: flex; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.15); width: 80px; overflow: hidden; }
+.stat-track { display: flex; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.15); width: 72px; overflow: hidden; }
 .stat-seg { height: 100%; transition: width 0.6s ease; }
 .stat-pct { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.8); }
 
@@ -484,6 +486,7 @@ body {
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
 .modal-cancel { padding: 8px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-family: inherit; color: var(--text2); }
 .modal-confirm { padding: 8px 16px; background: var(--header-bg); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.modal-confirm.danger { background: #c44848; }
 .modal-confirm:hover { opacity: 0.9; }
 .f-label { font-size: 12px; font-weight: 600; color: var(--text2); }
 .f-input, .f-textarea { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface); }
@@ -519,7 +522,8 @@ body {
   .container { flex-direction: column-reverse; }
   #map-wrap { flex: 1; min-height: 0; }
   .stats-bar { gap: 5px; }
-  .stat-track { display: none; }
+  .stat-track-wrap { display: none; }
+  .stat-divider { display: none; }
   .presence-bar { display: none; }
   .stat-pills { display: flex; }
   .map-legend { margin-left: 10px; }
@@ -741,7 +745,7 @@ body {
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  max-height: 200px;
+  max-height: 280px;
 }
 .sc-header {
   display: flex; align-items: center; gap: 6px;

@@ -77,7 +77,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.10</div>
+          <div class="header-credit">by Brent Billington &middot; v4.11</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -571,10 +571,15 @@ const UI = {
     const sel = document.getElementById('turf-filter-sel');
     if (sel) {
       const cur = sel.value;
+      const allTurfs = App.state.turfs;
+      const unassigned = allTurfs.filter(t => !t.volunteer || t.volunteer === '[UNASSIGNED]');
+      const assigned   = allTurfs.filter(t => t.volunteer && t.volunteer !== '[UNASSIGNED]');
+      // Sort assigned by volunteer name
+      assigned.sort((a, b) => a.volunteer.localeCompare(b.volunteer));
+      const toOpt = t => `<option value="${t.letter}" ${String(cur) === String(t.letter) ? 'selected' : ''}>${t.letter} — ${_esc(t.volunteer)}</option>`;
       sel.innerHTML = '<option value="">All Zones</option>' +
-        App.state.turfs.map(t =>
-          `<option value="${t.letter}" ${cur === t.letter ? 'selected' : ''}>${t.letter} — ${_esc(t.volunteer)}</option>`
-        ).join('');
+        (unassigned.length ? '<option disabled>— Unassigned —</option>' + unassigned.map(toOpt).join('') : '') +
+        (assigned.length   ? '<option disabled>— Assigned —</option>'   + assigned.map(toOpt).join('')   : '');
     }
 
     const list = document.getElementById('turf-list');

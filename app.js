@@ -109,6 +109,11 @@ const App = {
           }
         });
       });
+      // Preserve polygon_geojson — not returned by getAll, stored separately
+      data.turfs.forEach(t => {
+        const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
+        if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
+      });
       this.state.turfs = data.turfs;
       this.render();
     } catch(e) {}

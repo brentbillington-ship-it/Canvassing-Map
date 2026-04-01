@@ -183,9 +183,13 @@ const MapModule = {
     if (typeof geojson === 'string') {
       try { geojson = JSON.parse(geojson); } catch(e) { return; }
     }
+    // L.geoJSON requires a Feature or FeatureCollection, not a bare Geometry
+    if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
+      geojson = { type: 'Feature', geometry: geojson, properties: {} };
+    }
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color, fillColor: color, fillOpacity: 0.10, weight: 2, opacity: 0.6, dashArray: '5,4' }
+        style: { color, fillColor: color, fillOpacity: 0.15, weight: 2.5, opacity: 0.8, dashArray: '6,4' }
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
@@ -200,7 +204,7 @@ const MapModule = {
           zIndexOffset: -500
         }).addTo(this.turfPolygonGroup);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('Polygon render error:', e, geojson); }
   },
 
   // ── House dot — blank, color = result status, shape = turf mode ───────────

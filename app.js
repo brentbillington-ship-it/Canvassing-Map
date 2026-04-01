@@ -41,7 +41,6 @@ const App = {
       if (data.error) throw new Error(data.error);
       this.state.turfs = data.turfs;
       this.render();
-      TurfDraw.loadTurfs(data.turfs);
       UI.toast('Data loaded ✓', 'success');
       UI.setOffline(false);
     } catch(e) {
@@ -98,7 +97,6 @@ const App = {
       });
       this.state.turfs = data.turfs;
       this.render();
-      TurfDraw.loadTurfs(data.turfs);
     } catch(e) {}
   },
 
@@ -247,9 +245,6 @@ const App = {
 
       if (res.error) { UI.toast(res.error, 'error'); return; }
       await this.loadData();
-      // Force map + draw layer rebuild so polygon appears immediately
-      MapModule.renderAll(this._visibleTurfs());
-      TurfDraw.loadTurfs(this.state.turfs);
       UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
     } catch(e) { UI.toast('Failed to create zone — check connection', 'error'); console.error(e); }
     finally { App._showCreatingOverlay(false); }

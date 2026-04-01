@@ -155,7 +155,12 @@ const TurfDraw = (() => {
       if (typeof geojson === 'string') { try { geojson = JSON.parse(geojson); } catch(e) { return; } }
       try {
         const color = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
-        L.geoJSON(geojson).eachLayer(gjLayer => {
+        // Wrap bare Geometry in Feature so L.geoJSON can parse it
+        let gjInput = geojson;
+        if (gjInput.type === 'Polygon' || gjInput.type === 'MultiPolygon') {
+          gjInput = { type: 'Feature', geometry: gjInput, properties: {} };
+        }
+        L.geoJSON(gjInput).eachLayer(gjLayer => {
           const poly = L.polygon(gjLayer.getLatLngs(), {
             color, fillColor: color, fillOpacity: 0.12, weight: 2.5, dashArray: '5,4', opacity: 0.8
           });

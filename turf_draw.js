@@ -253,14 +253,28 @@ const TurfDraw = (() => {
   }
 
   // ── Populate modal ────────────────────────────────────────────────────────
-  function _showPopulateModal({ layer, ring, sorted, excluded }) {
-    const turfs      = App.state.turfs;
-    // Auto-assign next available integer (1, 2, 3...)
-    const usedLetters = new Set(turfs.map(t => t.letter));
-    let nextLetter = '1';
+  function _nextAvailableLetter(usedSet) {
     for (let i = 1; i < 1000; i++) {
-      if (!usedLetters.has(String(i))) { nextLetter = String(i); break; }
+      if (!usedSet.has(String(i))) return String(i);
     }
+    return null;
+  }
+
+  async function _showPopulateModal({ layer, ring, sorted, excluded }) {
+    // Fetch live zone list from server to get accurate next number
+    UI.toast('Checking zones…', 'info', 1500);
+    let liveLetters;
+    try {
+      const res = await SheetsAPI.getAll();
+      liveLetters = new Set((res.turfs || []).map(t => String(t.letter)));
+      // Also sync local state so the rest of the app is current
+      if (res.turfs) App.state.turfs = res.turfs;
+    } catch(e) {
+      liveLetters = new Set(App.state.turfs.map(t => String(t.letter)));
+    }
+    let nextLetter = _nextAvailableLetter(liveLetters);
+    if (!nextLetter) { UI.toast('No zone numbers available', 'error'); return; }
+
     const exclHtml = excluded.length
       ? `<div class="pop-excl-row">
            <span class="pop-excl-count">${excluded.length} commercial/apt excluded</span>
@@ -279,7 +293,7 @@ const TurfDraw = (() => {
       ${exclHtml}
       <div class="pop-letter-row">
         <span class="pop-letter-label">Zone ID:</span>
-        <span class="pop-letter-badge">${nextLetter}</span>
+        <span class="pop-letter-badge" id="zone-id-badge">${nextLetter}</span>
       </div>
 
       <label class="f-label" style="margin-top:8px">Assign Volunteer</label>
@@ -291,23 +305,19 @@ const TurfDraw = (() => {
       const opt       = sel?.options[sel?.selectedIndex];
       const color     = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]') ? opt.dataset.color : '#6b7280';
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
-      const mode      = 'hanger';
 
-      if (!letter) { UI.toast('No available letter — check existing turfs', 'error'); return false; }
-      if (turfs.some(t => t.letter === letter)) { UI.toast(`Zone ${letter} already exists`, 'error'); return false; }
+      if (!letter) { UI.toast('No available zone number — check existing zones', 'error'); return false; }
 
       const { residential } = ParcelsUtil.parcelsInPolygon(ring, inclComm);
       if (!residential.length) { UI.toast('No parcels found — try a different area', 'error'); return false; }
       const centroid     = ParcelsUtil.leafletRingCentroid(ring);
       const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
 
-      // Don't add layer to _drawnLayers here — let loadTurfs rebuild after save
       const geojson = layer.toGeoJSON().geometry;
       App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels });
       return true;
     }, 'Create Zone');
   }
-
   // ── Diff modal ────────────────────────────────────────────────────────────
   function _showDiffModal({ letter, layer, toKeep, toRemove, toAdd, excluded }) {
     const kept = toKeep.filter(h => !!h.result).length;

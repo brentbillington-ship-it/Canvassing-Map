@@ -233,7 +233,18 @@ const App = {
     try {
       const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
       // Single atomic call: creates turf + polygon + houses, rolls back on failure
-      const res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+      let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+
+      // Collision detected — server tells us the next safe number; offer to retry
+      if (res.error && res.nextAvailable) {
+        App._showCreatingOverlay(false);
+        const retry = confirm(`Zone ${letter} was just taken by another admin.\n\nCreate as Zone ${res.nextAvailable} instead?`);
+        if (!retry) return;
+        letter = String(res.nextAvailable);
+        App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
+        res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+      }
+
       if (res.error) { UI.toast(res.error, 'error'); return; }
       await this.loadData();
       UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');

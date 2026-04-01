@@ -244,18 +244,19 @@ function deleteTurf(letter) {
       housesSheet.deleteRow(i + 1);
     }
   }
-  // Now delete the turf row
+  // Now delete ALL turf rows matching this letter (handles duplicates)
   const turfsSheet = getSheet('turfs');
   const tData = turfsSheet.getDataRange().getValues();
-  for (let i = 1; i < tData.length; i++) {
+  let deleted = 0;
+  for (let i = tData.length - 1; i >= 1; i--) {
     if (String(tData[i][0]) === String(letter)) {
       turfsSheet.deleteRow(i + 1);
-      SpreadsheetApp.flush();
-      return { success: true };
+      deleted++;
     }
   }
   SpreadsheetApp.flush();
-  return { error: 'Zone not found: ' + letter };
+  if (deleted === 0) return { error: 'Zone not found: ' + letter };
+  return { success: true };
 }
 
 function updateTurf(letter, fields) {
@@ -325,10 +326,13 @@ function createZone(letter, color, volunteer, geojson, houses) {
   const turfsSheet  = getSheet('turfs');
   const housesSheet = getSheet('houses');
 
-  // Guard: duplicate letter check
+  // Guard: duplicate letter check — return next available number so client can retry
   const existing = sheetToObjects(turfsSheet);
   if (existing.some(t => String(t.letter) === String(letter))) {
-    return { error: 'Zone ' + letter + ' already exists' };
+    const usedNums = new Set(existing.map(t => String(t.letter)));
+    let nextAvailable = 1;
+    while (usedNums.has(String(nextAvailable))) nextAvailable++;
+    return { error: 'Zone ' + letter + ' already exists', nextAvailable: nextAvailable };
   }
 
   try {

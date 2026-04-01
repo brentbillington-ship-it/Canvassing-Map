@@ -8,7 +8,7 @@
  *  ✅ Same URL — no config.js change needed
  * ─────────────────────────────────────────────────────────────
  *
- * Chaka Canvassing — Google Sheets Backend v4.8
+ * Chaka Canvassing — Google Sheets Backend v4.9
  *
  *  "houses"       — id | turf | owner | address | lat | lon | notes |
  *                   result | result_date | result_by | sort_order
@@ -50,6 +50,8 @@ function handleAction(data) {
       case 'reorderHouses':   return json(reorderHouses(data.turf, data.order));
       case 'bulkImport':      return json(bulkImport(data.turfs));
       case 'bulkImportHouses': return json(bulkImportHouses(data.letter, data.houses));
+      case 'createZone':       return json(createZone(data.letter, data.color, data.volunteer, data.geojson, data.houses));
+      case 'claimZone':        return json(claimZone(data.letter, data.volunteer, data.color));
       case 'clearTurf':       return json(clearTurf(data.letter));
       case 'heartbeat':       return json(heartbeat(data.name, data.sessionId));
       case 'getPresence':     return json(getPresence());
@@ -233,14 +235,27 @@ function addTurf(letter, color, volunteer, mode) {
 }
 
 function deleteTurf(letter) {
-  const houses = sheetToObjects(getSheet('houses'));
-  if (houses.some(h => h.turf === letter)) return { error: 'Cannot delete turf ' + letter + ' — remove its houses first.' };
-  const sheet = getSheet('turfs');
-  const data  = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === letter) { sheet.deleteRow(i+1); SpreadsheetApp.flush(); return { success: true }; }
+  // Cascade: delete all houses in this zone first
+  const housesSheet = getSheet('houses');
+  const hData = housesSheet.getDataRange().getValues();
+  // Delete from bottom up to avoid row index shifting
+  for (let i = hData.length - 1; i >= 1; i--) {
+    if (String(hData[i][1]) === String(letter)) {
+      housesSheet.deleteRow(i + 1);
+    }
   }
-  return { error: 'Turf not found: ' + letter };
+  // Now delete the turf row
+  const turfsSheet = getSheet('turfs');
+  const tData = turfsSheet.getDataRange().getValues();
+  for (let i = 1; i < tData.length; i++) {
+    if (String(tData[i][0]) === String(letter)) {
+      turfsSheet.deleteRow(i + 1);
+      SpreadsheetApp.flush();
+      return { success: true };
+    }
+  }
+  SpreadsheetApp.flush();
+  return { error: 'Zone not found: ' + letter };
 }
 
 function updateTurf(letter, fields) {
@@ -302,6 +317,73 @@ function bulkImport(turfs) {
   });
   SpreadsheetApp.flush();
   return { success: true, turfs: addedTurfs, houses: addedHouses };
+}
+
+// ─── Atomic Zone Creation ─────────────────────────────────────────────────────
+
+function createZone(letter, color, volunteer, geojson, houses) {
+  const turfsSheet  = getSheet('turfs');
+  const housesSheet = getSheet('houses');
+
+  // Guard: duplicate letter check
+  const existing = sheetToObjects(turfsSheet);
+  if (existing.some(t => String(t.letter) === String(letter))) {
+    return { error: 'Zone ' + letter + ' already exists' };
+  }
+
+  try {
+    // 1. Write turf row with polygon inline
+    const geojsonStr = geojson ? JSON.stringify(geojson) : '';
+    turfsSheet.appendRow([
+      letter, color || '#6b7280', volunteer || '[UNASSIGNED]',
+      'hanger', geojsonStr, new Date().toISOString()
+    ]);
+
+    // 2. Write houses
+    let order = 0;
+    (houses || []).forEach(house => {
+      order++;
+      housesSheet.appendRow([
+        uid(), letter, house.owner || '', house.address || '',
+        house.lat || 0, house.lon || 0, '', '', '', '', order
+      ]);
+    });
+
+    SpreadsheetApp.flush();
+    return { success: true, letter, houseCount: (houses || []).length };
+  } catch(err) {
+    // Attempt rollback: remove the turf row if it was written
+    try {
+      const tData = turfsSheet.getDataRange().getValues();
+      for (let i = tData.length - 1; i >= 1; i--) {
+        if (String(tData[i][0]) === String(letter)) { turfsSheet.deleteRow(i + 1); break; }
+      }
+      // Remove any houses written for this zone
+      const hData = housesSheet.getDataRange().getValues();
+      for (let i = hData.length - 1; i >= 1; i--) {
+        if (String(hData[i][1]) === String(letter)) housesSheet.deleteRow(i + 1);
+      }
+      SpreadsheetApp.flush();
+    } catch(e2) {}
+    return { error: 'Zone creation failed: ' + err.toString() };
+  }
+}
+
+function claimZone(letter, volunteer, color) {
+  const sheet = getSheet('turfs');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
+  const volCol   = hdrs.indexOf('volunteer') + 1;
+  const colorCol = hdrs.indexOf('color') + 1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(letter)) {
+      if (volCol > 0) sheet.getRange(i + 1, volCol).setValue(volunteer || '[UNASSIGNED]');
+      if (colorCol > 0 && color) sheet.getRange(i + 1, colorCol).setValue(color);
+      SpreadsheetApp.flush();
+      return { success: true };
+    }
+  }
+  return { error: 'Zone not found: ' + letter };
 }
 
 // ─── Bulk Import Houses Only (for zone creation — turf already exists) ───────

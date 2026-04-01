@@ -261,8 +261,6 @@ const TurfDraw = (() => {
     for (let i = 1; i < 1000; i++) {
       if (!usedLetters.has(String(i))) { nextLetter = String(i); break; }
     }
-    const colors     = CONFIG.TURF_COLORS;
-
     const exclHtml = excluded.length
       ? `<div class="pop-excl-row">
            <span class="pop-excl-count">${excluded.length} commercial/apt excluded</span>
@@ -272,16 +270,6 @@ const TurfDraw = (() => {
            </label>
          </div>`
       : '';
-
-    // Auto color = next in palette not already used
-    const usedColors  = new Set(turfs.map(t => t.color));
-    const autoColor   = colors.find(c => !usedColors.has(c)) || colors[turfs.length % colors.length];
-    const colorOpts   = `<span class="color-swatch color-auto selected" data-color="auto" title="Auto"
-        onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')">✦</span>` +
-      colors.map(c =>
-        `<span class="color-swatch" data-color="${c}" style="background:${c}"
-          onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')"></span>`
-      ).join('');
 
     UI._modal('Create Zone from Drawing', `
       <div class="pop-count-row">
@@ -294,17 +282,16 @@ const TurfDraw = (() => {
         <span class="pop-letter-badge">${nextLetter}</span>
       </div>
 
-      <label class="f-label" style="margin-top:8px">Volunteer name (optional)</label>
-      <input id="f-volunteer" class="f-input" type="text" placeholder="Volunteer name"/>
-      <label class="f-label">Color</label>
-      <div class="color-row">${colorOpts}</div>
+      <label class="f-label" style="margin-top:8px">Assign Volunteer</label>
+      ${UI._userDropdownHtml('')}
     `, () => {
       const letter    = nextLetter;
-      const volunteer = (document.getElementById('f-volunteer')?.value || '').trim();
-      const rawColor  = document.querySelector('.color-swatch.selected')?.dataset.color || 'auto';
-      const color     = rawColor === 'auto' ? autoColor : rawColor;
+      const sel       = document.getElementById('f-volunteer-sel');
+      const volunteer = sel?.value || '[UNASSIGNED]';
+      const opt       = sel?.options[sel?.selectedIndex];
+      const color     = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]') ? opt.dataset.color : '#6b7280';
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
-      const mode      = 'hanger'; // Door knock zones added via import only
+      const mode      = 'hanger';
 
       if (!letter) { UI.toast('No available letter — check existing turfs', 'error'); return false; }
       if (turfs.some(t => t.letter === letter)) { UI.toast(`Zone ${letter} already exists`, 'error'); return false; }

@@ -231,23 +231,36 @@ const App = {
   async createTurfFromDraw({ letter, color, volunteer, geojson, parcels }) {
     App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
     try {
-      // 1. Create turf row (always hanger mode)
-      const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]', 'hanger');
-      if (tRes.error) { UI.toast(tRes.error, 'error'); return; }
-      // 2. Save polygon (must complete before loadData so boundary appears)
-      const pRes = await SheetsAPI.saveTurfPolygon(letter, geojson);
-      if (pRes && pRes.error) { UI.toast('Zone created but boundary failed to save', 'error'); }
-      // 3. Bulk import houses (separate from turf creation to avoid duplicate turf row)
       const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
-      if (houses.length) {
-        // Pass empty turfs array - only import houses into existing turf
-        await SheetsAPI.bulkImportHouses(letter, houses);
-      }
-      // 4. Reload - boundary should now be present
+      // Single atomic call: creates turf + polygon + houses, rolls back on failure
+      const res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+      if (res.error) { UI.toast(res.error, 'error'); return; }
       await this.loadData();
-      UI.toast(`Zone ${letter} created with ${parcels.length} houses ✓`, 'success');
-    } catch(e) { UI.toast('Failed to create zone', 'error'); console.error(e); }
+      UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
+    } catch(e) { UI.toast('Failed to create zone — check connection', 'error'); console.error(e); }
     finally { App._showCreatingOverlay(false); }
+  },
+
+  async claimZone(letter) {
+    const user = this._getUserRecord();
+    if (!user) { UI.toast('Could not find your user record', 'error'); return; }
+    try {
+      const res = await SheetsAPI.claimZone(letter, user.name, user.color);
+      if (res.error) { UI.toast(res.error, 'error'); return; }
+      // Update local state
+      const turf = this.state.turfs.find(t => t.letter === letter);
+      if (turf) { turf.volunteer = user.name; turf.color = user.color; }
+      this.render();
+      UI.toast(`Zone ${letter} claimed ✓`, 'success');
+    } catch(e) { UI.toast('Failed to claim zone', 'error'); }
+  },
+
+  _getUserRecord() {
+    // Find current user in _users cache by email
+    const email = UI.currentEmail;
+    if (!email) return { name: UI.currentUser, color: '#6b7280' };
+    const found = UI._users.find(u => u.email === email);
+    return found || { name: UI.currentUser, color: '#6b7280' };
   },
 
   _showCreatingOverlay(show, msg = 'Working…') {

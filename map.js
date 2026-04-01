@@ -332,35 +332,39 @@ const MapModule = {
     inp.focus();
   },
 
-  // ── Legend ──────────────────────────────────────────────────────────────────
+  // -- Legend — desktop always-on, mobile info button ──────────────────────────
   _renderLegend() {
     if (this._legend) this._legend.remove();
+    const group1 = ['hanger', 'skip'];
+    const group2 = ['knocked', 'not_home', 'refused'];
+    const rowHtml = (keys) => keys.map(k => {
+      const r = CONFIG.RESULTS.find(x => x.key === k);
+      return `<div class="legend-row">
+        <span class="legend-dot" style="background:${r.color}"></span>
+        <span class="legend-label">${r.icon} ${r.label}</span>
+      </div>`;
+    }).join('');
+    const legendContent =
+      rowHtml(group1) +
+      `<div class="legend-row"><span class="legend-dot" style="background:#9ca3af"></span><span class="legend-label">Not visited</span></div>` +
+      `<div class="legend-divider"></div>` +
+      rowHtml(group2) +
+      `<div class="legend-row" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1)">
+        <span class="legend-dot" style="border-radius:3px;background:#6b7280"></span>
+        <span class="legend-label">&#9670; Door Knock</span>
+      </div>`;
+
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {
-      const div = L.DomUtil.create('div', 'map-legend');
-      // Group 1: hanger workflow
-      const group1 = ['hanger', 'skip'];
-      // Group 2: door knock workflow
-      const group2 = ['knocked', 'not_home', 'refused'];
-      const rowHtml = (keys) => keys.map(k => {
-        const r = CONFIG.RESULTS.find(x => x.key === k);
-        return `<div class="legend-row">
-          <span class="legend-dot" style="background:${r.color}"></span>
-          <span class="legend-label">${r.icon} ${r.label}</span>
-        </div>`;
-      }).join('');
-      div.innerHTML =
-        rowHtml(group1) +
-        `<div class="legend-row">
-           <span class="legend-dot" style="background:#9ca3af"></span>
-           <span class="legend-label">Not visited</span>
-         </div>` +
-        `<div class="legend-divider"></div>` +
-        rowHtml(group2) +
-        `<div class="legend-row" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1)">
-           <span class="legend-dot" style="border-radius:3px;background:#6b7280"></span>
-           <span class="legend-label">◆ Door Knock</span>
-         </div>`;
+      const isMobile = window.innerWidth <= 680;
+      const div = L.DomUtil.create('div', isMobile ? 'legend-info-btn' : 'map-legend');
+      if (isMobile) {
+        div.innerHTML = `<button class="legend-btn" onclick="UI._showLegendModal()" title="Map legend">&#x2139;</button>`;
+        // Store legend content for modal
+        window._legendContent = legendContent;
+      } else {
+        div.innerHTML = legendContent;
+      }
       L.DomEvent.disableClickPropagation(div);
       return div;
     };

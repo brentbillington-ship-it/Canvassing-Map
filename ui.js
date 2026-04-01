@@ -16,11 +16,15 @@ const UI = {
   ],
   _expandedTurfs: new Set(),
 
+  // localStorage key version — bump to force relogin after schema changes
+  _LOGIN_KEY: 'ck_user_v2',
+
   init() {
     localStorage.setItem('ck_sess', this.sessionId);
+    // Migrate: clear old key if present
+    if (localStorage.getItem('ck_user')) { localStorage.removeItem('ck_user'); }
     this._buildShell();
 
-    // Login persistence — skip modal if already logged in
     const saved = this._loadSavedLogin();
     if (saved) {
       this.currentUser  = saved.name;
@@ -36,13 +40,13 @@ const UI = {
 
   // ── Login persistence ─────────────────────────────────────────────────────
   _saveLogin(name, isAdmin, userMode, email) {
-    localStorage.setItem('ck_user', JSON.stringify({ name, isAdmin, userMode: userMode || 'hanger', email: email || '' }));
+    localStorage.setItem(this._LOGIN_KEY, JSON.stringify({ name, isAdmin, userMode: userMode || 'hanger', email: email || '' }));
   },
   _loadSavedLogin() {
-    try { return JSON.parse(localStorage.getItem('ck_user') || 'null'); } catch(e) { return null; }
+    try { return JSON.parse(localStorage.getItem(this._LOGIN_KEY) || 'null'); } catch(e) { return null; }
   },
   _clearLogin() {
-    localStorage.removeItem('ck_user');
+    localStorage.removeItem(this._LOGIN_KEY);
     location.reload();
   },
 
@@ -54,7 +58,7 @@ const UI = {
           <div>
             <div class="header-title">Chaka Canvassing</div>
             <div class="header-sub">${CONFIG.CANDIDATE} &middot; ${CONFIG.RACE}</div>
-            <div class="header-credit">by Brent Billington &middot; v4.8</div>
+            <div class="header-credit">by Brent Billington &middot; v4.9</div>
           </div>
         </div>
         <div class="header-right" id="header-controls">
@@ -263,8 +267,7 @@ const UI = {
           <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
-          <button class="admin-btn" onclick="UI.showLeaderboard()">Board</button>
-          <button class="admin-btn" onclick="UI.exportCSV()">CSV</button>`;
+          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>`;
       }
       this._renderTop3();
     } else {
@@ -273,7 +276,7 @@ const UI = {
       const nonAdminTools = document.getElementById('non-admin-tools');
       if (nonAdminTools) {
         nonAdminTools.style.display = 'flex';
-        nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Report Missing House</button>`;
+        nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Add Missing House</button>`;
       }
       const logoutBtn = document.createElement('button');
       logoutBtn.className = 'hdr-btn logout-small';
@@ -569,11 +572,16 @@ const UI = {
         <button class="turf-action-btn" title="Re-sort walk order" onclick="event.stopPropagation();TurfDraw.resortTurf('${turf.letter}',MapModule.getCurrentLatLon())">🔄</button>
         <button class="turf-action-btn danger" title="Delete" onclick="event.stopPropagation();UI.confirmDeleteTurf('${turf.letter}')">✕</button>` : '';
 
+      const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
+      const claimBtn = !this.isAdmin && isUnassigned
+        ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
+        : '';
+
       return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge" style="background:${color}">${turf.letter}</div>
           <div class="turf-info">
-            <div class="turf-volunteer">${_esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}</div>
+            <div class="turf-volunteer">${isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
             <div class="turf-progress-row">
               <div class="turf-prog-track">
                 <div class="turf-prog-fill" style="width:${pct}%;background:${is100 ? '#2d9e5f' : color}"></div>
@@ -589,6 +597,13 @@ const UI = {
         </div>
       </div>`;
     }).join('');
+  },
+
+
+  _confirmClaimZone(letter) {
+    const user = App._getUserRecord();
+    if (!confirm(`Claim Zone ${letter} for ${user.name}?\n\nYou'll be assigned as the volunteer for this zone.`)) return;
+    App.claimZone(letter);
   },
 
   _filterHouses(houses) {
@@ -706,6 +721,12 @@ const UI = {
 
   setOffline(off) { document.getElementById('offline-banner')?.classList.toggle('visible', off); },
 
+
+  _showLegendModal() {
+    const content = window._legendContent || '';
+    this._modal('Map Legend', `<div class="map-legend" style="box-shadow:none;padding:0">${content}</div>`, null, null);
+  },
+
   toast(msg, type = 'info') {
     const t = document.createElement('div');
     t.className   = `toast toast-${type}`;
@@ -739,37 +760,54 @@ const UI = {
   },
 
   // ── Edit zone (volunteer/color only — boundary uses startEditBoundary) ────────
+
+  // ── User dropdown helper ──────────────────────────────────────────────────
+  _userDropdownHtml(selectedName) {
+    const none = `<option value="[UNASSIGNED]"${!selectedName || selectedName === '[UNASSIGNED]' ? ' selected' : ''}>[None] — Unassigned</option>`;
+    const opts = this._users.map(u => {
+      const sel = u.name === selectedName ? ' selected' : '';
+      return `<option value="${_esc(u.name)}" data-color="${u.color}"${sel}>${_esc(u.name)}</option>`;
+    }).join('');
+    return `<select id="f-volunteer-sel" class="f-input user-dropdown" onchange="UI._onUserDropdownChange(this)">
+      ${none}${opts}
+    </select>
+    <div id="f-volunteer-color" class="volunteer-color-preview" style="display:${selectedName && selectedName !== '[UNASSIGNED]' ? 'flex' : 'none'}"></div>`;
+  },
+
+  _onUserDropdownChange(sel) {
+    const opt   = sel.options[sel.selectedIndex];
+    const color = opt?.dataset?.color || '';
+    const prev  = document.getElementById('f-volunteer-color');
+    if (prev) {
+      if (color && opt.value !== '[UNASSIGNED]') {
+        prev.style.display = 'flex';
+        prev.style.background = color;
+      } else {
+        prev.style.display = 'none';
+      }
+    }
+  },
+
   showEditTurfModal(letter) {
-    const turf      = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => t.letter === letter);
     if (!turf) return;
-    const colors    = CONFIG.TURF_COLORS;
-    const colorOpts = colors.map(c =>
-      `<span class="color-swatch${c === turf.color ? ' selected' : ''}" data-color="${c}" style="background:${c}"
-        onclick="this.parentElement.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));this.classList.add('selected')"></span>`
-    ).join('');
     this._modal(`Edit Zone ${letter}`, `
-      <label class="f-label">Volunteer</label>
-      <input id="f-volunteer" class="f-input" type="text" value="${_esc(turf.volunteer === '[UNASSIGNED]' ? '' : turf.volunteer)}" placeholder="Volunteer name"/>
-      <label class="f-label">Mode</label>
-      <div class="mode-toggle-row">
-        <label class="mode-opt${(turf.mode||'hanger')==='hanger' ? ' selected' : ''}" id="emode-hanger" onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">🗂 Hanger</label>
-        <label class="mode-opt${(turf.mode||'hanger')==='doorknock' ? ' selected' : ''}" id="emode-doorknock" onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">🚪 Door Knock</label>
-      </div>
-      <label class="f-label">Talking Points / Script (optional)</label>
+      <label class="f-label">Assigned Volunteer</label>
+      ${this._userDropdownHtml(turf.volunteer)}
+      <label class="f-label" style="margin-top:10px">Talking Points / Script (optional)</label>
       <input id="f-script" class="f-input" type="text" value="${_esc(turf._script || '')}" placeholder="e.g. Hi, I'm volunteering for Kevin Chaka…"/>
-      <label class="f-label">Color</label>
-      <div class="color-row">${colorOpts}</div>
       ${turf.houses.length ? `
         <div class="clear-turf-row">
-          <button class="clear-turf-btn" onclick="UI._confirmClearTurf('${letter}')">🗑 Clear All Houses</button>
+          <button class="clear-turf-btn" onclick="UI._confirmClearTurf('${letter}')">Clear All Houses</button>
           <span class="clear-turf-hint">${turf.houses.length} houses · ${turf.houses.filter(h=>h.result).length} with results</span>
         </div>` : ''}
     `, () => {
-      const volunteer = (document.getElementById('f-volunteer')?.value || '').trim() || '[UNASSIGNED]';
-      const color     = document.querySelector('.color-swatch.selected')?.dataset.color || turf.color;
-      const mode      = document.getElementById('emode-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
+      const sel       = document.getElementById('f-volunteer-sel');
+      const volunteer = sel?.value || '[UNASSIGNED]';
+      const opt       = sel?.options[sel.selectedIndex];
+      const color     = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]') ? opt.dataset.color : '#6b7280';
       const script    = (document.getElementById('f-script')?.value || '').trim();
-      App.updateTurf(letter, { volunteer, color, mode });
+      App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
       const t = App.state.turfs.find(x => x.letter === letter);
       if (t) t._script = script;
       return true;
@@ -812,7 +850,7 @@ const UI = {
         if (!confirm('Backup failed. Delete anyway?')) return;
       }
     }
-    App.deleteTurf(letter);
+    await App.deleteTurf(letter);
   },
 
   // ── Add House — parcel search picker ────────────────────────────────────────
@@ -904,36 +942,54 @@ const UI = {
 
   startMissingHouseReport() {
     if (this._mapTapPending) return;
-    // Find user's zone
-    const userZone = App.state.turfs.find(t => (t.mode || 'hanger') === this.userMode);
-    if (!userZone && !this.isAdmin) { this.toast('No zone assigned to you yet', 'error'); return; }
     this._mapTapPending = true;
-    this.toast('Tap the map where the house is located', 'info');
+    this.toast('Tap the map where the missing house is', 'info');
     document.getElementById('map-wrap')?.classList.add('tap-mode');
   },
 
   _onMapTap(latlng) {
     this._mapTapPending = false;
     document.getElementById('map-wrap')?.classList.remove('tap-mode');
-    // Drop a temporary marker
     if (this._mapTapMarker) MapModule.map.removeLayer(this._mapTapMarker);
     this._mapTapMarker = L.circleMarker([latlng.lat, latlng.lng], {
       radius: 10, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.6, weight: 2
     }).addTo(MapModule.map);
 
+    // Auto-detect which zone contains the tapped point
+    const pt = { lat: latlng.lat, lon: latlng.lng };
+    let autoZone = null;
+    for (const turf of App.state.turfs) {
+      if (!turf.polygon_geojson) continue;
+      try {
+        let gj = turf.polygon_geojson;
+        if (typeof gj === 'string') gj = JSON.parse(gj);
+        const ring = (gj.coordinates || gj.geometry?.coordinates)?.[0];
+        if (ring && ParcelsUtil.ptInDrawnRing(pt, ring.map(c => ({ lat: c[1], lng: c[0] })))) {
+          autoZone = turf.letter;
+          break;
+        }
+      } catch(e) {}
+    }
+
+    // Build zone dropdown (auto-selected if detected)
     const turfOpts = App.state.turfs.map(t =>
-      `<option value="${t.letter}">${t.letter} — ${_esc(t.volunteer)}</option>`
+      `<option value="${t.letter}"${t.letter === autoZone ? ' selected' : ''}>${t.letter} — ${_esc(t.volunteer)}</option>`
     ).join('');
 
-    this._modal('Report Missing House', `
-      <div class="f-hint" style="margin-bottom:8px">📍 Location tapped: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}</div>
+    const zoneHint = autoZone
+      ? `<div class="f-hint" style="color:#2d9e5f;margin-bottom:4px">Detected Zone ${autoZone} — change if wrong</div>`
+      : `<div class="f-hint" style="color:#c9831a;margin-bottom:4px">Outside all zone boundaries — select manually</div>`;
+
+    this._modal('Add Missing House', `
+      <div class="f-hint" style="margin-bottom:8px">Location: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}</div>
       <label class="f-label">Address</label>
       <input id="missing-addr" class="f-input" type="text" placeholder="e.g. 123 Main St, Coppell TX" autocomplete="off"/>
       <label class="f-label" style="margin-top:8px">Zone</label>
+      ${zoneHint}
       <select id="missing-turf" class="f-input">${turfOpts}</select>
     `, () => {
-      const addr  = (document.getElementById('missing-addr')?.value || '').trim();
-      const turf  = document.getElementById('missing-turf')?.value;
+      const addr = (document.getElementById('missing-addr')?.value || '').trim();
+      const turf = document.getElementById('missing-turf')?.value;
       if (!addr) { this.toast('Please enter an address', 'error'); return false; }
       if (!turf) { this.toast('Please select a zone', 'error'); return false; }
       App.addHouse({ turf, address: addr, owner: '', lat: latlng.lat, lon: latlng.lng });
@@ -1009,11 +1065,17 @@ const UI = {
     if (!msg) { this.toast('Type a message first', 'info'); return; }
     if (!this.currentUser) { this.toast('Not logged in', 'error'); return; }
     inp.value = '';
-    try {
-      await SheetsAPI.sendChat(this.currentUser, this.sessionId, msg);
-      await this._fetchChat();
-      this._clearUnreadBadges();
-    } catch(e) { this.toast('Failed to send - check connection', 'error'); }
+    // Optimistic: append locally right away so it feels instant
+    const now = new Date().toISOString();
+    const optimistic = { id: '_opt_' + Date.now(), timestamp: now, name: this.currentUser,
+      session_id: this.sessionId, message: msg, ts: Date.now() };
+    this._chatMessages = [...(this._chatMessages || []), optimistic];
+    this._renderChatMessages('sc-messages');
+    if (this._chatOpen) this._renderChatMessages('chat-messages');
+    // Fire-and-forget send, then fetch to confirm
+    SheetsAPI.sendChat(this.currentUser, this.sessionId, msg)
+      .then(() => this._fetchChat())
+      .catch(() => this.toast('Failed to send - check connection', 'error'));
   },
 
   async _fetchChat() {
@@ -1071,13 +1133,15 @@ const UI = {
         html += `<div class="chat-date-bar"><span>${dateStr}</span></div>`;
       }
       if (isStrip) {
+        const nameTag = isMe ? '' : `<span class="sc-name">${_esc(m.name)}</span> `;
         html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
-          ${!isMe ? `<span class="sc-name">${_esc(m.name)}</span> ` : ''}<span class="sc-bubble">${_esc(m.message)}</span>
+          ${nameTag}<span class="sc-bubble">${_esc(m.message)}</span>
           <span class="sc-time">${timeStr}</span>
         </div>`;
       } else {
+        const nameStr = isMe ? 'You' : _esc(m.name || 'Unknown');
         html += `<div class="chat-msg ${isMe ? 'chat-mine' : 'chat-theirs'}">
-          ${!isMe ? `<div class="chat-name">${_esc(m.name)}</div>` : ''}
+          <div class="chat-name">${nameStr}</div>
           <div class="chat-bubble">${_esc(m.message)}</div>
           <div class="chat-time">${timeStr}</div>
         </div>`;

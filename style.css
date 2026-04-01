@@ -63,7 +63,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
+  padding: 5px 14px;
   gap: 10px;
 }
 .header-row2 {
@@ -78,9 +78,9 @@ body {
 .header-logo { font-size: 22px; line-height: 1; }
 .header-title { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
 .header-sub { font-size: 12px; font-weight: 600; opacity: 0.9; margin-top: 1px; }
-.header-credit { font-size: 9px; opacity: 0.45; font-style: italic; display: block; margin-top: 1px; }
-.header-credit { opacity: 0.55; font-style: italic; }
-.header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.header-right-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.header-credit { font-size: 9px; opacity: 0.45; font-style: italic; }
 .hdr-btn {
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.2);
@@ -756,12 +756,13 @@ body {
   display: flex; flex-direction: column; gap: 3px;
   min-height: 0;
 }
-.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
-.sc-mine { justify-content: flex-end; color: var(--text2); }
+.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; align-items: baseline; gap: 4px; }
+.sc-mine { color: var(--text2); }
 .sc-theirs { color: var(--text); }
-.sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); flex-shrink: 0; }
-.sc-bubble { }
-.sc-time { font-size: 10px; color: var(--text4); flex-shrink: 0; }
+.sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); flex-shrink: 0; min-width: 28px; }
+.sc-mine .sc-name { color: var(--text3); }
+.sc-bubble { flex: 1; min-width: 0; }
+.sc-time { font-size: 10px; color: var(--text4); flex-shrink: 0; width: 52px; text-align: right; }
 .sc-input-row { display: flex; gap: 5px; padding: 6px 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .sc-input {
   flex: 1; padding: 5px 9px; border: 1.5px solid var(--border);

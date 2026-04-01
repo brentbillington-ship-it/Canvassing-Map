@@ -45,20 +45,31 @@ const UI = {
           <div class="header-logo">🚂</div>
           <div>
             <div class="header-title">${CONFIG.APP_NAME}</div>
-            <div class="header-sub">${CONFIG.CANDIDATE} · ${CONFIG.RACE} · <span class="header-credit">by Brent Billington · v4.6</span></div>
+            <div class="header-sub">${CONFIG.CANDIDATE} · ${CONFIG.RACE} · <span class="header-credit">by Brent Billington · v4.7</span></div>
           </div>
         </div>
         <div class="header-right" id="header-controls">
           <div id="presence-bar" class="presence-bar"></div>
-          <button class="hdr-btn" id="chat-btn" onclick="UI.toggleChat()" title="Team Chat">💬 <span id="chat-unread" class="chat-unread" style="display:none"></span></button>
-          <button class="hdr-btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">🗺 Map</button>
-          <button class="hdr-btn" id="loc-btn" onclick="MapModule.toggleMyLocation()" title="My Location"><span class="crosshair-icon"></span></button>
+          <button class="hdr-btn mobile-chat-btn" id="chat-btn" onclick="UI.toggleChat()" title="Team Chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span id="chat-unread" class="chat-unread" style="display:none"></span>
+          </button>
+          <button class="hdr-btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          </button>
+          <button class="hdr-btn" id="loc-btn" onclick="MapModule.toggleMyLocation()" title="My Location">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>
+          </button>
           <button class="hdr-btn" id="lock-btn" onclick="UI.promptAdminUnlock()" title="Admin login" style="display:none">🔒</button>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
         <div id="stats-bar" class="stats-bar"></div>
-        <div id="sync-indicator" class="sync-indicator"></div>
+        <div id="top3-bar" class="top3-bar" style="display:none"></div>
+        <div id="row2-right" class="row2-right">
+          <div id="admin-row2" style="display:none"></div>
+          <div id="sync-indicator" class="sync-indicator"></div>
+        </div>
       </div>`;
 
     document.getElementById('offline-banner').textContent = '⚠ Offline — results will sync when reconnected';
@@ -85,9 +96,21 @@ const UI = {
             <input type="checkbox" id="hide-done-chk" onchange="UI.setHideDone(this.checked)"/> Hide done
           </label>
         </div>
-        <div id="admin-tools" class="admin-tools" style="display:none"></div>
+        <div id="non-admin-tools" class="admin-tools" style="display:none"></div>
       </div>
-      <div id="turf-list"></div>`;
+      <div id="turf-list"></div>
+      <div id="sidebar-chat" class="sidebar-chat desktop-only">
+        <div class="sc-header">
+          <span class="sc-title">&#x1F4AC; Team Chat</span>
+          <span id="sc-unread" class="chat-unread" style="display:none"></span>
+        </div>
+        <div class="sc-messages" id="sc-messages"><div class="chat-empty">No messages yet. Say hi! &#x1F44B;</div></div>
+        <div class="sc-input-row">
+          <input id="sc-input" class="sc-input" type="text" placeholder="Message the team..." maxlength="280"
+            onkeydown="if(event.key==='Enter')UI._sendChat()"/>
+          <button class="sc-send" onclick="UI._sendChat()">Send</button>
+        </div>
+      </div>`;
   },
 
   // ── Login modal ─────────────────────────────────────────────────────────────
@@ -165,33 +188,34 @@ const UI = {
   },
 
   _postLogin() {
-    const adminTools = document.getElementById('admin-tools');
-    if (this.isAdmin && adminTools) {
-      adminTools.style.display = 'flex';
-      adminTools.innerHTML = `
-        <div class="admin-label">Admin</div>
-        <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">✏️ Draw Zone</button>
-        <button class="admin-btn" onclick="UI.showAddHouseModal()">＋ House</button>
-        <button class="admin-btn" onclick="UI.showImportModal()">⬆ Import</button>
-        <button class="admin-btn" onclick="UI.showLeaderboard()">🏆 Board</button>
-        <button class="admin-btn" onclick="UI.exportCSV()">⬇ CSV</button>`;
-    }
     if (this.isAdmin) {
-      const badge = document.createElement('div');
-      badge.className = 'admin-badge';
-      badge.innerHTML = `<span>🛡 Admin</span><button class="logout-btn" onclick="UI._clearLogin()">Log out</button>`;
-      document.getElementById('header-controls')?.prepend(badge);
+      // ── Admin tools in row2 ─────────────────────────────────────────────
+      const adminRow2 = document.getElementById('admin-row2');
+      if (adminRow2) {
+        adminRow2.style.display = 'flex';
+        adminRow2.innerHTML = `
+          <div class="admin-badge-row2">
+            <span class="admin-shield">&#x1F6E1; Admin</span>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()" title="View as volunteer">Field</button>
+            <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
+          </div>
+          <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">&#x270F;&#xFE0F; Draw Zone</button>
+          <button class="admin-btn" onclick="UI.showAddHouseModal()">&#xFF0B; House</button>
+          <button class="admin-btn" onclick="UI.showImportModal()">&#x2B06; Import</button>
+          <button class="admin-btn" onclick="UI.showLeaderboard()">&#x1F3C6; Board</button>
+          <button class="admin-btn" onclick="UI.exportCSV()">&#x2B07; CSV</button>`;
+      }
+      this._renderTop3();
     } else {
-      // Show lock button for non-admins to unlock admin
+      // Show lock button for non-admins
       const lockBtn = document.getElementById('lock-btn');
       if (lockBtn) lockBtn.style.display = '';
-      // Non-admin: report missing house button in sidebar
-      const adminTools = document.getElementById('admin-tools');
-      if (adminTools) {
-        adminTools.style.display = 'flex';
-        adminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">＋ Report Missing House</button>`;
+      // Non-admin: report missing house
+      const nonAdminTools = document.getElementById('non-admin-tools');
+      if (nonAdminTools) {
+        nonAdminTools.style.display = 'flex';
+        nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">&#xFF0B; Report Missing House</button>`;
       }
-      // Non-admin logout
       const logoutBtn = document.createElement('button');
       logoutBtn.className = 'hdr-btn logout-small';
       logoutBtn.textContent = 'Log out';
@@ -199,6 +223,28 @@ const UI = {
       document.getElementById('header-controls')?.appendChild(logoutBtn);
     }
     App.init();
+  },
+
+  // ── Drop admin to field volunteer view ────────────────────────────────────
+  _dropToFieldMode() {
+    this._modal('Switch to Field View', `
+      <div class="f-hint" style="margin-bottom:12px">Choose which mode to view as. You can re-unlock admin with the &#x1F512; button.</div>
+      <div class="mode-toggle-row">
+        <label class="mode-opt selected" id="fm-hanger"
+          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
+          &#x1F5C2; Drop Hangers</label>
+        <label class="mode-opt" id="fm-doorknock"
+          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
+          &#x1F6AA; Door Knock</label>
+      </div>
+    `, () => {
+      const mode = document.getElementById('fm-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
+      this.isAdmin = false;
+      this.userMode = mode;
+      this._saveLogin(this.currentUser, false, mode);
+      location.reload();
+      return true;
+    }, 'Switch to Field View');
   },
 
   // ── Admin unlock post-login ────────────────────────────────────────────────
@@ -225,7 +271,7 @@ const UI = {
     const wrap = document.getElementById('map-wrap');
     const btn  = document.getElementById('map-toggle-btn');
     const hidden = wrap.classList.toggle('map-hidden');
-    if (btn) btn.textContent = hidden ? '🗺 Show' : '🗺 Map';
+    if (btn) btn.classList.toggle('active-btn', hidden);
     if (!hidden) setTimeout(() => MapModule.map.invalidateSize({ pan: false }), 350);
   },
 
@@ -269,6 +315,27 @@ const UI = {
     }
   },
 
+  // ── Top-3 leaderboard chip in row2 ───────────────────────────────────────
+  _renderTop3() {
+    const bar = document.getElementById('top3-bar');
+    if (!bar) return;
+    const allH = App.state.turfs.flatMap(t => t.houses);
+    // Weekly: results in the last 7 days
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekH = allH.filter(h => h.result && h.result_by && h.result_date && new Date(h.result_date).getTime() >= weekAgo);
+    const tally = {};
+    weekH.forEach(h => { tally[h.result_by] = (tally[h.result_by] || 0) + 1; });
+    const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (!sorted.length) { bar.style.display = 'none'; return; }
+    const medals = ['&#x1F947;','&#x1F948;','&#x1F949;'];
+    bar.style.display = 'flex';
+    bar.innerHTML = `<span class="top3-label">This week:</span>` +
+      sorted.map(([name, cnt], i) =>
+        `<span class="top3-chip" title="${name}: ${cnt} contacts">${medals[i]} ${name.split(' ')[0]} <strong>${cnt}</strong></span>`
+      ).join('') +
+      `<button class="top3-more-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">&#x25B8;</button>`;
+  },
+
   // ── Leaderboard ───────────────────────────────────────────────────────────
   showLeaderboard() {
     const allHouses = App.state.turfs.flatMap(t => t.houses);
@@ -305,26 +372,31 @@ const UI = {
         </tbody></table>`;
     };
 
-    this._modal('🏆 Leaderboard', `
+    const weekAgo  = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekHouses = allHouses.filter(h => h.result_date && new Date(h.result_date).getTime() >= weekAgo);
+
+    this._modal('&#x1F3C6; Leaderboard', `
       <div class="lb-tabs">
-        <button class="lb-tab active" id="lbt-today" onclick="UI._lbTab('today')">Today</button>
+        <button class="lb-tab" id="lbt-today" onclick="UI._lbTab('today')">Today</button>
+        <button class="lb-tab active" id="lbt-week" onclick="UI._lbTab('week')">This Week</button>
         <button class="lb-tab" id="lbt-all" onclick="UI._lbTab('all')">All Time</button>
       </div>
-      <div id="lb-today">${tableHtml(tally(todayHouses))}</div>
+      <div id="lb-today" style="display:none">${tableHtml(tally(todayHouses))}</div>
+      <div id="lb-week">${tableHtml(tally(weekHouses))}</div>
       <div id="lb-all" style="display:none">${tableHtml(tally(allHouses))}</div>
     `, null, null);
   },
 
   _lbTab(tab) {
-    document.getElementById('lb-today').style.display = tab === 'today' ? '' : 'none';
-    document.getElementById('lb-all').style.display   = tab === 'all'   ? '' : 'none';
-    document.getElementById('lbt-today')?.classList.toggle('active', tab === 'today');
-    document.getElementById('lbt-all')?.classList.toggle('active', tab === 'all');
+    ['today','week','all'].forEach(t => {
+      document.getElementById('lb-' + t).style.display = t === tab ? '' : 'none';
+      document.getElementById('lbt-' + t)?.classList.toggle('active', t === tab);
+    });
   },
 
   // ── CSV Export ────────────────────────────────────────────────────────────
   exportCSV() {
-    const rows = [['Turf', 'Address', 'Owner', 'Result', 'Result By', 'Result Date', 'Notes', 'Lat', 'Lon']];
+    const rows = [['Zone', 'Address', 'Owner', 'Result', 'Result By', 'Result Date', 'Notes', 'Lat', 'Lon']];
     App.state.turfs.forEach(t => {
       t.houses.forEach(h => {
         rows.push([t.letter, h.address, h.owner, h.result, h.result_by, h.result_date, h.notes, h.lat, h.lon]);
@@ -376,6 +448,8 @@ const UI = {
 
   // ── Stats bar ────────────────────────────────────────────────────────────────
   updateStats(turfs) {
+    // Refresh top-3 chip whenever stats update
+    if (this.isAdmin) this._renderTop3();
     const bar = document.getElementById('stats-bar');
     if (!bar) return;
     const allH      = turfs.flatMap(t => t.houses);
@@ -613,7 +687,7 @@ const UI = {
 
   // ── Edit zone (volunteer/color only — boundary uses startEditBoundary) ────────
   showEditTurfModal(letter) {
-    const zone      = App.state.turfs.find(t => t.letter === letter);
+    const turf      = App.state.turfs.find(t => t.letter === letter);
     if (!turf) return;
     const colors    = CONFIG.TURF_COLORS;
     const colorOpts = colors.map(c =>
@@ -651,7 +725,7 @@ const UI = {
 
   _confirmClearTurf(letter) {
     document.getElementById('modal-overlay')?.remove();
-    const zone = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => t.letter === letter);
     if (!turf) return;
     const withResults = turf.houses.filter(h => h.result).length;
     const msg = withResults > 0
@@ -662,7 +736,7 @@ const UI = {
   },
 
   confirmDeleteTurf(letter) {
-    const zone = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => t.letter === letter);
     if (turf?.houses.length) { this.toast(`Remove all houses from Zone ${letter} first`, 'error'); return; }
     if (!confirm(`Delete Zone ${letter}? This cannot be undone.`)) return;
     App.deleteTurf(letter);
@@ -673,7 +747,7 @@ const UI = {
     if (!App.state.turfs.length) { this.toast('Create a zone first', 'error'); return; }
     const turfOpts = App.state.turfs.map(t => `<option value="${t.letter}">${t.letter} — ${_esc(t.volunteer)}</option>`).join('');
     this._modal('Add House from Parcels', `
-      <label class="f-label">Turf</label>
+      <label class="f-label">Zone</label>
       <select id="f-turf" class="f-input">${turfOpts}</select>
       <label class="f-label">Search address or owner</label>
       <input id="parcel-search" class="f-input" type="text" placeholder="e.g. 745 Canongate or SMITH"
@@ -684,7 +758,7 @@ const UI = {
       const selected = UI._selectedParcel;
       const zone     = document.getElementById('f-turf')?.value;
       if (!selected) { this.toast('Select a parcel from the results', 'error'); return false; }
-      if (!turf)     { this.toast('Select a turf', 'error'); return false; }
+      if (!turf)     { this.toast('Select a zone', 'error'); return false; }
       App.addHouse({ turf, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
       UI._selectedParcel = null;
       return true;
@@ -815,44 +889,45 @@ const UI = {
   _chatLastSeen: 0,
   _chatPollTimer: null,
 
+  // ── Mobile chat toggle (desktop uses pinned sidebar strip) ──────────────
   toggleChat() {
-    this._chatOpen = !this._chatOpen;
+    // On mobile, open/close the slide-out panel
     let panel = document.getElementById('chat-panel');
-    if (this._chatOpen) {
-      if (!panel) this._buildChatPanel();
-      document.getElementById('chat-panel').classList.add('open');
+    if (!panel) this._buildMobileChatPanel();
+    panel = document.getElementById('chat-panel');
+    const isOpen = panel.classList.toggle('open');
+    this._chatOpen = isOpen;
+    if (isOpen) {
       this._chatUnread = 0;
-      const badge = document.getElementById('chat-unread');
-      if (badge) badge.style.display = 'none';
-      setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
-      this._scrollChatBottom();
-    } else {
-      document.getElementById('chat-panel')?.classList.remove('open');
+      this._clearUnreadBadges();
+      setTimeout(() => document.getElementById('chat-input')?.focus(), 120);
+      this._scrollChatBottom('chat-messages');
     }
   },
 
-  _buildChatPanel() {
+  _buildMobileChatPanel() {
     const panel = document.createElement('div');
     panel.id = 'chat-panel';
     panel.innerHTML = `
       <div class="chat-header">
-        <span class="chat-title">💬 Team Chat</span>
-        <button class="chat-close" onclick="UI.toggleChat()">✕</button>
+        <span class="chat-title">&#x1F4AC; Team Chat</span>
+        <button class="chat-close" onclick="UI.toggleChat()">&#x2715;</button>
       </div>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
-        <input id="chat-input" class="chat-input" type="text" placeholder="Message the team…" maxlength="280"
+        <input id="chat-input" class="chat-input" type="text" placeholder="Message the team..." maxlength="280"
           onkeydown="if(event.key==='Enter')UI._sendChat()"/>
         <button class="chat-send" onclick="UI._sendChat()">Send</button>
       </div>`;
     document.body.appendChild(panel);
-    this._renderChatMessages();
+    this._renderChatMessages('chat-messages');
   },
 
   async _sendChat() {
-    const inp = document.getElementById('chat-input');
+    // Works for both desktop (sc-input) and mobile (chat-input)
+    const inp = document.getElementById('sc-input') || document.getElementById('chat-input');
     const msg = (inp?.value || '').trim();
-    if (!msg) return;
+    if (!msg || !this.currentUser) return;
     inp.value = '';
     try {
       await SheetsAPI.sendChat(this.currentUser, this.sessionId, msg);
@@ -865,47 +940,80 @@ const UI = {
       const data = await SheetsAPI.getChat();
       if (!data.messages) return;
       this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
-      const newCount = this._chatMessages.filter(m => m.ts > this._chatLastSeen && m.session_id !== this.sessionId).length;
-      if (newCount > 0 && !this._chatOpen) {
+      // session_id field from sheet may be snake_case
+      const newCount = this._chatMessages.filter(m =>
+        m.ts > this._chatLastSeen && (m.session_id || m.sessionId) !== this.sessionId
+      ).length;
+      if (newCount > 0) {
         this._chatUnread = (this._chatUnread || 0) + newCount;
-        const badge = document.getElementById('chat-unread');
-        if (badge) { badge.textContent = this._chatUnread; badge.style.display = ''; }
+        this._updateUnreadBadges();
       }
       if (data.messages.length) this._chatLastSeen = Math.max(...data.messages.map(m => m.ts));
-      if (this._chatOpen) this._renderChatMessages();
+      // Render to whichever containers exist
+      this._renderChatMessages('sc-messages');
+      if (this._chatOpen) this._renderChatMessages('chat-messages');
     } catch(e) {}
   },
 
-  _renderChatMessages() {
-    const el = document.getElementById('chat-messages');
+  _updateUnreadBadges() {
+    // Mobile header badge
+    const b1 = document.getElementById('chat-unread');
+    if (b1 && !this._chatOpen) { b1.textContent = this._chatUnread; b1.style.display = ''; }
+    // Desktop sidebar badge
+    const b2 = document.getElementById('sc-unread');
+    if (b2) { b2.textContent = this._chatUnread; b2.style.display = this._chatUnread > 0 ? '' : 'none'; }
+  },
+
+  _clearUnreadBadges() {
+    this._chatUnread = 0;
+    const b1 = document.getElementById('chat-unread');
+    if (b1) b1.style.display = 'none';
+    const b2 = document.getElementById('sc-unread');
+    if (b2) b2.style.display = 'none';
+  },
+
+  _renderChatMessages(elId) {
+    const el = document.getElementById(elId);
     if (!el) return;
-    if (!this._chatMessages.length) {
-      el.innerHTML = '<div class="chat-empty">No messages yet. Say hi! 👋</div>';
+    const msgs = this._chatMessages;
+    // For sidebar strip, show last 4 messages only
+    const isStrip = elId === 'sc-messages';
+    const display = isStrip ? msgs.slice(-4) : msgs;
+    if (!display.length) {
+      el.innerHTML = '<div class="chat-empty">No messages yet. Say hi! &#x1F44B;</div>';
       return;
     }
     let lastDate = '';
-    el.innerHTML = this._chatMessages.map(m => {
+    el.innerHTML = display.map(m => {
       const d       = new Date(m.timestamp);
       const dateStr = d.toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true });
-      const isMe    = m.sessionId === this.sessionId;
+      const isMe    = (m.session_id || m.sessionId) === this.sessionId;
       let html = '';
-      if (dateStr !== lastDate) {
+      if (!isStrip && dateStr !== lastDate) {
         lastDate = dateStr;
         html += `<div class="chat-date-bar"><span>${dateStr}</span></div>`;
       }
-      html += `<div class="chat-msg ${isMe ? 'chat-mine' : 'chat-theirs'}">
-        ${!isMe ? `<div class="chat-name">${_esc(m.name)}</div>` : ''}
-        <div class="chat-bubble">${_esc(m.message)}</div>
-        <div class="chat-time">${timeStr}</div>
-      </div>`;
+      const nameTag = !isMe ? `<span class="sc-name">${_esc(m.name)}</span> ` : '';
+      if (isStrip) {
+        html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
+          ${nameTag}<span class="sc-bubble">${_esc(m.message)}</span>
+          <span class="sc-time">${timeStr}</span>
+        </div>`;
+      } else {
+        html += `<div class="chat-msg ${isMe ? 'chat-mine' : 'chat-theirs'}">
+          ${!isMe ? `<div class="chat-name">${_esc(m.name)}</div>` : ''}
+          <div class="chat-bubble">${_esc(m.message)}</div>
+          <div class="chat-time">${timeStr}</div>
+        </div>`;
+      }
       return html;
     }).join('');
-    this._scrollChatBottom();
+    this._scrollChatBottom(elId);
   },
 
-  _scrollChatBottom() {
-    const el = document.getElementById('chat-messages');
+  _scrollChatBottom(elId) {
+    const el = document.getElementById(elId || 'sc-messages');
     if (el) el.scrollTop = el.scrollHeight;
   },
 

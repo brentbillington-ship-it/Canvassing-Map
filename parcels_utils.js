@@ -205,5 +205,10 @@ const ParcelsUtil = (() => {
     return results;
   }
 
-  return { parcelsInPolygon, searchParcels, walkOrder, leafletRingCentroid, featureCentroid, ptInDrawnRing };
+  // Public helper for map.js address label filter
+  function isCommercialOrApt(addr2, props) {
+    return _isCommercial(props || {}, addr2) || _isApartment(addr2);
+  }
+
+  return { parcelsInPolygon, searchParcels, walkOrder, leafletRingCentroid, featureCentroid, ptInDrawnRing, isCommercialOrApt };
 })();

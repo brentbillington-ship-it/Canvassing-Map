@@ -93,12 +93,16 @@ const MapModule = {
     for (const f of PARCELS_GEOJSON.features) {
       const addr2 = (f.properties.addr2 || '').trim();
       if (!addr2) continue;
+      // Skip commercial/apt parcels — same filter used during zone population
+      if (ParcelsUtil.isCommercialOrApt(addr2)) continue;
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
 
       const num = addr2.match(/^(\d+)/)?.[1];
       if (!num) continue;
+      // Extra guard: skip implausibly large street numbers (>4 digits = likely suite/unit)
+      if (parseInt(num, 10) > 9999) continue;
 
       const c = ParcelsUtil.featureCentroid(f);
       if (!c) continue;
@@ -379,11 +383,11 @@ const MapModule = {
   _startLocation() {
     if (!navigator.geolocation) { UI.toast('Geolocation not supported', 'error'); return; }
     const btn = document.getElementById('loc-btn');
-    if (btn) btn.innerHTML = '<span class="crosshair-icon locating"></span>';
+    if (btn) btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>';
     navigator.geolocation.getCurrentPosition(pos => {
       this._locationActive = true;
       this._gpsPanDone = true;
-      if (btn) { btn.innerHTML = '<span class="crosshair-icon active"></span>'; btn.classList.add('active-btn'); }
+      if (btn) { btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>'; btn.classList.add('active-btn'); }
       this._updateLocationMarker(pos);
       this.map.setView([pos.coords.latitude, pos.coords.longitude],
         Math.max(this.map.getZoom(), 16));
@@ -406,7 +410,7 @@ const MapModule = {
     if (this._locationCircle) { this._locationCircle.remove(); this._locationCircle = null; }
     this._locationActive = false;
     const btn = document.getElementById('loc-btn');
-    if (btn) { btn.innerHTML = '<span class="crosshair-icon"></span>'; btn.classList.remove('active-btn'); }
+    if (btn) { btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>'; btn.classList.remove('active-btn'); }
   },
 
   _updateLocationMarker(pos) {
@@ -435,7 +439,7 @@ const MapModule = {
   _locationError(err) {
     this._locationActive = false;
     const btn = document.getElementById('loc-btn');
-    if (btn) { btn.innerHTML = '<span class="crosshair-icon"></span>'; btn.classList.remove('active-btn'); }
+    if (btn) { btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>'; btn.classList.remove('active-btn'); }
     UI.toast({ 1: 'Location access denied', 2: 'Location unavailable', 3: 'Location timed out' }[err.code] || 'Location error', 'error');
   },
 

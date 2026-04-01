@@ -176,7 +176,7 @@ const App = {
       }
       turf.houses = [];
       this.render();
-      UI.toast(`Turf ${letter} cleared ✓`, 'success');
+      UI.toast(`Zone ${letter} cleared ✓`, 'success');
     } catch(e) { UI.toast('Failed to clear some houses', 'error'); }
   },
 
@@ -215,7 +215,7 @@ const App = {
       const turf = this.state.turfs.find(t => t.letter === letter);
       if (turf) turf.polygon_geojson = geojson;
       MapModule.renderAll(this._visibleTurfs());
-    } catch(e) { UI.toast('Failed to save turf boundary', 'error'); }
+    } catch(e) { UI.toast('Failed to save zone boundary', 'error'); }
   },
 
   async clearTurfPolygon(letter) {
@@ -277,7 +277,7 @@ const App = {
       }
 
       await this.loadData();
-      UI.toast(`Turf ${letter} boundary updated ✓`, 'success');
+      UI.toast(`Zone ${letter} boundary updated ✓`, 'success');
     } catch(e) { UI.toast('Failed to update boundary', 'error'); console.error(e); }
   },
 

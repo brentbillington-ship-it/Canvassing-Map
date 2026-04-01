@@ -86,7 +86,7 @@ const TurfDraw = (() => {
     _rectCorner1 = null;
     _showMobileRectBanner();
     _map.on('click', _onMobileMapTap);
-    UI.toast('Tap first corner of your turf area', 'info');
+    UI.toast('Tap first corner of your zone area', 'info');
   }
 
   function _onMobileMapTap(e) {
@@ -128,7 +128,7 @@ const TurfDraw = (() => {
     const b = document.createElement('div');
     b.id        = 'mobile-rect-banner';
     b.className = 'mobile-rect-banner';
-    b.innerHTML = `<span>📱 Tap two opposite corners to define turf area</span>
+    b.innerHTML = `<span>📱 Tap two opposite corners to define zone area</span>
       <button onclick="TurfDraw._cancelMobileRect()">✕ Cancel</button>`;
     document.body.appendChild(b);
   }
@@ -141,7 +141,7 @@ const TurfDraw = (() => {
     _removeMobileRectUI();
     _active = false;
     const btn = document.getElementById('draw-mode-btn');
-    if (btn) { btn.textContent = '✏️ Draw Turf'; btn.classList.remove('active-admin-btn'); }
+    if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
     UI.toast('Draw cancelled');
   }
 

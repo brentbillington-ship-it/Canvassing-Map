@@ -77,7 +77,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.9</div>
+          <div class="header-credit">by Brent Billington &middot; v4.10</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -501,7 +501,7 @@ const UI = {
   setTurfFilter(val) {
     this.turfFilter = val || null;
     App.render();
-    if (val) { const t = App.state.turfs.find(t => t.letter === val); if (t) MapModule.focusTurf(t); }
+    if (val) { const t = App.state.turfs.find(t => String(t.letter) === String(val)); if (t) MapModule.focusTurf(t); }
   },
   setResultFilter(val) { this.resultFilter = val || null; App.render(); },
   setModeFilter(val)   { this.modeFilter   = val || null; App.render(); },
@@ -583,7 +583,7 @@ const UI = {
     const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
     // Apply explicit mode filter (from dropdown)
     const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
-    const filtered = this.turfFilter ? modeApplied.filter(t => t.letter === this.turfFilter) : modeApplied;
+    const filtered = this.turfFilter ? modeApplied.filter(t => String(t.letter) === String(this.turfFilter)) : modeApplied;
 
     if (!filtered.length) {
       list.innerHTML = `<div class="sb-empty">${this.isAdmin ? 'No zones yet. Use <strong>✏️ Draw Zone</strong> to create one.' : 'No data loaded.'}</div>`;
@@ -861,7 +861,7 @@ const UI = {
   },
 
   showEditTurfModal(letter) {
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     this._modal(`Edit Zone ${letter}`, `
       <label class="f-label">Assigned Volunteer</label>
@@ -888,7 +888,7 @@ const UI = {
 
   async _confirmClearTurf(letter) {
     document.getElementById('modal-overlay')?.remove();
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     const withResults = turf.houses.filter(h => h.result).length;
     const msg = withResults > 0
@@ -900,7 +900,7 @@ const UI = {
   },
 
   async confirmDeleteTurf(letter) {
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     const resultCount = turf.houses.filter(h => h.result && h.result !== '').length;
     const houseCount  = turf.houses.length;

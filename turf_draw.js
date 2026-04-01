@@ -173,7 +173,7 @@ const TurfDraw = (() => {
 
   function removeTurfLayer(letter) {
     Object.entries(_turfLetters).forEach(([lid, l]) => {
-      if (l === letter) {
+      if (String(l) === String(letter)) {
         const layer = _drawnLayers.getLayer(parseInt(lid));
         if (layer) _drawnLayers.removeLayer(layer);
         delete _turfLetters[parseInt(lid)];
@@ -183,7 +183,7 @@ const TurfDraw = (() => {
 
   // ── Edit boundary mode ────────────────────────────────────────────────────
   function startEditBoundary(letter) {
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf || !turf.polygon_geojson) {
       UI.toast('No boundary yet — draw one first', 'error'); return;
     }
@@ -193,7 +193,7 @@ const TurfDraw = (() => {
 
     let foundLayer = null;
     Object.entries(_turfLetters).forEach(([lid, l]) => {
-      if (l === letter) foundLayer = _drawnLayers.getLayer(parseInt(lid));
+      if (String(l) === String(letter)) foundLayer = _drawnLayers.getLayer(parseInt(lid));
     });
     if (!foundLayer) { UI.toast('Layer not found — try refreshing', 'error'); _editingLetter = null; return; }
 
@@ -242,7 +242,7 @@ const TurfDraw = (() => {
   // ── Edited polygon ────────────────────────────────────────────────────────
   function _onEditedPolygon(letter, layer) {
     const ring = _getOuterRing(layer);
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
 
     const { residential, excluded } = ParcelsUtil.parcelsInPolygon(ring, false);
@@ -363,7 +363,7 @@ const TurfDraw = (() => {
 
   // ── Re-sort by walk order ─────────────────────────────────────────────────
   function resortTurf(letter, startPt) {
-    const turf = App.state.turfs.find(t => t.letter === letter);
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf || !turf.houses.length) return;
 
     const withResult    = turf.houses.filter(h => h.result);

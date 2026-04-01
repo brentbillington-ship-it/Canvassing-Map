@@ -75,7 +75,7 @@ const App = {
 
   _visibleTurfs() {
     return UI.turfFilter
-      ? this.state.turfs.filter(t => t.letter === UI.turfFilter)
+      ? this.state.turfs.filter(t => String(t.letter) === String(UI.turfFilter))
       : this.state.turfs;
   },
 

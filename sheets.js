@@ -31,5 +31,6 @@ const SheetsAPI = {
   backupZone(letter)                    { return this._call({ action: 'backupZone', letter }); },
   bulkImportHouses(letter, houses)      { return this._call({ action: 'bulkImportHouses', letter, houses }); },
   createZone(letter, color, volunteer, geojson, houses) { return this._call({ action: 'createZone', letter, color, volunteer, geojson, houses }); },
+  getPolygons()                         { return this._call({ action: 'getPolygons' }); },
   claimZone(letter, volunteer, color)   { return this._call({ action: 'claimZone', letter, volunteer, color }); },
 };

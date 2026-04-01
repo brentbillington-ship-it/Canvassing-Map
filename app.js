@@ -37,9 +37,14 @@ const App = {
 
   async loadData() {
     try {
-      const data = await SheetsAPI.getAll();
+      // Fetch turfs+houses and polygons in parallel — polygons are large, kept separate
+      const [data, polyData] = await Promise.all([
+        SheetsAPI.getAll(),
+        SheetsAPI.getPolygons().catch(() => null)
+      ]);
       if (data.error) throw new Error(data.error);
       this.state.turfs = data.turfs;
+      this._mergePolygons(polyData?.polygons);
       this.render();
       UI.toast('Data loaded ✓', 'success');
       UI.setOffline(false);
@@ -48,6 +53,15 @@ const App = {
       UI.toast('Failed to load — check SHEETS_API_URL in config.js', 'error');
       UI.setOffline(true);
     }
+  },
+
+  // Merge polygon_geojson into state.turfs from a getPolygons response
+  _mergePolygons(polygons) {
+    if (!polygons) return;
+    polygons.forEach(p => {
+      const turf = this.state.turfs.find(t => String(t.letter) === String(p.letter));
+      if (turf && p.polygon_geojson) turf.polygon_geojson = p.polygon_geojson;
+    });
   },
 
   render() {

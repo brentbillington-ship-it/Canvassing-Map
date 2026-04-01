@@ -274,11 +274,14 @@ const TurfDraw = (() => {
     try {
       const res = await SheetsAPI.getAll();
       liveLetters = new Set((res.turfs || []).map(t => String(t.letter)));
-      // Sync local turf list but preserve house data already in state
+      // Sync local turf list but preserve house data and polygon already in state
       if (res.turfs) {
         res.turfs.forEach(rt => {
           const existing = App.state.turfs.find(t => String(t.letter) === String(rt.letter));
-          if (existing) rt.houses = existing.houses;
+          if (existing) {
+            rt.houses = existing.houses;
+            rt.polygon_geojson = existing.polygon_geojson; // preserve — not in getAll anymore
+          }
         });
         App.state.turfs = res.turfs;
       }

@@ -38,6 +38,7 @@ function handleAction(data) {
   try {
     switch (data.action) {
       case 'getAll':          return json(getAllData());
+      case 'getPolygons':     return json(getPolygons());
       case 'addHouse':        return json(addHouse(data.house));
       case 'removeHouse':     return json(removeHouse(data.id));
       case 'updateHouse':     return json(updateHouse(data.id, data.fields));
@@ -110,11 +111,11 @@ function getAllData() {
   const housesData = sheetToObjects(getSheet('houses'));
   const turfsData  = sheetToObjects(getSheet('turfs'));
   const turfs = turfsData.map(t => ({
-    letter:          t.letter,
-    color:           t.color || '',
-    volunteer:       t.volunteer || '[UNASSIGNED]',
-    mode:            t.mode || 'hanger',
-    polygon_geojson: t.polygon_geojson || '',
+    letter:    t.letter,
+    color:     t.color || '',
+    volunteer: t.volunteer || '[UNASSIGNED]',
+    mode:      t.mode || 'hanger',
+    // polygon_geojson excluded — fetched separately via getPolygons
     houses: housesData
       .filter(h => String(h.turf) === String(t.letter))
       .sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0))
@@ -127,6 +128,16 @@ function getAllData() {
       }))
   }));
   return { turfs, timestamp: new Date().toISOString() };
+}
+
+function getPolygons() {
+  const turfsData = sheetToObjects(getSheet('turfs'));
+  return {
+    polygons: turfsData.map(t => ({
+      letter:          t.letter,
+      polygon_geojson: t.polygon_geojson || ''
+    }))
+  };
 }
 
 // ─── House CRUD ───────────────────────────────────────────────────────────────

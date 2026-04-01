@@ -448,8 +448,6 @@ const UI = {
     });
   },
 
-,
-
   // ── CSV Export ────────────────────────────────────────────────────────────
   exportCSV() {
     const rows = [['Zone', 'Address', 'Owner', 'Result', 'Result By', 'Result Date', 'Notes', 'Lat', 'Lon']];
@@ -1097,5 +1095,5 @@ const UI = {
   startChatPoll() {
     this._fetchChat();
     this._chatPollTimer = setInterval(() => this._fetchChat(), 10000);
-  },,
+  },
 };

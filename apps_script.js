@@ -65,6 +65,7 @@ function handleAction(data) {
       case 'exportCSV':       return json(exportCSV());
       case 'getUsers':        return json(getUsers());
       case 'createUser':      return json(createUser(data.email, data.name, data.color));
+      case 'updateUser':      return json(updateUser(data.email, data.fields));
       case 'getUser':         return json(getUser(data.email));
       case 'backupZone':      return json(backupZone(data.letter));
       default:                return json({ error: 'Unknown action: ' + data.action });
@@ -598,6 +599,26 @@ function createUser(email, name, color) {
   sheet.appendRow([key, name.trim(), color || '#6b7280', new Date().toISOString()]);
   SpreadsheetApp.flush();
   return { success: true, email: key, name: name.trim(), color: color || '#6b7280' };
+}
+
+function updateUser(email, fields) {
+  if (!email || !fields) return { error: 'Email and fields required' };
+  const key   = String(email).toLowerCase().trim();
+  const sheet = getSheet('users');
+  const hdrs  = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const data  = sheet.getDataRange().getValues();
+  const emailCol = hdrs.indexOf('email');
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][emailCol]).toLowerCase().trim() === key) {
+      Object.keys(fields).forEach(f => {
+        const col = hdrs.indexOf(f);
+        if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(fields[f]);
+      });
+      SpreadsheetApp.flush();
+      return { success: true };
+    }
+  }
+  return { error: 'User not found' };
 }
 
 // ─── Zone Backup (before delete) ──────────────────────────────────────────────

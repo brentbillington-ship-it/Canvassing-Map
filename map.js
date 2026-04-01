@@ -10,7 +10,26 @@ const MapModule = {
   _labelZoomMin: 18,
 
   init() {
-    this.map = L.map('map', { zoomControl: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
+    // Compute CISD bounds for maxBounds
+    let cisdBounds = null;
+    if (typeof CISD_BOUNDARY !== 'undefined') {
+      try {
+        const coords = CISD_BOUNDARY.geometry.coordinates[0];
+        const lats = coords.map(c => c[1]);
+        const lons = coords.map(c => c[0]);
+        const pad = 0.02;
+        cisdBounds = L.latLngBounds(
+          [Math.min(...lats) - pad, Math.min(...lons) - pad],
+          [Math.max(...lats) + pad, Math.max(...lons) + pad]
+        );
+      } catch(e) {}
+    }
+
+    this.map = L.map('map', {
+      zoomControl: true,
+      maxZoom: 19,
+      ...(cisdBounds ? { maxBounds: cisdBounds, maxBoundsViscosity: 0.85 } : {}),
+    }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
 
     const street = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
@@ -18,7 +37,7 @@ const MapModule = {
     );
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 20, opacity: 0.6 }
+      { attribution: '© Esri', maxZoom: 19, opacity: 0.6, crossOrigin: true }
     );
 
     this.map.createPane('labelsPane');
@@ -169,8 +188,8 @@ const MapModule = {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
     const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
-    const size    = Math.round(lerp(14, 26, t));
-    const opacity = lerp(0.35, 0.92, t).toFixed(2);
+    const size    = Math.round(lerp(6, 26, t));
+    const opacity = lerp(0.25, 0.92, t).toFixed(2);
     const anchor  = Math.round(size / 2);
     const polyFill = lerp(0.22, 0.12, t).toFixed(2); // more fill when zoomed out
 
@@ -231,16 +250,17 @@ const MapModule = {
     }
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color, fillColor: color, fillOpacity: 0.15, weight: 2.5, opacity: 0.8, dashArray: '6,4' }
+        style: { color, fillColor: color, fillOpacity: 0.06, weight: 3, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
+        // Zone label — bold, zoom-scaled via CSS var
         L.marker(bounds.getCenter(), {
           icon: L.divIcon({
             html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
             className: '',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
           }),
           interactive: false,
           zIndexOffset: -500
@@ -298,9 +318,11 @@ const MapModule = {
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
 
     const isHanger = (turf.mode || 'hanger') === 'hanger';
+    const isDoorKnock = !isHanger;
+    // Hanger zones: hanger + skip. Knock zones: knocked + not_home + refused only
     const visibleResults = isHanger
       ? CONFIG.RESULTS.filter(r => r.key === 'hanger' || r.key === 'skip')
-      : CONFIG.RESULTS;
+      : CONFIG.RESULTS.filter(r => r.key === 'knocked' || r.key === 'not_home' || r.key === 'refused');
     const btnRows = visibleResults.map(r => {
       const active = r.key === result;
       return `<button class="popup-result-btn${active ? ' active' : ''}" style="--rc:${r.color};--rbg:${r.bg}"
@@ -326,9 +348,15 @@ const MapModule = {
         ).join('')}
       </div>`;
 
+    // For knock zones, "knocked" implies hanger was left — show combined label
+    const knockedDef = CONFIG.RESULTS.find(r => r.key === 'knocked');
+    const effectiveResultDef = (isDoorKnock && result === 'knocked' && knockedDef)
+      ? { ...knockedDef, label: 'Knocked · Hanger Left', icon: '✊📬' }
+      : resultDef;
+
     const statusHtml = result
-      ? `<div class="popup-status" style="background:${resultDef.bg};color:${resultDef.color}">
-           ${resultDef.icon} ${resultDef.label}
+      ? `<div class="popup-status" style="background:${effectiveResultDef.bg};color:${effectiveResultDef.color}">
+           ${effectiveResultDef.icon} ${effectiveResultDef.label}
            ${house.result_by  ? ` · <em>${_esc(house.result_by)}</em>`  : ''}
            ${house.result_date ? ` · ${_fmtDate(house.result_date)}`     : ''}
          </div>`
@@ -346,7 +374,7 @@ const MapModule = {
     const html = `
       <div class="house-popup">
         <div class="popup-header" style="border-color:${color}">
-          <div class="popup-turf-badge" style="background:${color}">Turf ${_esc(turf.letter)}</div>
+          <div class="popup-turf-badge" style="background:${color}">Zone ${_esc(turf.letter)}</div>
           <div class="popup-addr">
             <div class="popup-name">${_esc(house.address)}</div>
             ${house.owner ? `<div class="popup-sub owner-line">${_esc(house.owner)}</div>` : ''}

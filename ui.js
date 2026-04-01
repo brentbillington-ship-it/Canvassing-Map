@@ -5,9 +5,10 @@ const UI = {
   currentUser:  '',
   currentEmail: '',
   userMode:     'hanger',
-  turfFilter:   null,
-  resultFilter: null,
-  modeFilter:   null,
+  turfFilter:      null,
+  resultFilter:    null,
+  modeFilter:      null,
+  volunteerFilter: null,
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
   _users:       [],
   _userColorPalette: [
@@ -77,10 +78,15 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.12</div>
+          <div class="header-credit">by Brent Billington &middot; v4.13</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
+        <div class="addr-search-wrap" id="addr-search-wrap">
+          <input id="addr-search-input" class="addr-search-input" type="text" placeholder="🔍 Search address…" autocomplete="off"
+            oninput="UI._addrSearchInput()" onkeydown="UI._addrSearchKey(event)"/>
+          <div id="addr-search-results" class="addr-search-results" style="display:none"></div>
+        </div>
         <div id="stats-bar" class="stats-bar"></div>
         <div id="top3-bar" class="top3-bar" style="display:none"></div>
         <div id="row2-right" class="row2-right">
@@ -94,8 +100,8 @@ const UI = {
     document.getElementById('sidebar').innerHTML = `
       <div id="sidebar-header">
         <div class="sb-filter-row">
-          <select id="turf-filter-sel" onchange="UI.setTurfFilter(this.value)">
-            <option value="">All Zones</option>
+          <select id="vol-filter-sel" onchange="UI.setVolunteerFilter(this.value)">
+            <option value="">All Volunteers</option>
           </select>
           <select id="result-filter-sel" onchange="UI.setResultFilter(this.value)">
             <option value="">All Results</option>
@@ -146,9 +152,6 @@ const UI = {
             <label class="login-label">First name &amp; last initial</label>
             <input id="login-name" class="login-input" type="text" placeholder="e.g. Kevin C." autocomplete="off"/>
           </div>
-          <label class="login-label" id="pw-label" style="display:none;margin-top:10px">Admin password</label>
-          <input id="login-pw" class="login-input" type="password" placeholder="Password" style="display:none" autocomplete="off"/>
-          <button class="login-admin-toggle" id="admin-toggle" onclick="UI._toggleAdminLogin()">&#x1F512; Admin login</button>
           <div id="login-mode-row" class="login-mode-row">
             <div class="login-mode-label">I'm here to:</div>
             <div class="mode-toggle-row">
@@ -162,7 +165,7 @@ const UI = {
       </div>`;
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('login-email')?.focus(), 200);
-    ['login-email','login-name','login-pw'].forEach(id => {
+    ['login-email','login-name'].forEach(id => {
       document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') UI._submitLogin(); });
     });
     document.getElementById('login-email')?.addEventListener('blur', () => UI._checkEmailLookup());
@@ -201,30 +204,11 @@ const UI = {
     document.getElementById('lmode-doorknock')?.classList.toggle('selected', mode === 'doorknock');
   },
 
-  _toggleAdminLogin() {
-    const pwLabel  = document.getElementById('pw-label');
-    const pwInput  = document.getElementById('login-pw');
-    const toggle   = document.getElementById('admin-toggle');
-    const modeRow  = document.getElementById('login-mode-row');
-    const show     = pwInput.style.display === 'none';
-    pwLabel.style.display  = show ? 'block' : 'none';
-    pwInput.style.display  = show ? 'block' : 'none';
-    if (modeRow) modeRow.style.display = show ? 'none' : 'flex';
-    toggle.textContent = show ? '<- Back to field login' : 'Admin login';
-    if (show) setTimeout(() => pwInput.focus(), 50);
-  },
-
   async _submitLogin() {
     const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
-    const pw    = (document.getElementById('login-pw')?.value  || '').trim();
     const errEl = document.getElementById('login-error');
 
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; return; }
-
-    if (pw) {
-      if (pw !== CONFIG.ADMIN_PASSWORD) { errEl.textContent = 'Incorrect password.'; return; }
-      this.isAdmin = true;
-    }
 
     let name, color;
     if (this._foundUser) {
@@ -269,6 +253,7 @@ const UI = {
           </div>
           <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
+          <button class="admin-btn" onclick="UI.showAddKnockModal()">+ Knock</button>
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>`;
       }
@@ -324,14 +309,47 @@ const UI = {
         return false;
       }
       this.isAdmin = true;
-      this._saveLogin(this.currentUser, true, this.userMode);
-      location.reload();
+      this.userMode = 'all';
+      this._saveLogin(this.currentUser, true, 'all', this.currentEmail);
+      // Upgrade UI in place — no reload
+      const lockBtn = document.getElementById('lock-btn');
+      if (lockBtn) lockBtn.style.display = 'none';
+      const nonAdminTools = document.getElementById('non-admin-tools');
+      if (nonAdminTools) nonAdminTools.style.display = 'none';
+      // Remove field logout button if present
+      document.querySelector('.logout-small')?.remove();
+      const adminRow2 = document.getElementById('admin-row2');
+      if (adminRow2) {
+        adminRow2.style.display = 'flex';
+        adminRow2.innerHTML = `
+          <div class="admin-badge-row2">
+            <span class="admin-shield">Admin</span>
+            <span class="mode-label">Mode:</span>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
+            <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
+          </div>
+          <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
+          <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
+          <button class="admin-btn" onclick="UI.showAddKnockModal()">+ Knock</button>
+          <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
+          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>`;
+      }
+      App.render();
+      UI.toast('Admin mode active', 'success');
       return true;
     }, 'Unlock');
   },
 
   // ── Map toggle ────────────────────────────────────────────────────────────
   toggleMap() {
+    const isMobile = window.innerWidth <= 680;
+    if (isMobile) {
+      const sidebar = document.getElementById('sidebar');
+      const btn     = document.getElementById('map-toggle-btn');
+      const open    = sidebar?.classList.toggle('sidebar-open');
+      if (btn) btn.classList.toggle('active-btn', !!open);
+      return;
+    }
     const wrap = document.getElementById('map-wrap');
     const btn  = document.getElementById('map-toggle-btn');
     const hidden = wrap.classList.toggle('map-hidden');
@@ -503,6 +521,7 @@ const UI = {
     App.render();
     if (val) { const t = App.state.turfs.find(t => String(t.letter) === String(val)); if (t) MapModule.focusTurf(t); }
   },
+  setVolunteerFilter(val) { this.volunteerFilter = val || null; App.render(); },
   setResultFilter(val) { this.resultFilter = val || null; App.render(); },
   setModeFilter(val)   { this.modeFilter   = val || null; App.render(); },
 
@@ -568,18 +587,16 @@ const UI = {
 
   // ── Sidebar ──────────────────────────────────────────────────────────────────
   renderSidebar(turfs) {
-    const sel = document.getElementById('turf-filter-sel');
+    const sel = document.getElementById('vol-filter-sel');
     if (sel) {
       const cur = sel.value;
       const allTurfs = App.state.turfs;
-      const unassigned = allTurfs.filter(t => !t.volunteer || t.volunteer === '[UNASSIGNED]');
-      const assigned   = allTurfs.filter(t => t.volunteer && t.volunteer !== '[UNASSIGNED]');
-      // Sort assigned by volunteer name
-      assigned.sort((a, b) => a.volunteer.localeCompare(b.volunteer));
-      const toOpt = t => `<option value="${t.letter}" ${String(cur) === String(t.letter) ? 'selected' : ''}>${t.letter} — ${_esc(t.volunteer)}</option>`;
-      sel.innerHTML = '<option value="">All Zones</option>' +
-        (unassigned.length ? '<option disabled>— Unassigned —</option>' + unassigned.map(toOpt).join('') : '') +
-        (assigned.length   ? '<option disabled>— Assigned —</option>'   + assigned.map(toOpt).join('')   : '');
+      const volunteers = [...new Set(
+        allTurfs.map(t => t.volunteer).filter(v => v && v !== '[UNASSIGNED]')
+      )].sort();
+      sel.innerHTML = '<option value="">All Volunteers</option>' +
+        '<option value="[UNASSIGNED]"' + (cur === '[UNASSIGNED]' ? ' selected' : '') + '>Unassigned</option>' +
+        volunteers.map(v => `<option value="${_esc(v)}"${cur === v ? ' selected' : ''}>${_esc(v)}</option>`).join('');
     }
 
     const list = document.getElementById('turf-list');
@@ -588,7 +605,13 @@ const UI = {
     const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
     // Apply explicit mode filter (from dropdown)
     const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
-    const filtered = this.turfFilter ? modeApplied.filter(t => String(t.letter) === String(this.turfFilter)) : modeApplied;
+    // Apply volunteer filter
+    const filtered = this.volunteerFilter
+      ? modeApplied.filter(t => {
+          if (this.volunteerFilter === '[UNASSIGNED]') return !t.volunteer || t.volunteer === '[UNASSIGNED]';
+          return t.volunteer === this.volunteerFilter;
+        })
+      : (this.turfFilter ? modeApplied.filter(t => String(t.letter) === String(this.turfFilter)) : modeApplied);
 
     if (!filtered.length) {
       list.innerHTML = `<div class="sb-empty">${this.isAdmin ? 'No zones yet. Use <strong>✏️ Draw Zone</strong> to create one.' : 'No data loaded.'}</div>`;
@@ -611,6 +634,16 @@ const UI = {
         <button class="turf-action-btn" title="Re-sort walk order" onclick="event.stopPropagation();TurfDraw.resortTurf('${turf.letter}',MapModule.getCurrentLatLon())">🔄</button>
         <button class="turf-action-btn danger" title="Delete" onclick="event.stopPropagation();UI.confirmDeleteTurf('${turf.letter}')">✕</button>` : '';
 
+      const inlineAssign = this.isAdmin ? (() => {
+        const vols = [...new Set(App.state.turfs.map(t => t.volunteer).filter(v => v && v !== '[UNASSIGNED]'))].sort();
+        const cur  = (!turf.volunteer || turf.volunteer === '[UNASSIGNED]') ? '' : turf.volunteer;
+        const opts = `<option value="">— Unassigned —</option>` +
+          vols.map(v => `<option value="${_esc(v)}"${cur === v ? ' selected' : ''}>${_esc(v)}</option>`).join('');
+        return `<select class="turf-inline-assign" title="Assign volunteer"
+          onclick="event.stopPropagation()"
+          onchange="event.stopPropagation();UI._inlineAssignVolunteer('${turf.letter}',this.value)">${opts}</select>`;
+      })() : '';
+
       const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
       const claimBtn = !this.isAdmin && isUnassigned
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
@@ -621,6 +654,7 @@ const UI = {
           <div class="turf-letter-badge" style="background:${color}">${turf.letter}</div>
           <div class="turf-info">
             <div class="turf-volunteer">${isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
+            ${this.isAdmin ? inlineAssign : ''}
             <div class="turf-progress-row">
               <div class="turf-prog-track">
                 <div class="turf-prog-fill" style="width:${pct}%;background:${is100 ? '#2d9e5f' : color}"></div>
@@ -643,6 +677,23 @@ const UI = {
     const user = App._getUserRecord();
     if (!confirm(`Claim Zone ${letter} for ${user.name}?\n\nYou'll be assigned as the volunteer for this zone.`)) return;
     App.claimZone(letter);
+  },
+
+  async _inlineAssignVolunteer(letter, volunteerName) {
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const volunteer = volunteerName || '[UNASSIGNED]';
+    // Find color from users list
+    const userRec = this._users.find(u => u.name === volunteer);
+    const color   = userRec?.color || turf.color || '#6b7280';
+    try {
+      const res = await SheetsAPI.updateTurf(letter, { volunteer, color });
+      if (res?.error) { UI.toast(res.error, 'error'); return; }
+      turf.volunteer = volunteer;
+      turf.color     = color;
+      App.render();
+      UI.toast(`Zone ${letter} assigned to ${volunteer === '[UNASSIGNED]' ? 'nobody' : volunteer}`, 'success');
+    } catch(e) { UI.toast('Failed to assign volunteer', 'error'); }
   },
 
   _filterHouses(houses) {
@@ -1011,6 +1062,140 @@ const UI = {
     if (results) results.innerHTML = '';
   },
 
+  // ── Address search bar (#7) ────────────────────────────────────────────────
+  _addrSearchTimer: null,
+  _addrSearchInput() {
+    clearTimeout(this._addrSearchTimer);
+    this._addrSearchTimer = setTimeout(() => {
+      const q = (document.getElementById('addr-search-input')?.value || '').trim();
+      const box = document.getElementById('addr-search-results');
+      if (!box) return;
+      if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      const matches = ParcelsUtil.searchParcels(q, 8);
+      if (!matches.length) { box.innerHTML = '<div class="asr-empty">No results</div>'; box.style.display = 'block'; return; }
+      box.innerHTML = matches.map((p, i) =>
+        `<div class="asr-row" onclick="UI._addrSearchSelect(${i})" data-idx="${i}">
+          <div class="asr-addr">${_esc(p.address)}</div>
+          <div class="asr-owner">${_esc(p.owner)}</div>
+        </div>`
+      ).join('');
+      box._matches = matches;
+      box.style.display = 'block';
+    }, 200);
+  },
+
+  _addrSearchKey(e) {
+    if (e.key === 'Escape') {
+      const box = document.getElementById('addr-search-results');
+      if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+      document.getElementById('addr-search-input').value = '';
+    }
+  },
+
+  _addrSearchSelect(idx) {
+    const box = document.getElementById('addr-search-results');
+    if (!box?._matches) return;
+    const p = box._matches[idx];
+    box.style.display = 'none';
+    box.innerHTML = '';
+    document.getElementById('addr-search-input').value = '';
+    // Pan map and open house popup if tracked
+    MapModule.map.setView([p.lat, p.lon], Math.max(MapModule.map.getZoom(), 18));
+    // Find if this address is a tracked house
+    for (const turf of App.state.turfs) {
+      const house = turf.houses.find(h => h.address.toUpperCase().trim() === p.address.toUpperCase().trim());
+      if (house) {
+        const color = turf.color || CONFIG.TURF_COLORS[0];
+        setTimeout(() => MapModule._openHousePopup(house, turf, color), 400);
+        return;
+      }
+    }
+  },
+
+  // ── Add Knock Location — admin search-based (#8) ───────────────────────────
+  showAddKnockModal() {
+    const knockTurfs = App.state.turfs.filter(t => (t.mode || 'hanger') === 'doorknock');
+    if (!knockTurfs.length) { this.toast('No door-knock zones exist yet', 'error'); return; }
+    const turfOpts = knockTurfs.map(t => `<option value="${t.letter}">${t.letter} — ${_esc(t.volunteer || 'Unassigned')}</option>`).join('');
+    this._modal('Add Knock Location', `
+      <label class="f-label">Zone (knock zones only)</label>
+      <select id="f-knock-turf" class="f-input">${turfOpts}</select>
+      <label class="f-label" style="margin-top:8px">Search address</label>
+      <input id="parcel-search" class="f-input" type="text" placeholder="e.g. 745 Canongate or SMITH"
+        oninput="UI._updateParcelResults()" autocomplete="off"/>
+      <div id="parcel-results" class="parcel-results"></div>
+      <div id="parcel-selected" class="parcel-selected" style="display:none"></div>
+    `, () => {
+      const selected = UI._selectedParcel;
+      const letter   = document.getElementById('f-knock-turf')?.value;
+      if (!selected) { this.toast('Select an address from the results', 'error'); return false; }
+      if (!letter)   { this.toast('Select a zone', 'error'); return false; }
+      App.addHouse({ turf: letter, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
+      UI._selectedParcel = null;
+      return true;
+    }, 'Add Location');
+    UI._selectedParcel = null;
+    setTimeout(() => document.getElementById('parcel-search')?.focus(), 80);
+  },
+
+  // ── Admin: edit user color (#16) ───────────────────────────────────────────
+  showEditUserColorModal() {
+    if (!this._users.length) { this.toast('No users found', 'error'); return; }
+    const palette = this._userColorPalette;
+    const userOpts = this._users.map(u =>
+      `<option value="${_esc(u.email)}">${_esc(u.name)} (${_esc(u.email)})</option>`
+    ).join('');
+    this._modal('Edit User Color', `
+      <label class="f-label">User</label>
+      <select id="euc-user" class="f-input" onchange="UI._previewUserColor()">${userOpts}</select>
+      <label class="f-label" style="margin-top:8px">New color</label>
+      <div class="color-swatch-row" id="euc-swatches">
+        ${palette.map(c => `<div class="color-swatch euc-sw" style="background:${c}" data-color="${c}" onclick="UI._selectUserColor('${c}')"></div>`).join('')}
+      </div>
+      <div id="euc-preview" style="margin-top:8px;display:flex;align-items:center;gap:8px">
+        <div id="euc-dot" style="width:22px;height:22px;border-radius:50%;border:2px solid #ccc"></div>
+        <span id="euc-name" style="font-weight:700;font-size:13px"></span>
+      </div>
+    `, async () => {
+      const email = document.getElementById('euc-user')?.value;
+      const color = UI._selectedUserColor;
+      if (!color) { UI.toast('Pick a color', 'error'); return false; }
+      try {
+        await SheetsAPI.updateUser(email, { color });
+        const u = this._users.find(u => u.email === email);
+        if (u) u.color = color;
+        UI._selectedUserColor = null;
+        App.render();
+        UI.toast('User color updated', 'success');
+        return true;
+      } catch(e) { UI.toast('Failed to update color', 'error'); return false; }
+    }, 'Save Color');
+    UI._selectedUserColor = null;
+    setTimeout(() => UI._previewUserColor(), 80);
+  },
+
+  _selectedUserColor: null,
+
+  _selectUserColor(color) {
+    UI._selectedUserColor = color;
+    document.querySelectorAll('.euc-sw').forEach(el => {
+      el.style.outline = el.dataset.color === color ? '3px solid #000' : '';
+    });
+    const dot = document.getElementById('euc-dot');
+    if (dot) dot.style.background = color;
+  },
+
+  _previewUserColor() {
+    const sel   = document.getElementById('euc-user');
+    const email = sel?.value;
+    const u     = this._users.find(u => u.email === email);
+    if (!u) return;
+    const dot  = document.getElementById('euc-dot');
+    const name = document.getElementById('euc-name');
+    if (dot)  dot.style.background = UI._selectedUserColor || u.color || '#6b7280';
+    if (name) name.textContent = u.name;
+  },
+
   async confirmDeleteHouse(id) {
     const ok = await this._confirm('Remove House', 'Remove this house from the zone?', 'Remove', true);
     if (!ok) return;
@@ -1052,14 +1237,20 @@ const UI = {
       } catch(e) {}
     }
 
-    // Build zone dropdown (auto-selected if detected)
-    const turfOpts = App.state.turfs.map(t =>
+    // Build zone dropdown (auto-selected if detected, Unassigned option when outside)
+    const unassignedOpt = `<option value="[UNASSIGNED]"${!autoZone ? ' selected' : ''}>— Unassigned (no zone) —</option>`;
+    const turfOpts = unassignedOpt + App.state.turfs.map(t =>
       `<option value="${t.letter}"${t.letter === autoZone ? ' selected' : ''}>${t.letter} — ${_esc(t.volunteer)}</option>`
     ).join('');
 
     const zoneHint = autoZone
       ? `<div class="f-hint" style="color:#2d9e5f;margin-bottom:4px">Detected Zone ${autoZone} — change if wrong</div>`
-      : `<div class="f-hint" style="color:#c9831a;margin-bottom:4px">Outside all zone boundaries — select manually</div>`;
+      : `<div class="f-hint" style="color:#c9831a;margin-bottom:4px">Outside all zone boundaries — will be unassigned</div>`;
+
+    // #5 Cancel helper — always cleans up the tap marker
+    const cleanupTapMarker = () => {
+      if (this._mapTapMarker) { MapModule.map.removeLayer(this._mapTapMarker); this._mapTapMarker = null; }
+    };
 
     this._modal('Add Missing House', `
       <div class="f-hint" style="margin-bottom:8px">Location: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}</div>
@@ -1072,11 +1263,18 @@ const UI = {
       const addr = (document.getElementById('missing-addr')?.value || '').trim();
       const turf = document.getElementById('missing-turf')?.value;
       if (!addr) { this.toast('Please enter an address', 'error'); return false; }
-      if (!turf) { this.toast('Please select a zone', 'error'); return false; }
-      App.addHouse({ turf, address: addr, owner: '', lat: latlng.lat, lon: latlng.lng });
-      if (this._mapTapMarker) { MapModule.map.removeLayer(this._mapTapMarker); this._mapTapMarker = null; }
+      App.addHouse({ turf: turf || '[UNASSIGNED]', address: addr, owner: '', lat: latlng.lat, lon: latlng.lng });
+      cleanupTapMarker();
       return true;
     }, 'Add House');
+
+    // #5 Patch cancel/close/backdrop to also remove marker
+    requestAnimationFrame(() => {
+      const overlay = document.getElementById('modal-overlay');
+      if (!overlay) return;
+      const origRemove = overlay.remove.bind(overlay);
+      overlay.remove = () => { cleanupTapMarker(); origRemove(); };
+    });
   },
 
   // ── Zone completion chat announcement ─────────────────────────────────────
@@ -1197,7 +1395,7 @@ const UI = {
     if (!el) return;
     const msgs    = this._chatMessages || [];
     const isStrip = elId === 'sc-messages';
-    const display = isStrip ? msgs.slice(-5) : msgs;
+    const display = isStrip ? msgs.slice(-50) : msgs;
     if (!display.length) {
       el.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
       return;
@@ -1214,15 +1412,17 @@ const UI = {
         html += `<div class="chat-date-bar"><span>${dateStr}</span></div>`;
       }
       if (isStrip) {
-        const nameTag = `<span class="sc-name">${isMe ? 'You' : _esc(m.name)}</span>`;
+        const nameColor = isMe ? '#9ca3af' : (this._users.find(u => u.name === m.name)?.color || 'var(--header-bg)');
+        const nameTag = `<span class="sc-name" style="color:${nameColor}">${isMe ? 'You' : _esc(m.name)}</span>`;
         html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
           ${nameTag}<span class="sc-bubble">${_esc(m.message)}</span>
           <span class="sc-time">${timeStr}</span>
         </div>`;
       } else {
         const nameStr = isMe ? 'You' : _esc(m.name || 'Unknown');
+        const nameColor = isMe ? '#9ca3af' : (this._users.find(u => u.name === m.name)?.color || 'var(--header-bg)');
         html += `<div class="chat-msg ${isMe ? 'chat-mine' : 'chat-theirs'}">
-          <div class="chat-name">${nameStr}</div>
+          <div class="chat-name" style="color:${nameColor}">${nameStr}</div>
           <div class="chat-bubble">${_esc(m.message)}</div>
           <div class="chat-time">${timeStr}</div>
         </div>`;
@@ -1244,6 +1444,6 @@ const UI = {
 
   startChatPoll() {
     this._fetchChat();
-    this._chatPollTimer = setInterval(() => this._fetchChat(), 10000);
+    this._chatPollTimer = setInterval(() => this._fetchChat(), 5000);
   },
 };

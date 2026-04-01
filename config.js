@@ -25,7 +25,6 @@ const CONFIG = {
     { key: 'knocked',  label: 'Knocked',      short: 'KN', icon: '✊', color: '#2e6ec2', bg: '#e8f0fc' },
     { key: 'not_home', label: 'Not Home',     short: 'NH', icon: '🚪', color: '#c9831a', bg: '#fdf3e3' },
     { key: 'refused',  label: 'Refused',      short: 'RF', icon: '⛔', color: '#c44848', bg: '#fde8e8' },
-    { key: 'moved',    label: 'Moved/Wrong',  short: 'MV', icon: '📦', color: '#7c4dcc', bg: '#f3eeff' },
   ],
 
   // Legend grouping: keys before divider = group 1, after = group 2

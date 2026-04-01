@@ -12,7 +12,8 @@
  *
  *  "houses"       — id | turf | owner | address | lat | lon | notes |
  *                   result | result_date | result_by | sort_order
- *  "turfs"        — letter | color | volunteer | mode | polygon_geojson | created_date
+ *  "turfs"        — letter | color | volunteer | mode | created_date
+ *  "polygons"     — letter | polygon_geojson
  *  "presence"     — session_id | name | last_seen
  *  "logins"       — timestamp | name | mode | session_id
  *  "chat"         — id | timestamp | name | session_id | message
@@ -84,12 +85,13 @@ function getSheet(name) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order']);
-    else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','polygon_geojson','created_date']);
+    else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','created_date']);
     else if (name === 'presence') sheet.appendRow(['session_id','name','last_seen']);
     else if (name === 'logins')   sheet.appendRow(['timestamp','name','mode','session_id']);
     else if (name === 'chat')          sheet.appendRow(['id','timestamp','name','session_id','message']);
     else if (name === 'users')         sheet.appendRow(['email','name','color','created_date']);
     else if (name === 'deleted_zones') sheet.appendRow(['timestamp','letter','volunteer','house_count','result_count','data_json']);
+    else if (name === 'polygons')      sheet.appendRow(['letter','polygon_geojson']);
   }
   return sheet;
 }
@@ -131,11 +133,11 @@ function getAllData() {
 }
 
 function getPolygons() {
-  const turfsData = sheetToObjects(getSheet('turfs'));
+  const polyData = sheetToObjects(getSheet('polygons'));
   return {
-    polygons: turfsData.map(t => ({
-      letter:          t.letter,
-      polygon_geojson: t.polygon_geojson || ''
+    polygons: polyData.map(p => ({
+      letter:          p.letter,
+      polygon_geojson: p.polygon_geojson || ''
     }))
   };
 }
@@ -265,6 +267,14 @@ function deleteTurf(letter) {
       deleted++;
     }
   }
+  // Delete from polygons sheet too
+  try {
+    const polySheet = getSheet('polygons');
+    const pData = polySheet.getDataRange().getValues();
+    for (let i = pData.length - 1; i >= 1; i--) {
+      if (String(pData[i][0]) === String(letter)) polySheet.deleteRow(i + 1);
+    }
+  } catch(e) {}
   SpreadsheetApp.flush();
   if (deleted === 0) return { error: 'Zone not found: ' + letter };
   return { success: true };
@@ -284,17 +294,21 @@ function updateTurf(letter, fields) {
 }
 
 function saveTurfPolygon(letter, geojson) {
-  const sheet = getSheet('turfs');
-  const data  = sheet.getDataRange().getValues();
-  const hdrs  = data[0];
-  const col   = hdrs.indexOf('polygon_geojson') + 1;
+  const sheet  = getSheet('polygons');
+  const data   = sheet.getDataRange().getValues();
+  const geoStr = geojson ? JSON.stringify(geojson) : '';
+  // Update existing row if found
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === letter) {
-      sheet.getRange(i+1, col).setValue(geojson ? JSON.stringify(geojson) : '');
-      SpreadsheetApp.flush(); return { success: true };
+    if (String(data[i][0]) === String(letter)) {
+      sheet.getRange(i + 1, 2).setValue(geoStr);
+      SpreadsheetApp.flush();
+      return { success: true };
     }
   }
-  return { error: 'Turf not found: ' + letter };
+  // Insert new row if not found
+  sheet.appendRow([letter, geoStr]);
+  SpreadsheetApp.flush();
+  return { success: true };
 }
 
 // ─── Bulk Import ──────────────────────────────────────────────────────────────
@@ -347,12 +361,16 @@ function createZone(letter, color, volunteer, geojson, houses) {
   }
 
   try {
-    // 1. Write turf row with polygon inline
-    const geojsonStr = geojson ? JSON.stringify(geojson) : '';
+    // 1. Write turf row (no polygon — stored separately)
     turfsSheet.appendRow([
       letter, color || '#6b7280', volunteer || '[UNASSIGNED]',
-      'hanger', geojsonStr, new Date().toISOString()
+      'hanger', new Date().toISOString()
     ]);
+    // 1b. Write polygon to polygons sheet
+    if (geojson) {
+      const polySheet = getSheet('polygons');
+      polySheet.appendRow([letter, JSON.stringify(geojson)]);
+    }
 
     // 2. Write houses
     let order = 0;
@@ -378,6 +396,14 @@ function createZone(letter, color, volunteer, geojson, houses) {
       for (let i = hData.length - 1; i >= 1; i--) {
         if (String(hData[i][1]) === String(letter)) housesSheet.deleteRow(i + 1);
       }
+      // Remove polygon if written
+      try {
+        const pSheet = getSheet('polygons');
+        const pData  = pSheet.getDataRange().getValues();
+        for (let i = pData.length - 1; i >= 1; i--) {
+          if (String(pData[i][0]) === String(letter)) { pSheet.deleteRow(i + 1); break; }
+        }
+      } catch(e3) {}
       SpreadsheetApp.flush();
     } catch(e2) {}
     return { error: 'Zone creation failed: ' + err.toString() };

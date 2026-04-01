@@ -261,14 +261,22 @@ const TurfDraw = (() => {
   }
 
   async function _showPopulateModal({ layer, ring, sorted, excluded }) {
+    // Capture geojson immediately before any await (layer reference stays valid but be safe)
+    const geojsonSnapshot = layer.toGeoJSON().geometry;
     // Fetch live zone list from server to get accurate next number
     UI.toast('Checking zones…', 'info', 1500);
     let liveLetters;
     try {
       const res = await SheetsAPI.getAll();
       liveLetters = new Set((res.turfs || []).map(t => String(t.letter)));
-      // Also sync local state so the rest of the app is current
-      if (res.turfs) App.state.turfs = res.turfs;
+      // Sync local turf list but preserve house data already in state
+      if (res.turfs) {
+        res.turfs.forEach(rt => {
+          const existing = App.state.turfs.find(t => String(t.letter) === String(rt.letter));
+          if (existing) rt.houses = existing.houses;
+        });
+        App.state.turfs = res.turfs;
+      }
     } catch(e) {
       liveLetters = new Set(App.state.turfs.map(t => String(t.letter)));
     }
@@ -313,7 +321,7 @@ const TurfDraw = (() => {
       const centroid     = ParcelsUtil.leafletRingCentroid(ring);
       const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
 
-      const geojson = layer.toGeoJSON().geometry;
+      const geojson = geojsonSnapshot;
       App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels });
       return true;
     }, 'Create Zone');

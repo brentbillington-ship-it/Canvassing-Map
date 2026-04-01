@@ -116,7 +116,7 @@ function getAllData() {
     mode:            t.mode || 'hanger',
     polygon_geojson: t.polygon_geojson || '',
     houses: housesData
-      .filter(h => h.turf === t.letter)
+      .filter(h => String(h.turf) === String(t.letter))
       .sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0))
       .map(h => ({
         id: h.id, owner: h.owner || '', address: h.address || '',

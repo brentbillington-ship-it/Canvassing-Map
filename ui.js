@@ -263,6 +263,7 @@ const UI = {
         adminRow2.innerHTML = `
           <div class="admin-badge-row2">
             <span class="admin-shield">Admin</span>
+            <span class="mode-label">Mode:</span>
             <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
             <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
           </div>
@@ -722,12 +723,6 @@ const UI = {
   updatePresence(users) {
     const bar = document.getElementById('presence-bar');
     if (!bar) return;
-    const avatarColors = ['#2e6ec2','#2d9e5f','#c9831a','#7c4dcc','#c4487a','#1a9e9e','#c44848','#c27a1a'];
-    const colorFor = (sid) => {
-      let h = 0;
-      for (let i = 0; i < sid.length; i++) h = (h * 31 + sid.charCodeAt(i)) >>> 0;
-      return avatarColors[h % avatarColors.length];
-    };
     const initials = (name) => {
       if (!name) return '?';
       const p = name.trim().split(/\s+/);
@@ -740,15 +735,32 @@ const UI = {
       if (s < 60) return `${s}s ago`;
       return `${Math.round(s/60)}m ago`;
     };
+    const statusRing = (iso, me) => {
+      if (me) return '#4ade80'; // always active green for self
+      if (!iso) return '#6b7280';
+      const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 120)  return '#4ade80'; // active — green
+      if (s < 600)  return '#fbbf24'; // recent — yellow
+      return '#6b7280';              // inactive — grey
+    };
+    // Look up assigned user color from _users list by name match
+    const userColorFor = (name, me) => {
+      if (me) {
+        const found = this._users.find(u => u.name === name || u.email === this.currentEmail);
+        return found?.color || '#2d9e5f';
+      }
+      const found = this._users.find(u => u.name === name);
+      return found?.color || '#6b7280';
+    };
     const all = [
       { name: this.currentUser, sessionId: this.sessionId, me: true, last_seen: new Date().toISOString() },
       ...users.filter(u => u.sessionId !== this.sessionId).map(u => ({ ...u, me: false }))
     ];
     bar.innerHTML = all.map(u => {
-      const color  = u.me ? '#2d9e5f' : colorFor(u.sessionId);
-      const border = u.me ? '2px solid rgba(255,255,255,0.6)' : '2px solid transparent';
-      const tip    = `${u.name}${u.me ? ' (you)' : ''} · ${timeAgo(u.last_seen)}`;
-      return `<div class="presence-avatar" style="background:${color};border:${border}" title="${tip}">${initials(u.name)}</div>`;
+      const bgColor   = userColorFor(u.name, u.me);
+      const ringColor = statusRing(u.last_seen, u.me);
+      const tip = `${u.name}${u.me ? ' (you)' : ''} · ${timeAgo(u.last_seen)}`;
+      return `<div class="presence-avatar" style="background:${bgColor};outline:2.5px solid ${ringColor};outline-offset:1px" title="${tip}">${initials(u.name)}</div>`;
     }).join('');
   },
 
@@ -1180,7 +1192,7 @@ const UI = {
     if (!el) return;
     const msgs    = this._chatMessages || [];
     const isStrip = elId === 'sc-messages';
-    const display = msgs;
+    const display = isStrip ? msgs.slice(-5) : msgs;
     if (!display.length) {
       el.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
       return;

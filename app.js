@@ -238,7 +238,7 @@ const App = {
       // Collision detected — server tells us the next safe number; offer to retry
       if (res.error && res.nextAvailable) {
         App._showCreatingOverlay(false);
-        const retry = confirm(`Zone ${letter} was just taken by another admin.\n\nCreate as Zone ${res.nextAvailable} instead?`);
+        const retry = await UI._confirm('Zone Taken', `Zone ${letter} was just created by another admin.<br><br>Create as Zone ${res.nextAvailable} instead?`, `Create as Zone ${res.nextAvailable}`);
         if (!retry) return;
         letter = String(res.nextAvailable);
         App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
@@ -247,6 +247,9 @@ const App = {
 
       if (res.error) { UI.toast(res.error, 'error'); return; }
       await this.loadData();
+      // Force map + draw layer rebuild so polygon appears immediately
+      MapModule.renderAll(this._visibleTurfs());
+      TurfDraw.loadTurfs(this.state.turfs);
       UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
     } catch(e) { UI.toast('Failed to create zone — check connection', 'error'); console.error(e); }
     finally { App._showCreatingOverlay(false); }

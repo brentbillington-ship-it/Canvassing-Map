@@ -3,11 +3,17 @@
 const UI = {
   isAdmin:      false,
   currentUser:  '',
-  userMode:     'hanger',   // 'hanger' or 'doorknock' — set at login for non-admins
+  currentEmail: '',
+  userMode:     'hanger',
   turfFilter:   null,
   resultFilter: null,
-  modeFilter:   null,       // null = all, 'hanger', 'doorknock'
+  modeFilter:   null,
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
+  _users:       [],
+  _userColorPalette: [
+    '#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#7c4dcc','#c4487a',
+    '#1a9e9e','#c27a1a','#4d8c2f','#4a7abf','#a0522d','#2e8b57',
+  ],
   _expandedTurfs: new Set(),
 
   init() {
@@ -17,9 +23,11 @@ const UI = {
     // Login persistence — skip modal if already logged in
     const saved = this._loadSavedLogin();
     if (saved) {
-      this.currentUser = saved.name;
-      this.isAdmin     = saved.isAdmin;
-      this.userMode    = saved.userMode || 'hanger';
+      this.currentUser  = saved.name;
+      this.currentEmail = saved.email || '';
+      this.isAdmin      = saved.isAdmin;
+      this.userMode     = saved.userMode || 'hanger';
+      SheetsAPI.getUsers().then(r => { this._users = r.users || []; }).catch(() => {});
       this._postLogin();
     } else {
       this._showLoginModal();
@@ -27,8 +35,8 @@ const UI = {
   },
 
   // ── Login persistence ─────────────────────────────────────────────────────
-  _saveLogin(name, isAdmin, userMode) {
-    localStorage.setItem('ck_user', JSON.stringify({ name, isAdmin, userMode: userMode || 'hanger' }));
+  _saveLogin(name, isAdmin, userMode, email) {
+    localStorage.setItem('ck_user', JSON.stringify({ name, isAdmin, userMode: userMode || 'hanger', email: email || '' }));
   },
   _loadSavedLogin() {
     try { return JSON.parse(localStorage.getItem('ck_user') || 'null'); } catch(e) { return null; }
@@ -42,10 +50,11 @@ const UI = {
     document.getElementById('header').innerHTML = `
       <div class="header-row1">
         <div class="header-left">
-          <div class="header-logo">🚂</div>
+          <div class="header-logo">&#x1F682;</div>
           <div>
-            <div class="header-title">${CONFIG.APP_NAME}</div>
-            <div class="header-sub">${CONFIG.CANDIDATE} · ${CONFIG.RACE} · <span class="header-credit">by Brent Billington · v4.7</span></div>
+            <div class="header-title">Chaka Canvassing</div>
+            <div class="header-sub">${CONFIG.CANDIDATE} &middot; ${CONFIG.RACE}</div>
+            <div class="header-credit">by Brent Billington &middot; v4.8</div>
           </div>
         </div>
         <div class="header-right" id="header-controls">
@@ -54,13 +63,15 @@ const UI = {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span id="chat-unread" class="chat-unread" style="display:none"></span>
           </button>
-          <button class="hdr-btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">
+          <button class="hdr-btn desktop-hide" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
           </button>
-          <button class="hdr-btn" id="loc-btn" onclick="MapModule.toggleMyLocation()" title="My Location">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="none" stroke-opacity="0.35"/></svg>
+          <button class="hdr-btn icon-btn" id="loc-btn" onclick="MapModule.toggleMyLocation()" title="My Location">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-opacity="0.35"/></svg>
           </button>
-          <button class="hdr-btn" id="lock-btn" onclick="UI.promptAdminUnlock()" title="Admin login" style="display:none">🔒</button>
+          <button class="hdr-btn icon-btn" id="lock-btn" onclick="UI.promptAdminUnlock()" title="Admin login" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </button>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -72,7 +83,7 @@ const UI = {
         </div>
       </div>`;
 
-    document.getElementById('offline-banner').textContent = '⚠ Offline — results will sync when reconnected';
+    document.getElementById('offline-banner').textContent = 'Offline - results will sync when reconnected';
 
     document.getElementById('sidebar').innerHTML = `
       <div id="sidebar-header">
@@ -89,8 +100,8 @@ const UI = {
         <div class="sb-filter-row">
           <select id="mode-filter-sel" onchange="UI.setModeFilter(this.value)" style="flex:1">
             <option value="">All Modes</option>
-            <option value="hanger">🗂 Hangers Only</option>
-            <option value="doorknock">🚪 Knocking Only</option>
+            <option value="hanger">Hangers Only</option>
+            <option value="doorknock">Knocking Only</option>
           </select>
           <label class="hide-done-toggle" title="Hide completed houses">
             <input type="checkbox" id="hide-done-chk" onchange="UI.setHideDone(this.checked)"/> Hide done
@@ -101,10 +112,10 @@ const UI = {
       <div id="turf-list"></div>
       <div id="sidebar-chat" class="sidebar-chat desktop-only">
         <div class="sc-header">
-          <span class="sc-title">&#x1F4AC; Team Chat</span>
+          <span class="sc-title">Team Chat</span>
           <span id="sc-unread" class="chat-unread" style="display:none"></span>
         </div>
-        <div class="sc-messages" id="sc-messages"><div class="chat-empty">No messages yet. Say hi! &#x1F44B;</div></div>
+        <div class="sc-messages" id="sc-messages"><div class="chat-empty">No messages yet. Say hi!</div></div>
         <div class="sc-input-row">
           <input id="sc-input" class="sc-input" type="text" placeholder="Message the team..." maxlength="280"
             onkeydown="if(event.key==='Enter')UI._sendChat()"/>
@@ -113,40 +124,69 @@ const UI = {
       </div>`;
   },
 
-  // ── Login modal ─────────────────────────────────────────────────────────────
+  // -- Login modal (email-based accounts) ------------------------------------
   _showLoginModal() {
     const overlay = document.createElement('div');
     overlay.id    = 'login-overlay';
     overlay.innerHTML = `
       <div class="login-card">
-        <div class="login-logo">🏡</div>
+        <div class="login-logo">&#x1F682;</div>
         <div class="login-title">${CONFIG.APP_NAME}</div>
-        <div class="login-sub">${CONFIG.CANDIDATE} · ${CONFIG.RACE}</div>
+        <div class="login-sub">${CONFIG.CANDIDATE} &middot; ${CONFIG.RACE}</div>
         <div class="login-form">
-          <label class="login-label">Your name</label>
-          <input id="login-name" class="login-input" type="text" placeholder="First name or nickname" autocomplete="off"/>
-          <label class="login-label" id="pw-label" style="display:none">Admin password</label>
+          <label class="login-label">Email address</label>
+          <input id="login-email" class="login-input" type="email" placeholder="your@email.com" autocomplete="email"/>
+          <div id="login-name-row" style="display:none;margin-top:8px">
+            <label class="login-label">First name &amp; last initial</label>
+            <input id="login-name" class="login-input" type="text" placeholder="e.g. Kevin C." autocomplete="off"/>
+          </div>
+          <label class="login-label" id="pw-label" style="display:none;margin-top:10px">Admin password</label>
           <input id="login-pw" class="login-input" type="password" placeholder="Password" style="display:none" autocomplete="off"/>
-          <button class="login-admin-toggle" id="admin-toggle" onclick="UI._toggleAdminLogin()">🔒 Admin login</button>
+          <button class="login-admin-toggle" id="admin-toggle" onclick="UI._toggleAdminLogin()">&#x1F512; Admin login</button>
           <div id="login-mode-row" class="login-mode-row">
             <div class="login-mode-label">I'm here to:</div>
             <div class="mode-toggle-row">
-              <label class="mode-opt selected" id="lmode-hanger" onclick="UI._setLoginMode('hanger')">
-                🗂 Drop Hangers
-              </label>
-              <label class="mode-opt" id="lmode-doorknock" onclick="UI._setLoginMode('doorknock')">
-                🚪 Door Knock
-              </label>
+              <label class="mode-opt selected" id="lmode-hanger" onclick="UI._setLoginMode('hanger')">&#x1F5C2; Drop Hangers</label>
+              <label class="mode-opt" id="lmode-doorknock" onclick="UI._setLoginMode('doorknock')">&#x1F6AA; Door Knock</label>
             </div>
           </div>
-          <button class="login-btn" onclick="UI._submitLogin()">Enter</button>
+          <button class="login-btn" id="login-btn" onclick="UI._submitLogin()">Continue</button>
           <div id="login-error" class="login-error"></div>
         </div>
       </div>`;
     document.body.appendChild(overlay);
-    setTimeout(() => document.getElementById('login-name')?.focus(), 200);
-    document.getElementById('login-name')?.addEventListener('keydown', e => { if (e.key === 'Enter') this._submitLogin(); });
-    document.getElementById('login-pw')?.addEventListener('keydown',   e => { if (e.key === 'Enter') this._submitLogin(); });
+    setTimeout(() => document.getElementById('login-email')?.focus(), 200);
+    ['login-email','login-name','login-pw'].forEach(id => {
+      document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') UI._submitLogin(); });
+    });
+    document.getElementById('login-email')?.addEventListener('blur', () => UI._checkEmailLookup());
+  },
+
+  _pendingMode: 'hanger',
+  _foundUser:   null,
+
+  async _checkEmailLookup() {
+    const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) return;
+    const nameRow = document.getElementById('login-name-row');
+    const btn     = document.getElementById('login-btn');
+    try {
+      const res = await SheetsAPI.getUser(email);
+      if (res.user) {
+        this._foundUser = res.user;
+        if (nameRow) nameRow.style.display = 'none';
+        if (btn) btn.textContent = 'Sign In';
+        document.getElementById('login-error').textContent = '';
+      } else {
+        this._foundUser = null;
+        if (nameRow) nameRow.style.display = 'block';
+        if (btn) btn.textContent = 'Create Account';
+        setTimeout(() => document.getElementById('login-name')?.focus(), 50);
+      }
+    } catch(e) {
+      this._foundUser = null;
+      if (nameRow) nameRow.style.display = 'block';
+    }
   },
 
   _setLoginMode(mode) {
@@ -154,8 +194,6 @@ const UI = {
     document.getElementById('lmode-hanger')?.classList.toggle('selected', mode === 'hanger');
     document.getElementById('lmode-doorknock')?.classList.toggle('selected', mode === 'doorknock');
   },
-
-  _pendingMode: 'hanger',
 
   _toggleAdminLogin() {
     const pwLabel  = document.getElementById('pw-label');
@@ -166,55 +204,76 @@ const UI = {
     pwLabel.style.display  = show ? 'block' : 'none';
     pwInput.style.display  = show ? 'block' : 'none';
     if (modeRow) modeRow.style.display = show ? 'none' : 'flex';
-    toggle.textContent     = show ? '← Back to field login' : '🔒 Admin login';
+    toggle.textContent = show ? '<- Back to field login' : 'Admin login';
     if (show) setTimeout(() => pwInput.focus(), 50);
   },
 
-  _submitLogin() {
-    const name = (document.getElementById('login-name')?.value || '').trim();
-    const pw   = (document.getElementById('login-pw')?.value  || '').trim();
-    if (!name) { document.getElementById('login-error').textContent = 'Please enter your name.'; return; }
+  async _submitLogin() {
+    const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
+    const pw    = (document.getElementById('login-pw')?.value  || '').trim();
+    const errEl = document.getElementById('login-error');
+
+    if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; return; }
+
     if (pw) {
-      if (pw !== CONFIG.ADMIN_PASSWORD) { document.getElementById('login-error').textContent = 'Incorrect password.'; return; }
+      if (pw !== CONFIG.ADMIN_PASSWORD) { errEl.textContent = 'Incorrect password.'; return; }
       this.isAdmin = true;
     }
-    this.currentUser = name;
-    this.userMode    = this.isAdmin ? 'all' : (this._pendingMode || 'hanger');
-    this._saveLogin(name, this.isAdmin, this.userMode);
+
+    let name, color;
+    if (this._foundUser) {
+      name  = this._foundUser.name;
+      color = this._foundUser.color;
+    } else {
+      name = (document.getElementById('login-name')?.value || '').trim();
+      if (!name) { errEl.textContent = 'Please enter your name.'; return; }
+      try {
+        const usersRes = await SheetsAPI.getUsers();
+        this._users = usersRes.users || [];
+      } catch(e) {}
+      const usedColors = new Set(this._users.map(u => u.color));
+      color = this._userColorPalette.find(c => !usedColors.has(c)) || this._userColorPalette[this._users.length % this._userColorPalette.length];
+      try {
+        const res = await SheetsAPI.createUser(email, name, color);
+        if (res.error && !res.existing) { errEl.textContent = res.error; return; }
+      } catch(e) { errEl.textContent = 'Failed to create account.'; return; }
+    }
+
+    this.currentUser  = name;
+    this.currentEmail = email;
+    this.userMode     = this.isAdmin ? 'all' : (this._pendingMode || 'hanger');
+    this._saveLogin(name, this.isAdmin, this.userMode, email);
     document.getElementById('login-overlay')?.remove();
-    // Log login to sheet
     try { SheetsAPI.logLogin(name, this.sessionId, this.userMode); } catch(e) {}
+    SheetsAPI.getUsers().then(r => { this._users = r.users || []; }).catch(() => {});
     this._postLogin();
   },
 
   _postLogin() {
     if (this.isAdmin) {
-      // ── Admin tools in row2 ─────────────────────────────────────────────
       const adminRow2 = document.getElementById('admin-row2');
       if (adminRow2) {
         adminRow2.style.display = 'flex';
         adminRow2.innerHTML = `
           <div class="admin-badge-row2">
-            <span class="admin-shield">&#x1F6E1; Admin</span>
-            <button class="admin-field-btn" onclick="UI._dropToFieldMode()" title="View as volunteer">Field</button>
+            <span class="admin-shield">Admin</span>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
             <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
           </div>
-          <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">&#x270F;&#xFE0F; Draw Zone</button>
-          <button class="admin-btn" onclick="UI.showAddHouseModal()">&#xFF0B; House</button>
-          <button class="admin-btn" onclick="UI.showImportModal()">&#x2B06; Import</button>
-          <button class="admin-btn" onclick="UI.showLeaderboard()">&#x1F3C6; Board</button>
-          <button class="admin-btn" onclick="UI.exportCSV()">&#x2B07; CSV</button>`;
+          <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
+          <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
+          <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
+          <button class="admin-btn" onclick="UI.showLeaderboard()">Board</button>
+          <button class="admin-btn" onclick="UI.exportCSV()">CSV</button>`;
       }
       this._renderTop3();
     } else {
-      // Show lock button for non-admins
       const lockBtn = document.getElementById('lock-btn');
       if (lockBtn) lockBtn.style.display = '';
-      // Non-admin: report missing house
       const nonAdminTools = document.getElementById('non-admin-tools');
       if (nonAdminTools) {
         nonAdminTools.style.display = 'flex';
-        nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">&#xFF0B; Report Missing House</button>`;
+        nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Report Missing House</button>`;
       }
       const logoutBtn = document.createElement('button');
       logoutBtn.className = 'hdr-btn logout-small';
@@ -225,23 +284,22 @@ const UI = {
     App.init();
   },
 
-  // ── Drop admin to field volunteer view ────────────────────────────────────
   _dropToFieldMode() {
     this._modal('Switch to Field View', `
-      <div class="f-hint" style="margin-bottom:12px">Choose which mode to view as. You can re-unlock admin with the &#x1F512; button.</div>
+      <div class="f-hint" style="margin-bottom:12px">Re-unlock admin with the lock button any time.</div>
       <div class="mode-toggle-row">
         <label class="mode-opt selected" id="fm-hanger"
           onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          &#x1F5C2; Drop Hangers</label>
+          Drop Hangers</label>
         <label class="mode-opt" id="fm-doorknock"
           onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          &#x1F6AA; Door Knock</label>
+          Door Knock</label>
       </div>
     `, () => {
       const mode = document.getElementById('fm-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
       this.isAdmin = false;
       this.userMode = mode;
-      this._saveLogin(this.currentUser, false, mode);
+      this._saveLogin(this.currentUser, false, mode, this.currentEmail);
       location.reload();
       return true;
     }, 'Switch to Field View');
@@ -315,31 +373,31 @@ const UI = {
     }
   },
 
-  // ── Top-3 leaderboard chip in row2 ───────────────────────────────────────
+  // -- Top-3 leaderboard chip --------------------------------------------------
   _renderTop3() {
     const bar = document.getElementById('top3-bar');
     if (!bar) return;
     const allH = App.state.turfs.flatMap(t => t.houses);
-    // Weekly: results in the last 7 days
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const weekH = allH.filter(h => h.result && h.result_by && h.result_date && new Date(h.result_date).getTime() >= weekAgo);
+    const weekH = allH.filter(h => h.result && h.result_by && h.result_date &&
+      new Date(h.result_date).getTime() >= weekAgo);
     const tally = {};
     weekH.forEach(h => { tally[h.result_by] = (tally[h.result_by] || 0) + 1; });
     const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3);
     if (!sorted.length) { bar.style.display = 'none'; return; }
     const medals = ['&#x1F947;','&#x1F948;','&#x1F949;'];
     bar.style.display = 'flex';
-    bar.innerHTML = `<span class="top3-label">This week:</span>` +
+    bar.innerHTML = `<button class="top3-lb-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">&#x1F3C6; Leaderboard</button>` +
       sorted.map(([name, cnt], i) =>
-        `<span class="top3-chip" title="${name}: ${cnt} contacts">${medals[i]} ${name.split(' ')[0]} <strong>${cnt}</strong></span>`
-      ).join('') +
-      `<button class="top3-more-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">&#x25B8;</button>`;
+        `<span class="top3-chip">${medals[i]} ${name.split(' ')[0]} <strong>${cnt}</strong></span>`
+      ).join('');
   },
 
   // ── Leaderboard ───────────────────────────────────────────────────────────
   showLeaderboard() {
-    const allHouses = App.state.turfs.flatMap(t => t.houses);
-    const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+    const allHouses  = App.state.turfs.flatMap(t => t.houses);
+    const today      = new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago' });
+    const weekAgo    = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     const tally = (houses) => {
       const map = {};
@@ -353,36 +411,32 @@ const UI = {
       return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
     };
 
-    const todayHouses = allHouses.filter(h => {
-      if (!h.result_date) return false;
-      return new Date(h.result_date).toLocaleDateString('en-US', { timeZone: 'America/Chicago' }) === today;
-    });
+    const todayH = allHouses.filter(h => h.result_date &&
+      new Date(h.result_date).toLocaleDateString('en-US', { timeZone: 'America/Chicago' }) === today);
+    const weekH  = allHouses.filter(h => h.result_date && new Date(h.result_date).getTime() >= weekAgo);
 
     const tableHtml = (entries) => {
       if (!entries.length) return '<div class="lb-empty">No activity yet</div>';
       return `<table class="lb-table">
-        <thead><tr><th>#</th><th>Name</th><th>📬</th><th>✊</th><th>Total</th><th>Last</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>HG</th><th>KN</th><th>Total</th><th>Last</th></tr></thead>
         <tbody>${entries.map(([name, s], i) => `
           <tr class="${i === 0 ? 'lb-gold' : i === 1 ? 'lb-silver' : i === 2 ? 'lb-bronze' : ''}">
             <td>${i + 1}</td><td>${_esc(name)}</td>
             <td>${s.hangers}</td><td>${s.knocked}</td>
             <td><strong>${s.total}</strong></td>
-            <td>${s.last ? _fmtDate(s.last) : '—'}</td>
+            <td>${s.last ? _fmtDate(s.last) : '-'}</td>
           </tr>`).join('')}
         </tbody></table>`;
     };
 
-    const weekAgo  = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const weekHouses = allHouses.filter(h => h.result_date && new Date(h.result_date).getTime() >= weekAgo);
-
-    this._modal('&#x1F3C6; Leaderboard', `
+    this._modal('Leaderboard', `
       <div class="lb-tabs">
         <button class="lb-tab" id="lbt-today" onclick="UI._lbTab('today')">Today</button>
         <button class="lb-tab active" id="lbt-week" onclick="UI._lbTab('week')">This Week</button>
         <button class="lb-tab" id="lbt-all" onclick="UI._lbTab('all')">All Time</button>
       </div>
-      <div id="lb-today" style="display:none">${tableHtml(tally(todayHouses))}</div>
-      <div id="lb-week">${tableHtml(tally(weekHouses))}</div>
+      <div id="lb-today" style="display:none">${tableHtml(tally(todayH))}</div>
+      <div id="lb-week">${tableHtml(tally(weekH))}</div>
       <div id="lb-all" style="display:none">${tableHtml(tally(allHouses))}</div>
     `, null, null);
   },
@@ -393,6 +447,8 @@ const UI = {
       document.getElementById('lbt-' + t)?.classList.toggle('active', t === tab);
     });
   },
+
+,
 
   // ── CSV Export ────────────────────────────────────────────────────────────
   exportCSV() {
@@ -448,7 +504,6 @@ const UI = {
 
   // ── Stats bar ────────────────────────────────────────────────────────────────
   updateStats(turfs) {
-    // Refresh top-3 chip whenever stats update
     if (this.isAdmin) this._renderTop3();
     const bar = document.getElementById('stats-bar');
     if (!bar) return;
@@ -735,10 +790,30 @@ const UI = {
     App.clearTurfHouses(letter);
   },
 
-  confirmDeleteTurf(letter) {
+  async confirmDeleteTurf(letter) {
     const turf = App.state.turfs.find(t => t.letter === letter);
-    if (turf?.houses.length) { this.toast(`Remove all houses from Zone ${letter} first`, 'error'); return; }
-    if (!confirm(`Delete Zone ${letter}? This cannot be undone.`)) return;
+    if (!turf) return;
+    const resultCount = turf.houses.filter(h => h.result && h.result !== '').length;
+    const houseCount  = turf.houses.length;
+
+    // First confirm
+    const vol = turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? ` (${turf.volunteer})` : '';
+    const msg1 = resultCount > 0
+      ? `Zone ${letter}${vol} has ${resultCount} recorded result${resultCount > 1 ? 's' : ''} out of ${houseCount} houses.\n\nThis data will be backed up but removed from the map. Continue?`
+      : `Delete Zone ${letter}${vol}? This will remove all ${houseCount} houses. This cannot be undone.`;
+    if (!confirm(msg1)) return;
+
+    // Second confirm only if there are results
+    if (resultCount > 0) {
+      if (!confirm(`Final confirmation: permanently delete Zone ${letter} and all its data?`)) return;
+      // Backup before delete
+      try {
+        await SheetsAPI.backupZone(letter);
+        this.toast(`Zone ${letter} backed up to deleted_zones sheet`, 'info');
+      } catch(e) {
+        if (!confirm('Backup failed. Delete anyway?')) return;
+      }
+    }
     App.deleteTurf(letter);
   },
 
@@ -871,6 +946,11 @@ const UI = {
 
   // ── Zone completion chat announcement ─────────────────────────────────────
   _completedZones: new Set(),
+  _chatOpen: false,
+  _chatMessages: [],
+  _chatLastSeen: 0,
+  _chatUnread: 0,
+  _chatPollTimer: null,
 
   checkZoneCompletion(turfs) {
     turfs.forEach(turf => {
@@ -889,9 +969,7 @@ const UI = {
   _chatLastSeen: 0,
   _chatPollTimer: null,
 
-  // ── Mobile chat toggle (desktop uses pinned sidebar strip) ──────────────
   toggleChat() {
-    // On mobile, open/close the slide-out panel
     let panel = document.getElementById('chat-panel');
     if (!panel) this._buildMobileChatPanel();
     panel = document.getElementById('chat-panel');
@@ -910,8 +988,8 @@ const UI = {
     panel.id = 'chat-panel';
     panel.innerHTML = `
       <div class="chat-header">
-        <span class="chat-title">&#x1F4AC; Team Chat</span>
-        <button class="chat-close" onclick="UI.toggleChat()">&#x2715;</button>
+        <span class="chat-title">Team Chat</span>
+        <button class="chat-close" onclick="UI.toggleChat()">X</button>
       </div>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
@@ -924,15 +1002,20 @@ const UI = {
   },
 
   async _sendChat() {
-    // Works for both desktop (sc-input) and mobile (chat-input)
-    const inp = document.getElementById('sc-input') || document.getElementById('chat-input');
+    const scInp  = document.getElementById('sc-input');
+    const mobInp = document.getElementById('chat-input');
+    const inp = (scInp?.value || '').trim() ? scInp
+              : (mobInp?.value || '').trim() ? mobInp
+              : scInp || mobInp;
     const msg = (inp?.value || '').trim();
-    if (!msg || !this.currentUser) return;
+    if (!msg) { this.toast('Type a message first', 'info'); return; }
+    if (!this.currentUser) { this.toast('Not logged in', 'error'); return; }
     inp.value = '';
     try {
       await SheetsAPI.sendChat(this.currentUser, this.sessionId, msg);
       await this._fetchChat();
-    } catch(e) { this.toast('Failed to send message', 'error'); }
+      this._clearUnreadBadges();
+    } catch(e) { this.toast('Failed to send - check connection', 'error'); }
   },
 
   async _fetchChat() {
@@ -940,7 +1023,6 @@ const UI = {
       const data = await SheetsAPI.getChat();
       if (!data.messages) return;
       this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
-      // session_id field from sheet may be snake_case
       const newCount = this._chatMessages.filter(m =>
         m.ts > this._chatLastSeen && (m.session_id || m.sessionId) !== this.sessionId
       ).length;
@@ -949,38 +1031,34 @@ const UI = {
         this._updateUnreadBadges();
       }
       if (data.messages.length) this._chatLastSeen = Math.max(...data.messages.map(m => m.ts));
-      // Render to whichever containers exist
       this._renderChatMessages('sc-messages');
       if (this._chatOpen) this._renderChatMessages('chat-messages');
     } catch(e) {}
   },
 
   _updateUnreadBadges() {
-    // Mobile header badge
     const b1 = document.getElementById('chat-unread');
     if (b1 && !this._chatOpen) { b1.textContent = this._chatUnread; b1.style.display = ''; }
-    // Desktop sidebar badge
     const b2 = document.getElementById('sc-unread');
     if (b2) { b2.textContent = this._chatUnread; b2.style.display = this._chatUnread > 0 ? '' : 'none'; }
   },
 
   _clearUnreadBadges() {
     this._chatUnread = 0;
-    const b1 = document.getElementById('chat-unread');
-    if (b1) b1.style.display = 'none';
-    const b2 = document.getElementById('sc-unread');
-    if (b2) b2.style.display = 'none';
+    ['chat-unread','sc-unread'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
   },
 
   _renderChatMessages(elId) {
     const el = document.getElementById(elId);
     if (!el) return;
-    const msgs = this._chatMessages;
-    // For sidebar strip, show last 4 messages only
+    const msgs    = this._chatMessages || [];
     const isStrip = elId === 'sc-messages';
     const display = isStrip ? msgs.slice(-4) : msgs;
     if (!display.length) {
-      el.innerHTML = '<div class="chat-empty">No messages yet. Say hi! &#x1F44B;</div>';
+      el.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
       return;
     }
     let lastDate = '';
@@ -994,10 +1072,9 @@ const UI = {
         lastDate = dateStr;
         html += `<div class="chat-date-bar"><span>${dateStr}</span></div>`;
       }
-      const nameTag = !isMe ? `<span class="sc-name">${_esc(m.name)}</span> ` : '';
       if (isStrip) {
         html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
-          ${nameTag}<span class="sc-bubble">${_esc(m.message)}</span>
+          ${!isMe ? `<span class="sc-name">${_esc(m.name)}</span> ` : ''}<span class="sc-bubble">${_esc(m.message)}</span>
           <span class="sc-time">${timeStr}</span>
         </div>`;
       } else {
@@ -1020,5 +1097,5 @@ const UI = {
   startChatPoll() {
     this._fetchChat();
     this._chatPollTimer = setInterval(() => this._fetchChat(), 10000);
-  },
+  },,
 };

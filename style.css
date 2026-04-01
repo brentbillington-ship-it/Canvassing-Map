@@ -91,7 +91,19 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
+/* Icon-only buttons — square, equal padding */
+.hdr-btn.icon-btn {
+  padding: 6px;
+  width: 30px;
+  height: 30px;
+}
+/* Hide map button on desktop */
+.desktop-hide { display: none !important; }
 .hdr-btn:hover { background: rgba(255,255,255,0.22); }
 .hdr-btn.active-btn { background: #2d9e5f; border-color: #2d9e5f; }
 #loc-btn.active-btn svg { stroke: #fff; filter: drop-shadow(0 0 3px rgba(45,158,95,0.8)); }
@@ -764,6 +776,25 @@ body {
 .sc-send:hover { opacity: 0.88; }
 .desktop-only { display: flex; flex-direction: column; }
 
+
+/* ─── School labels ─────────────────────────────────────────────────────────── */
+.school-label {
+  background: rgba(255,255,255,0.92);
+  color: #9b1c1c;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid rgba(155,28,28,0.35);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  pointer-events: none;
+  letter-spacing: 0.1px;
+}
+.school-label-hs { font-size: 11px; font-weight: 900; border-width: 1.5px; }
+.school-label-ms { font-size: 10px; font-weight: 800; }
+.school-label-es { font-size: 9px;  font-weight: 700; opacity: 0.9; }
+
 /* ─── Mobile chat ───────────────────────────────────────────────────────────── */
 #chat-panel {
   position: fixed; top: 0; right: -100%; width: 100%; bottom: 0;
@@ -830,4 +861,15 @@ body {
   background: conic-gradient(#e05c4b, #c9831a, #2d9e5f, #2e6ec2, #7c4dcc, #e05c4b);
   font-size: 11px; color: #fff; display: flex; align-items: center; justify-content: center;
   font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+@media (max-width: 680px) {
+  .mobile-chat-btn { display: inline-flex !important; }
+  .desktop-only { display: none !important; }
+  .desktop-hide { display: inline-flex !important; }
+  .top3-bar { display: none !important; }
+  #admin-row2 { flex-wrap: wrap; }
+  .header-row2 { gap: 5px; }
+  .stat-track-wrap { display: none; }
+  .header-credit { display: none; }
 }

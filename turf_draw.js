@@ -293,17 +293,7 @@ const TurfDraw = (() => {
         <span class="pop-letter-label">Zone ID:</span>
         <span class="pop-letter-badge">${nextLetter}</span>
       </div>
-      <label class="f-label" style="margin-top:12px">Zone mode</label>
-      <div class="mode-toggle-row">
-        <label class="mode-opt selected" id="mode-hanger">
-          <input type="radio" name="turf-mode" value="hanger" checked style="display:none"/>
-          🗂 Hanger Route
-        </label>
-        <label class="mode-opt" id="mode-doorknock">
-          <input type="radio" name="turf-mode" value="doorknock" style="display:none"/>
-          🚪 Door Knock
-        </label>
-      </div>
+
       <label class="f-label" style="margin-top:8px">Volunteer name (optional)</label>
       <input id="f-volunteer" class="f-input" type="text" placeholder="Volunteer name"/>
       <label class="f-label">Color</label>
@@ -314,7 +304,7 @@ const TurfDraw = (() => {
       const rawColor  = document.querySelector('.color-swatch.selected')?.dataset.color || 'auto';
       const color     = rawColor === 'auto' ? autoColor : rawColor;
       const inclComm  = document.getElementById('include-commercial')?.checked || false;
-      const mode      = document.querySelector('input[name="turf-mode"]:checked')?.value || 'hanger';
+      const mode      = 'hanger'; // Door knock zones added via import only
 
       if (!letter) { UI.toast('No available letter — check existing turfs', 'error'); return false; }
       if (turfs.some(t => t.letter === letter)) { UI.toast(`Zone ${letter} already exists`, 'error'); return false; }
@@ -322,13 +312,11 @@ const TurfDraw = (() => {
       const { residential } = ParcelsUtil.parcelsInPolygon(ring, inclComm);
       if (!residential.length) { UI.toast('No parcels found — try a different area', 'error'); return false; }
       const centroid     = ParcelsUtil.leafletRingCentroid(ring);
-      const finalParcels = mode === 'hanger'
-        ? ParcelsUtil.walkOrder(residential, centroid)
-        : residential.slice().sort((a, b) => a.address.localeCompare(b.address));
+      const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
 
       // Don't add layer to _drawnLayers here — let loadTurfs rebuild after save
       const geojson = layer.toGeoJSON().geometry;
-      App.createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels: finalParcels });
+      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels });
       return true;
     }, 'Create Zone');
   }

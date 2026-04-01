@@ -20,18 +20,7 @@
     <div id="map-wrap"><div id="map"></div></div>
     <div id="sidebar"></div>
   </div>
-  <div id="chat-panel" class="chat-panel">
-    <div class="chat-header">
-      <span>💬 Team Chat</span>
-      <button class="chat-close-btn" onclick="ChatModule.close()">✕</button>
-    </div>
-    <div id="chat-messages" class="chat-messages"></div>
-    <div class="chat-input-row">
-      <input id="chat-input" class="chat-input" type="text" placeholder="Message the team…" maxlength="300"
-        onkeydown="if(event.key==='Enter')ChatModule.send()"/>
-      <button class="chat-send-btn" onclick="ChatModule.send()">Send</button>
-    </div>
-  </div>
+  <!-- chat panel built dynamically by ui.js -->
   <div id="toast-container"></div>
   <div class="app-footer">By Brent Billington for Chaka Campaign &middot; v4.6</div>
 
@@ -42,6 +31,7 @@
   <script src="parcels.js"></script>
   <script src="parcels_utils.js"></script>
   <script src="cisd_boundary.js"></script>
+  <script src="cisd_schools.js"></script>
 
   <!-- App modules -->
   <script src="config.js"></script>

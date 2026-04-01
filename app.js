@@ -228,16 +228,22 @@ const App = {
   },
 
   // ── Create turf from draw (new) ───────────────────────────────────────────
-  async createTurfFromDraw({ letter, color, volunteer, mode, geojson, parcels }) {
+  async createTurfFromDraw({ letter, color, volunteer, geojson, parcels }) {
     App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
     try {
-      const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]', mode || 'hanger');
+      // 1. Create turf row (always hanger mode)
+      const tRes = await SheetsAPI.addTurf(letter, color, volunteer || '[UNASSIGNED]', 'hanger');
       if (tRes.error) { UI.toast(tRes.error, 'error'); return; }
-      await SheetsAPI.saveTurfPolygon(letter, geojson);
+      // 2. Save polygon (must complete before loadData so boundary appears)
+      const pRes = await SheetsAPI.saveTurfPolygon(letter, geojson);
+      if (pRes && pRes.error) { UI.toast('Zone created but boundary failed to save', 'error'); }
+      // 3. Bulk import houses (separate from turf creation to avoid duplicate turf row)
       const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
       if (houses.length) {
-        await SheetsAPI.bulkImport([{ letter, color, volunteer: volunteer || '[UNASSIGNED]', mode: mode || 'hanger', houses }]);
+        // Pass empty turfs array - only import houses into existing turf
+        await SheetsAPI.bulkImportHouses(letter, houses);
       }
+      // 4. Reload - boundary should now be present
       await this.loadData();
       UI.toast(`Zone ${letter} created with ${parcels.length} houses ✓`, 'success');
     } catch(e) { UI.toast('Failed to create zone', 'error'); console.error(e); }

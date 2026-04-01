@@ -8,14 +8,16 @@
  *  ✅ Same URL — no config.js change needed
  * ─────────────────────────────────────────────────────────────
  *
- * Chaka Door Canvass — Google Sheets Backend v4.6
+ * Chaka Canvassing — Google Sheets Backend v4.8
  *
- *  "houses"   — id | turf | owner | address | lat | lon | notes |
- *               result | result_date | result_by | sort_order
- *  "turfs"    — letter | color | volunteer | mode | polygon_geojson | created_date
- *  "presence" — session_id | name | last_seen
- *  "logins"   — timestamp | name | mode | session_id
- *  "chat"     — id | timestamp | name | session_id | message
+ *  "houses"       — id | turf | owner | address | lat | lon | notes |
+ *                   result | result_date | result_by | sort_order
+ *  "turfs"        — letter | color | volunteer | mode | polygon_geojson | created_date
+ *  "presence"     — session_id | name | last_seen
+ *  "logins"       — timestamp | name | mode | session_id
+ *  "chat"         — id | timestamp | name | session_id | message
+ *  "users"        — email | name | color | created_date
+ *  "deleted_zones"— timestamp | letter | volunteer | house_count | result_count | data_json
  */
 
 function doGet(e) {
@@ -47,6 +49,7 @@ function handleAction(data) {
       case 'saveTurfPolygon': return json(saveTurfPolygon(data.letter, data.geojson));
       case 'reorderHouses':   return json(reorderHouses(data.turf, data.order));
       case 'bulkImport':      return json(bulkImport(data.turfs));
+      case 'bulkImportHouses': return json(bulkImportHouses(data.letter, data.houses));
       case 'clearTurf':       return json(clearTurf(data.letter));
       case 'heartbeat':       return json(heartbeat(data.name, data.sessionId));
       case 'getPresence':     return json(getPresence());
@@ -56,6 +59,10 @@ function handleAction(data) {
       case 'getChat':         return json(getChat(data.since));
       case 'getLeaderboard':  return json(getLeaderboard());
       case 'exportCSV':       return json(exportCSV());
+      case 'getUsers':        return json(getUsers());
+      case 'createUser':      return json(createUser(data.email, data.name, data.color));
+      case 'getUser':         return json(getUser(data.email));
+      case 'backupZone':      return json(backupZone(data.letter));
       default:                return json({ error: 'Unknown action: ' + data.action });
     }
   } catch (err) { return json({ error: err.toString() }); }
@@ -77,7 +84,9 @@ function getSheet(name) {
     else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','polygon_geojson','created_date']);
     else if (name === 'presence') sheet.appendRow(['session_id','name','last_seen']);
     else if (name === 'logins')   sheet.appendRow(['timestamp','name','mode','session_id']);
-    else if (name === 'chat')     sheet.appendRow(['id','timestamp','name','session_id','message']);
+    else if (name === 'chat')          sheet.appendRow(['id','timestamp','name','session_id','message']);
+    else if (name === 'users')         sheet.appendRow(['email','name','color','created_date']);
+    else if (name === 'deleted_zones') sheet.appendRow(['timestamp','letter','volunteer','house_count','result_count','data_json']);
   }
   return sheet;
 }
@@ -295,6 +304,28 @@ function bulkImport(turfs) {
   return { success: true, turfs: addedTurfs, houses: addedHouses };
 }
 
+// ─── Bulk Import Houses Only (for zone creation — turf already exists) ───────
+
+function bulkImportHouses(letter, houses) {
+  if (!letter || !houses || !houses.length) return { success: true, added: 0 };
+  const housesSheet    = getSheet('houses');
+  const existingHouses = sheetToObjects(housesSheet).filter(h => h.turf === letter);
+  const existingAddrs  = new Set(existingHouses.map(h => (h.address||'').toUpperCase().trim()));
+  let maxOrder = existingHouses.reduce((m, h) => Math.max(m, parseInt(h.sort_order)||0), 0);
+  let added = 0;
+  houses.forEach(house => {
+    const key = (house.address||'').toUpperCase().trim();
+    if (existingAddrs.has(key)) return;
+    existingAddrs.add(key);
+    maxOrder++;
+    housesSheet.appendRow([uid(), letter, house.owner||'', house.address||'',
+      house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder]);
+    added++;
+  });
+  SpreadsheetApp.flush();
+  return { success: true, added };
+}
+
 // ─── Presence ─────────────────────────────────────────────────────────────────
 
 function heartbeat(name, sessionId) {
@@ -407,6 +438,64 @@ function getLeaderboard() {
 }
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+function getUsers() {
+  const users = sheetToObjects(getSheet('users'));
+  return { users: users.map(u => ({
+    email: String(u.email).toLowerCase().trim(),
+    name:  String(u.name),
+    color: String(u.color),
+    created_date: String(u.created_date)
+  }))};
+}
+
+function getUser(email) {
+  if (!email) return { user: null };
+  const key = String(email).toLowerCase().trim();
+  const users = sheetToObjects(getSheet('users'));
+  const found = users.find(u => String(u.email).toLowerCase().trim() === key);
+  return { user: found ? {
+    email: String(found.email).toLowerCase().trim(),
+    name:  String(found.name),
+    color: String(found.color),
+    created_date: String(found.created_date)
+  } : null };
+}
+
+function createUser(email, name, color) {
+  if (!email || !name) return { error: 'Email and name required' };
+  const key   = String(email).toLowerCase().trim();
+  const sheet = getSheet('users');
+  const existing = sheetToObjects(sheet);
+  if (existing.some(u => String(u.email).toLowerCase().trim() === key)) {
+    return { error: 'User already exists', existing: true };
+  }
+  sheet.appendRow([key, name.trim(), color || '#6b7280', new Date().toISOString()]);
+  SpreadsheetApp.flush();
+  return { success: true, email: key, name: name.trim(), color: color || '#6b7280' };
+}
+
+// ─── Zone Backup (before delete) ──────────────────────────────────────────────
+
+function backupZone(letter) {
+  if (!letter) return { error: 'No letter provided' };
+  const turfsData  = sheetToObjects(getSheet('turfs'));
+  const housesData = sheetToObjects(getSheet('houses'));
+  const turf  = turfsData.find(t => t.letter === letter);
+  if (!turf) return { error: 'Zone not found: ' + letter };
+  const houses = housesData.filter(h => h.turf === letter);
+  const resultCount = houses.filter(h => h.result && h.result !== '').length;
+  const dataJson = JSON.stringify({ turf, houses });
+  const sheet = getSheet('deleted_zones');
+  sheet.appendRow([
+    new Date().toISOString(), letter, turf.volunteer || '',
+    houses.length, resultCount, dataJson
+  ]);
+  SpreadsheetApp.flush();
+  return { success: true, houseCount: houses.length, resultCount };
+}
 
 function exportCSV() {
   const houses  = sheetToObjects(getSheet('houses'));

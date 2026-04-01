@@ -25,4 +25,9 @@ const SheetsAPI = {
   sendChat(name, sessionId, message)    { return this._call({ action: 'sendChat', name, sessionId, message }); },
   getChat(since)                        { return this._call({ action: 'getChat', since: since || 0 }); },
   logLogin(name, sessionId, mode)       { return this._call({ action: 'logLogin', name, sessionId, mode }); },
+  getUsers()                            { return this._call({ action: 'getUsers' }); },
+  createUser(email, name, color)        { return this._call({ action: 'createUser', email, name, color }); },
+  getUser(email)                        { return this._call({ action: 'getUser', email }); },
+  backupZone(letter)                    { return this._call({ action: 'backupZone', letter }); },
+  bulkImportHouses(letter, houses)      { return this._call({ action: 'bulkImportHouses', letter, houses }); },
 };

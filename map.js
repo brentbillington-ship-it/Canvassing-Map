@@ -46,6 +46,12 @@ const MapModule = {
       this._cisdLayer.addTo(this.map);
     }
 
+    // School label pane — always on top, persistent at all zoom levels
+    this.map.createPane('schoolPane');
+    this.map.getPane('schoolPane').style.zIndex = 700;
+    this.map.getPane('schoolPane').style.pointerEvents = 'none';
+    this._renderSchoolLabels();
+
     L.control.layers(
       { 'Aerial': satellite, 'Street': street },
       { 'Road Labels': labels, ...(this._cisdLayer ? { 'CISD Boundary': this._cisdLayer } : {}) },
@@ -81,44 +87,72 @@ const MapModule = {
     }, () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
   },
 
-  // ── Address labels from parcels.js — always on, zoom-gated ──────────────
+  // ── Address labels from parcels.js — zoom-gated, local-street filter ──────
   _renderAddressLabels() {
     this.addressLabelGroup.clearLayers();
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
 
-    const bounds = this.map.getBounds().pad(0.1);
-    const seen = new Set();
+    const bounds = this.map.getBounds().pad(0.15);
 
+    // Pass 1: collect all addr2 street names for parcels in viewport
+    // A street name is "local" if 3+ parcels in the viewport share it
+    const streetCount = {};
+    const inViewport  = [];
     for (const f of PARCELS_GEOJSON.features) {
       const addr2 = (f.properties.addr2 || '').trim();
-      if (!addr2) continue;
-      // Skip commercial/apt parcels — same filter used during zone population
-      if (ParcelsUtil.isCommercialOrApt(addr2)) continue;
+      if (!addr2 || ParcelsUtil.isCommercialOrApt(addr2)) continue;
+      const c = ParcelsUtil.featureCentroid(f);
+      if (!c || !bounds.contains([c.lat, c.lon])) continue;
+      // Extract street name (everything after the leading number)
+      const streetMatch = addr2.match(/^\d+\s+(.+)$/);
+      if (!streetMatch) continue;
+      const street = streetMatch[1].toUpperCase().trim();
+      streetCount[street] = (streetCount[street] || 0) + 1;
+      inViewport.push({ f, addr2, street, c });
+    }
+
+    // Pass 2: render only parcels whose street has 3+ local occurrences
+    const seen = new Set();
+    for (const { f, addr2, street, c } of inViewport) {
+      if ((streetCount[street] || 0) < 3) continue;
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
-
       const num = addr2.match(/^(\d+)/)?.[1];
-      if (!num) continue;
-      // Extra guard: skip implausibly large street numbers (>4 digits = likely suite/unit)
-      if (parseInt(num, 10) > 9999) continue;
-
-      const c = ParcelsUtil.featureCentroid(f);
-      if (!c) continue;
-      if (!bounds.contains([c.lat, c.lon])) continue;
+      if (!num || parseInt(num, 10) > 9999) continue;
 
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
           html: `<div class="addr-label">${num}</div>`,
           className: '',
           iconSize: null,
-          iconAnchor: [0, 0],   // anchor at top-left; CSS centers the label
+          iconAnchor: [0, 0],
         }),
         pane: 'addrPane',
         interactive: false,
       }).addTo(this.addressLabelGroup);
     }
+  },
+
+  // ── School labels — persistent at all zoom levels ─────────────────────────
+  _renderSchoolLabels() {
+    if (typeof CISD_SCHOOLS === 'undefined') return;
+    const schoolLabelGroup = L.layerGroup().addTo(this.map);
+    CISD_SCHOOLS.forEach(s => {
+      const sizeClass = s.type === 'hs' ? 'school-label-hs' : s.type === 'ms' ? 'school-label-ms' : 'school-label-es';
+      L.marker([s.lat, s.lon], {
+        icon: L.divIcon({
+          html: `<div class="school-label ${sizeClass}" title="${s.name}">🏫 ${s.short}</div>`,
+          className: '',
+          iconSize: null,
+          iconAnchor: [0, 8],
+        }),
+        pane: 'schoolPane',
+        interactive: false,
+        zIndexOffset: 900,
+      }).addTo(schoolLabelGroup);
+    });
   },
 
   // ── Full render ────────────────────────────────────────────────────────────

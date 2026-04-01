@@ -71,6 +71,8 @@ const MapModule = {
 
     // Rebuild address labels on zoom and pan
     this.map.on('zoomend moveend', () => this._renderAddressLabels());
+    this.map.on('zoomend', () => this._updateZoomStyle());
+    this._updateZoomStyle(); // set initial
 
     // Map-tap for non-admin missing house report
     this.map.on('click', e => {
@@ -158,6 +160,46 @@ const MapModule = {
       }).addTo(this._schoolLayer);
     });
     this._schoolLayer.addTo(this.map); // on by default
+  },
+
+  // ── Zoom-based dot scaling ─────────────────────────────────────────────────
+  _updateZoomStyle() {
+    const z = this.map.getZoom();
+    // Interpolate size and opacity across zoom range 13-18
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
+    const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
+    const size    = Math.round(lerp(14, 26, t));
+    const opacity = lerp(0.35, 0.92, t).toFixed(2);
+    const anchor  = Math.round(size / 2);
+    const polyFill = lerp(0.22, 0.12, t).toFixed(2); // more fill when zoomed out
+
+    const wrap = document.getElementById('map');
+    if (wrap) {
+      wrap.style.setProperty('--dot-size', size + 'px');
+      wrap.style.setProperty('--dot-opacity', opacity);
+    }
+
+    // Update polygon fill opacity
+    this.turfPolygonGroup?.eachLayer(layer => {
+      if (layer.setStyle) layer.setStyle({ fillOpacity: parseFloat(polyFill) });
+    });
+
+    // Update all marker icon sizes without full re-render
+    this.houseGroup?.eachLayer(marker => {
+      if (!marker._icon) return;
+      const icon = marker._icon.querySelector('.house-dot');
+      if (icon) {
+        icon.style.width  = size + 'px';
+        icon.style.height = size + 'px';
+      }
+      if (marker._icon) {
+        marker._icon.style.marginLeft = -anchor + 'px';
+        marker._icon.style.marginTop  = -anchor + 'px';
+        marker._icon.style.width      = size + 'px';
+        marker._icon.style.height     = size + 'px';
+      }
+    });
   },
 
   // ── Full render ────────────────────────────────────────────────────────────

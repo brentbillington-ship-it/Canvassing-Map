@@ -622,16 +622,16 @@ body {
 
 /* ─── House dot ─────────────────────────────────────────────────────────────── */
 .house-dot {
-  width: 26px; height: 26px; border-radius: 50%;
+  width: var(--dot-size, 20px); height: var(--dot-size, 20px); border-radius: 50%;
   background: var(--dc, #6b7280);
   border: 2px solid rgba(255,255,255,0.95);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-  opacity: 0.9;
-  transition: transform 0.15s, opacity 0.15s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35);
+  opacity: var(--dot-opacity, 0.55);
+  transition: transform 0.15s, opacity 0.15s, width 0.2s, height 0.2s;
   cursor: pointer;
 }
-.house-dot.done { opacity: 1; }
-.house-dot:hover { transform: scale(1.3); opacity: 1; z-index: 9999; }
+.house-dot.done { opacity: min(calc(var(--dot-opacity, 0.55) + 0.2), 1); }
+.house-dot:hover { transform: scale(1.3); opacity: 1 !important; z-index: 9999; }
 .house-dot.diamond { border-radius: 3px; transform: rotate(45deg); }
 .house-dot.diamond:hover { transform: rotate(45deg) scale(1.3); }
 

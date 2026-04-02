@@ -200,7 +200,7 @@ const MapModule = {
     const size    = Math.round(lerp(6, 26, t));
     const opacity = lerp(0.25, 0.92, t).toFixed(2);
     const anchor  = Math.round(size / 2);
-    const polyFill = lerp(0.22, 0.12, t).toFixed(2); // more fill when zoomed out
+    const polyFill = lerp(0.28, 0.15, t).toFixed(2); // more fill when zoomed out
 
     const wrap = document.getElementById('map');
     if (wrap) {
@@ -262,7 +262,7 @@ const MapModule = {
     }
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color, fillColor: color, fillOpacity: 0.06, weight: 3, opacity: 1.0, dashArray: null }
+        style: { color, fillColor: '#000000', fillOpacity: 0.18, weight: 3, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {

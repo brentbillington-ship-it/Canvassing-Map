@@ -110,9 +110,7 @@ body {
 #loc-btn.active-btn svg { stroke: #fff; filter: drop-shadow(0 0 3px rgba(45,158,95,0.8)); }
 /* mobile-chat-btn hidden on desktop, shown on mobile */
 .mobile-chat-btn { display: none; }
-/* List toggle button — mobile only, text label */
 .list-toggle-btn { display: none; font-size: 12px; font-weight: 700; padding: 3px 10px; letter-spacing: 0.3px; }
-/* Sidebar close button — mobile only */
 .sidebar-close-btn {
   display: none; align-items: center; gap: 5px;
   background: none; border: none; color: var(--text-muted);
@@ -147,6 +145,7 @@ body {
   padding: 0 6px; border-left: 1px solid rgba(255,255,255,0.15);
 }
 .top3-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.55); white-space: nowrap; }
+.top3-lb-btn { font-size: 11px !important; padding: 3px 9px !important; font-weight: 700; }
 .top3-chip {
   font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap;
   background: rgba(0,0,0,0.2); border-radius: 12px; padding: 2px 7px;
@@ -577,7 +576,7 @@ body {
 .turf-action-btn[title="Re-sort walk order"] { color:#2d9e5f; }
 .owner-line { font-style:italic; font-size:.78rem; color:var(--text-muted); }
 .logout-btn { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#fff; font-size:.75rem; padding:3px 8px; border-radius:4px; cursor:pointer; margin-left:6px; }
-.logout-small { font-size:.75rem; padding:3px 8px; }
+
 
 /* ─── App footer credit ─────────────────────────────────────────────────────── */
 .app-footer {
@@ -1015,7 +1014,6 @@ body {
   .chat-messages {
     background: var(--surface);
   }
-  /* Mobile uses sc-msg strip format (isStrip=true for chat-messages in JS) */
   .chat-msg {
     display: flex;
     flex-direction: row;

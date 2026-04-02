@@ -2,6 +2,7 @@
 const MapModule = {
   map: null,
   turfPolygonGroup: null,
+  turfLabelGroup: null,
   houseGroup: null,
   addressLabelGroup: null,
   houseMarkers: {},
@@ -42,7 +43,7 @@ const MapModule = {
     );
 
     this.map.createPane('labelsPane');
-    this.map.getPane('labelsPane').style.zIndex = 650;
+    this.map.getPane('labelsPane').style.zIndex = 610;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
     const labels = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
@@ -92,6 +93,7 @@ const MapModule = {
     ).addTo(this.map);
 
     this.turfPolygonGroup  = L.layerGroup().addTo(this.map);
+    this.turfLabelGroup    = L.layerGroup({ pane: 'turfLabelPane' }).addTo(this.map);
     this.houseGroup        = L.layerGroup({ pane: 'housePane' }).addTo(this.map);
     this.addressLabelGroup = L.layerGroup({ pane: 'addrPane' }).addTo(this.map);
 
@@ -234,6 +236,7 @@ const MapModule = {
   // ── Full render ────────────────────────────────────────────────────────────
   renderAll(turfs) {
     this.turfPolygonGroup.clearLayers();
+    this.turfLabelGroup.clearLayers();
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
     turfs.forEach((turf, i) => {
@@ -273,9 +276,7 @@ const MapModule = {
             iconAnchor: [16, 16]
           }),
           interactive: false,
-          pane: 'turfLabelPane',
-          zIndexOffset: 0
-        }).addTo(this.turfPolygonGroup);
+        }).addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
   },
@@ -304,7 +305,6 @@ const MapModule = {
         iconSize: [26, 26],
         iconAnchor: [13, 13],
       }),
-      pane: 'housePane',
       zIndexOffset: isOtherZone ? -200 : (isDone ? 0 : 100),
     });
   },

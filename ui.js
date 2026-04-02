@@ -76,7 +76,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.16</div>
+          <div class="header-credit">by Brent Billington &middot; v4.17</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -234,7 +234,6 @@ const UI = {
   },
 
   _postLogin() {
-    // Logout always lives as the 3rd button in header-right-top, regardless of mode
     const existingLogout = document.getElementById('logout-hdr-btn');
     if (!existingLogout) {
       const logoutBtn = document.createElement('button');
@@ -244,7 +243,6 @@ const UI = {
       logoutBtn.onclick = () => UI._clearLogin();
       document.querySelector('.header-right-top')?.appendChild(logoutBtn);
     }
-
     if (this.isAdmin) {
       const adminRow2 = document.getElementById('admin-row2');
       if (adminRow2) {
@@ -398,7 +396,7 @@ const UI = {
     if (!sorted.length) { bar.style.display = 'none'; return; }
     const medals = ['&#x1F947;','&#x1F948;','&#x1F949;'];
     bar.style.display = 'flex';
-    bar.innerHTML = `<button class="top3-lb-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">&#x1F3C6; Leaderboard</button>` +
+    bar.innerHTML = `<button class="hdr-btn top3-lb-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">🏆 Leaderboard</button>` +
       sorted.map(([name, cnt], i) =>
         `<span class="top3-chip">${medals[i]} ${name.split(' ')[0]} <strong>${cnt}</strong></span>`
       ).join('');
@@ -482,7 +480,6 @@ const UI = {
     const zoneOpts = zones.length
       ? zones.map(t => `<option value="${t.letter}">${t.letter}${t.volunteer && t.volunteer !== '[UNASSIGNED]' ? ' — ' + _esc(t.volunteer) : ''}</option>`).join('')
       : '<option value="">No zones yet</option>';
-
     this._modal('Import Addresses', `
       <div class="import-section">
         <div class="import-step-label">Step 1 — Download the template</div>
@@ -501,11 +498,11 @@ const UI = {
       </div>
       <div id="import-preview" class="import-preview" style="display:none"></div>
     `, async () => {
-      const rows = UI._importRows;
+      const rows   = UI._importRows;
       const letter = document.getElementById('import-zone-sel')?.value;
       if (!rows || !rows.length) { UI.toast('No rows to import', 'error'); return false; }
       if (!letter) { UI.toast('Select a zone', 'error'); return false; }
-      const turf = App.state.turfs.find(t => t.letter === letter);
+      const turf   = App.state.turfs.find(t => t.letter === letter);
       const houses = rows.filter(r => r.matched).map(r => ({
         address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon
       }));
@@ -540,22 +537,17 @@ const UI = {
       try {
         const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
         if (!lines.length) { UI.toast('Empty file', 'error'); return; }
-        // Parse header
-        const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const header  = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
         const addrIdx = header.findIndex(h => h === 'address');
         const typeIdx = header.findIndex(h => h === 'type');
         if (addrIdx < 0) { UI.toast('CSV must have an "Address" column', 'error'); return; }
-
-        const dataLines = lines.slice(1);
-        const rows = dataLines.map(line => {
-          // Handle quoted fields
+        const rows = lines.slice(1).map(line => {
           const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(',');
           const addr = (cols[addrIdx] || '').replace(/^"|"$/g, '').trim();
           const type = typeIdx >= 0 ? (cols[typeIdx] || '').replace(/^"|"$/g, '').trim().toLowerCase() : 'hanger';
           if (!addr) return null;
-          // Geocode against parcels
           const matches = ParcelsUtil.searchParcels(addr, 1);
-          const match = matches[0] || null;
+          const match   = matches[0] || null;
           return {
             address: match ? match.address : addr,
             owner: match ? match.owner : '',
@@ -566,11 +558,9 @@ const UI = {
             matched: !!match,
           };
         }).filter(Boolean);
-
         UI._importRows = rows;
         const matched   = rows.filter(r => r.matched).length;
         const unmatched = rows.length - matched;
-
         const previewEl = document.getElementById('import-preview');
         previewEl.style.display = 'block';
         previewEl.innerHTML = `
@@ -723,7 +713,6 @@ const UI = {
       return;
     }
 
-    // Sort: current user's zones first, then unassigned, then other volunteers
     const sorted = [...filtered].sort((a, b) => {
       const aMe = a.volunteer === this.currentUser ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
       const bMe = b.volunteer === this.currentUser ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
@@ -1475,7 +1464,6 @@ const UI = {
       if (!data.messages) return;
       this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
       if (!this._chatLastSeen && this._chatMessages.length) {
-        // First load — mark all existing as seen so we don't badge-spam on login
         this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
         this._chatUnread = 0;
       }

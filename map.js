@@ -101,12 +101,13 @@ const MapModule = {
     this.map.on('zoomend', () => this._updateZoomStyle());
     this._updateZoomStyle(); // set initial
 
-    // Map-tap for non-admin missing house report
+    // Map-tap for knock placement (admin) and missing house report (non-admin)
     this.map.on('click', e => {
-      if (UI.isAdmin) return;
       if (UI._mapTapPending) {
         UI._onMapTap(e.latlng);
+        return;
       }
+      if (UI.isAdmin) return;
     });
   },
 

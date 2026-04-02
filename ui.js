@@ -1325,23 +1325,6 @@ const UI = {
     document.getElementById('knock-place-banner')?.remove();
   },
 
-  _onMapTap(latlng) {
-    document.getElementById('knock-place-banner')?.remove();
-    UI._mapTapPending = false;
-    const letter = UI._pendingKnockTurf || 'K';
-    UI._pendingKnockTurf = null;
-    // Quick confirm modal
-    UI._modal('Confirm Knock Location', `
-      <div class="f-hint">Placing knock at:<br><strong>${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}</strong></div>
-      <label class="f-label" style="margin-top:10px">Address label (optional)</label>
-      <input id="knock-addr-input" class="f-input" type="text" placeholder="Leave blank if unknown" autocomplete="off"/>
-    `, async () => {
-      const addr = document.getElementById('knock-addr-input')?.value.trim() || '';
-      await App.addHouse({ turf: letter, address: addr, owner: '', lat: latlng.lat, lon: latlng.lng });
-      return true;
-    }, 'Place Here');
-  },
-
   // ── Admin: edit user color (#16) ───────────────────────────────────────────
   showEditUserColorModal() {
     if (!this._users.length) { this.toast('No users found', 'error'); return; }
@@ -1420,6 +1403,23 @@ const UI = {
   _onMapTap(latlng) {
     this._mapTapPending = false;
     document.getElementById('map-wrap')?.classList.remove('tap-mode');
+    document.getElementById('knock-place-banner')?.remove();
+
+    // Knock placement mode (admin)
+    if (UI._pendingKnockTurf !== null) {
+      const letter = UI._pendingKnockTurf;
+      UI._pendingKnockTurf = null;
+      UI._modal('Confirm Knock Location', `
+        <div class="f-hint">Placing knock at:<br><strong>${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}</strong></div>
+        <label class="f-label" style="margin-top:10px">Address label (optional)</label>
+        <input id="knock-addr-input" class="f-input" type="text" placeholder="Leave blank if unknown" autocomplete="off"/>
+      `, async () => {
+        const addr = document.getElementById('knock-addr-input')?.value.trim() || '';
+        await App.addHouse({ turf: letter, address: addr, owner: '', lat: latlng.lat, lon: latlng.lng });
+        return true;
+      }, 'Place Here');
+      return;
+    }
     if (this._mapTapMarker) MapModule.map.removeLayer(this._mapTapMarker);
     this._mapTapMarker = L.circleMarker([latlng.lat, latlng.lng], {
       radius: 10, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.6, weight: 2

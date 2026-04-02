@@ -8,6 +8,7 @@ const UI = {
   turfFilter:      null,
   resultFilter:    null,
   modeFilter:      null,
+  viewMode:        null,
   volunteerFilter: null,
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
   _users:       [],
@@ -99,6 +100,11 @@ const UI = {
       <div id="sidebar-header">
         <button class="sidebar-close-btn desktop-hide" onclick="UI.toggleMap()" title="Close list">✕ Map</button>
         <div class="sb-filter-row">
+          <select id="view-mode-sel" onchange="UI.setViewMode(this.value)" title="Filter by type">
+            <option value="">All</option>
+            <option value="hanger">Hangers</option>
+            <option value="knock">Knocks</option>
+          </select>
           <select id="vol-filter-sel" onchange="UI.setVolunteerFilter(this.value)">
             <option value="">All Volunteers</option>
           </select>
@@ -626,6 +632,7 @@ const UI = {
   setVolunteerFilter(val) { this.volunteerFilter = val || null; App.render(); },
   setResultFilter(val) { this.resultFilter = val || null; App.render(); },
   setModeFilter(val)   { this.modeFilter   = val || null; App.render(); },
+  setViewMode(val)     { this.viewMode     = val || null; App.render(); },
 
   // ── Stats bar ────────────────────────────────────────────────────────────────
   updateStats(turfs) {
@@ -703,8 +710,10 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    // All turfs always visible — no mode-based filtering
-    const modeApplied  = turfs;
+    // Apply view mode filter (All / Hangers / Knocks)
+    const modeApplied = this.viewMode
+      ? turfs.filter(t => (t.mode || 'hanger') === this.viewMode)
+      : turfs;
     // Apply volunteer filter
     const filtered = this.volunteerFilter
       ? modeApplied.filter(t => {
@@ -754,9 +763,10 @@ const UI = {
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
         : '';
 
-      return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}" id="turf-block-${turf.letter}">
+      const isKnock = (turf.mode || 'hanger') === 'knock';
+      return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
-          <div class="turf-letter-badge" style="background:${color}">${turf.letter}</div>
+          <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${color}">${isKnock ? '◆' : turf.letter}</div>
           <div class="turf-info">
             <div class="turf-volunteer">${isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
             ${this.isAdmin ? inlineAssign : ''}
@@ -1283,6 +1293,10 @@ const UI = {
     }, 'Add Knock');
     UI._selectedParcel = null;
     setTimeout(() => document.getElementById('parcel-search')?.focus(), 80);
+  },
+
+  _closeModal() {
+    document.getElementById('modal-overlay')?.remove();
   },
 
   _pendingKnockTurf: null,

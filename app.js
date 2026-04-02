@@ -74,9 +74,16 @@ const App = {
   },
 
   _visibleTurfs() {
-    return UI.turfFilter
-      ? this.state.turfs.filter(t => String(t.letter) === String(UI.turfFilter))
-      : this.state.turfs;
+    let turfs = this.state.turfs;
+    // Apply view mode filter (All / Hangers / Knocks) — drives both sidebar AND map
+    if (UI.viewMode) {
+      turfs = turfs.filter(t => (t.mode || 'hanger') === UI.viewMode);
+    }
+    // Apply single-zone filter
+    if (UI.turfFilter) {
+      turfs = turfs.filter(t => String(t.letter) === String(UI.turfFilter));
+    }
+    return turfs;
   },
 
   _startTimers() {

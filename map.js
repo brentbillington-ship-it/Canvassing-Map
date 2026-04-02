@@ -43,25 +43,21 @@ const MapModule = {
     );
 
     this.map.createPane('labelsPane');
-    this.map.getPane('labelsPane').style.zIndex = 610;
+    this.map.getPane('labelsPane').style.zIndex = 580;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
     const labels = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
-    // Zone label pane — above tile labels, below house dots
+    // Zone label pane — below default markerPane (z600) so dots always render above
     this.map.createPane('turfLabelPane');
-    this.map.getPane('turfLabelPane').style.zIndex = 620;
+    this.map.getPane('turfLabelPane').style.zIndex = 590;
     this.map.getPane('turfLabelPane').style.pointerEvents = 'none';
 
-    // House marker pane — above zone labels
-    this.map.createPane('housePane');
-    this.map.getPane('housePane').style.zIndex = 640;
-
-    // Address label pane — above house markers
+    // Address label pane — above default markerPane
     this.map.createPane('addrPane');
-    this.map.getPane('addrPane').style.zIndex = 660;
+    this.map.getPane('addrPane').style.zIndex = 650;
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
@@ -94,7 +90,7 @@ const MapModule = {
 
     this.turfPolygonGroup  = L.layerGroup().addTo(this.map);
     this.turfLabelGroup    = L.layerGroup({ pane: 'turfLabelPane' }).addTo(this.map);
-    this.houseGroup        = L.layerGroup({ pane: 'housePane' }).addTo(this.map);
+    this.houseGroup        = L.layerGroup().addTo(this.map);
     this.addressLabelGroup = L.layerGroup({ pane: 'addrPane' }).addTo(this.map);
 
     setTimeout(() => this.map.invalidateSize(), 100);
@@ -276,6 +272,7 @@ const MapModule = {
             iconAnchor: [16, 16]
           }),
           interactive: false,
+          pane: 'turfLabelPane',
         }).addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }

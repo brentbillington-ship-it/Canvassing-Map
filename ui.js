@@ -77,7 +77,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.20</div>
+          <div class="header-credit">by Brent Billington &middot; ${typeof APP_VERSION !== "undefined" ? APP_VERSION : "v4.21"}</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">

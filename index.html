@@ -22,7 +22,7 @@
   </div>
   <!-- chat panel built dynamically by ui.js -->
   <div id="toast-container"></div>
-  <div class="app-footer">By Brent Billington for Chaka Campaign &middot; v4.19</div>
+  <div class="app-footer">By Brent Billington for Chaka Campaign &middot; <span id="app-version"></span></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -34,6 +34,7 @@
   <script src="cisd_schools.js"></script>
 
   <!-- App modules -->
+  <script src="version.js"></script>
   <script src="config.js"></script>
   <script src="sheets.js"></script>
   <script src="map.js"></script>
@@ -42,7 +43,11 @@
   <script src="app.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => UI.init());
+    document.addEventListener('DOMContentLoaded', () => {
+      const vEl = document.getElementById('app-version');
+      if (vEl) vEl.textContent = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '';
+      UI.init();
+    });
   </script>
 </body>
 </html>

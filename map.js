@@ -50,9 +50,9 @@ const MapModule = {
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
-    // Zone label pane — below default markerPane (z600) so dots always render above
+    // Zone label pane — above markerPane (z600) but below addrPane (z660)
     this.map.createPane('turfLabelPane');
-    this.map.getPane('turfLabelPane').style.zIndex = 590;
+    this.map.getPane('turfLabelPane').style.zIndex = 645;
     this.map.getPane('turfLabelPane').style.pointerEvents = 'none';
 
     // Address label pane — above default markerPane
@@ -263,7 +263,7 @@ const MapModule = {
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
-        // Zone label in tooltipPane (z650) — above markerPane (z600), always on top of dots
+        // Zone label in turfLabelPane (z645) — above dots (z600), below address chips (z660)
         L.marker(bounds.getCenter(), {
           icon: L.divIcon({
             html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
@@ -272,7 +272,7 @@ const MapModule = {
             iconAnchor: [20, 20],
           }),
           interactive: false,
-          pane: 'tooltipPane',
+          pane: 'turfLabelPane',
         }).addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }

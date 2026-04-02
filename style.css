@@ -110,6 +110,17 @@ body {
 #loc-btn.active-btn svg { stroke: #fff; filter: drop-shadow(0 0 3px rgba(45,158,95,0.8)); }
 /* mobile-chat-btn hidden on desktop, shown on mobile */
 .mobile-chat-btn { display: none; }
+/* List toggle button — mobile only, text label */
+.list-toggle-btn { display: none; font-size: 12px; font-weight: 700; padding: 3px 10px; letter-spacing: 0.3px; }
+/* Sidebar close button — mobile only */
+.sidebar-close-btn {
+  display: none; align-items: center; gap: 5px;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 13px; font-weight: 600; padding: 6px 12px 4px;
+  cursor: pointer; font-family: inherit; text-align: left;
+  border-bottom: 1px solid var(--border); width: 100%;
+}
+.sidebar-close-btn:hover { color: var(--text); background: var(--bg2); }
 .admin-badge { background: #c9831a; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 
 /* ─── Row2 admin controls ────────────────────────────────────────────────── */
@@ -128,8 +139,12 @@ body {
   transition: background 0.15s;
 }
 .admin-field-btn:hover { background: rgba(255,255,255,0.28); }
-#logout-hdr-btn { font-size: .75rem; padding: 3px 8px; }
-
+.admin-logout-btn {
+  background: none; border: none; color: rgba(255,255,255,0.7);
+  font-size: 10px; cursor: pointer; font-family: inherit; padding: 2px 4px;
+  white-space: nowrap; transition: color 0.15s;
+}
+.admin-logout-btn:hover { color: #fff; }
 
 /* ─── Top-3 leaderboard chip ─────────────────────────────────────────────── */
 .top3-bar {
@@ -179,7 +194,7 @@ body {
   cursor: default; flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
-
+.mode-label { font-size: 11px; font-weight: 600; opacity: 0.75; white-space: nowrap; }
 
 /* ─── Layout ─────────────────────────────────────────────────────────────── */
 .container { flex: 1; display: flex; overflow: hidden; }
@@ -567,7 +582,7 @@ body {
 .turf-action-btn[title="Re-sort walk order"] { color:#2d9e5f; }
 .owner-line { font-style:italic; font-size:.78rem; color:var(--text-muted); }
 .logout-btn { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#fff; font-size:.75rem; padding:3px 8px; border-radius:4px; cursor:pointer; margin-left:6px; }
-
+.logout-small { font-size:.75rem; padding:3px 8px; }
 
 /* ─── App footer credit ─────────────────────────────────────────────────────── */
 .app-footer {
@@ -633,7 +648,9 @@ body {
 .house-dot.diamond:hover { transform: rotate(45deg) scale(1.3); }
 
 /* ─── Mode toggle ───────────────────────────────────────────────────────────── */
-
+.mode-toggle-row { display: flex; gap: 8px; margin: 4px 0 8px; }
+.mode-opt { flex: 1; text-align: center; padding: 8px 10px; border-radius: 7px; font-size: .85rem; font-weight: 600; cursor: pointer; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text-muted); transition: all .15s; }
+.mode-opt.selected { border-color: var(--accent); background: #e8f0fc; color: var(--accent); }
 .login-mode-row { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
 .login-mode-label { font-size: .8rem; color: var(--text-muted); font-weight: 500; }
 
@@ -905,11 +922,15 @@ body {
   .mobile-chat-btn { display: inline-flex !important; }
   .desktop-only { display: none !important; }
   .desktop-hide { display: inline-flex !important; }
-  .top3-bar { display: none !important; }
+  .list-toggle-btn { display: inline-flex !important; }
+  .sidebar-close-btn { display: flex !important; }
+  .top3-bar { display: flex !important; }
   #admin-row2 { flex-wrap: wrap; }
   .header-row2 { gap: 5px; }
   .stat-track-wrap { display: none; }
   .header-credit { display: none; }
+  /* Remove black circle from info/lock button */
+  #lock-btn { background: none !important; border: none !important; box-shadow: none !important; }
 }
 
 /* ─── #11 House dot pointer-events fix — divIcon className:'' strips leaflet-interactive ── */
@@ -931,7 +952,7 @@ body {
   position: absolute; top: 32px; left: 0; z-index: 9100;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  min-width: 260px; max-height: 220px; overflow-y: auto;
+  min-width: 260px; max-height: 114px; overflow-y: auto;
 }
 .asr-row { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
 .asr-row:last-child { border-bottom: none; }
@@ -994,24 +1015,32 @@ body {
   .addr-search-results { min-width: 200px; }
 }
 
-/* ─── #2 Mobile chat fix — white bg, proper layout ──────────────────────── */
+/* ─── #2 Mobile chat fix — white bg, inline strip format ─────────────────── */
 @media (max-width: 680px) {
   #chat-panel {
     background: var(--surface) !important;
   }
   .chat-messages {
     background: var(--surface);
-    flex-direction: column;
-    align-items: stretch;
   }
+  /* Mobile chat uses sc-msg strip format (controlled via isStrip in JS) */
   .chat-msg {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
     background: transparent;
+    align-self: unset;
+    padding: 2px 0;
   }
-  .chat-mine { align-self: flex-end; align-items: flex-end; }
-  .chat-theirs { align-self: flex-start; align-items: flex-start; }
-  .chat-mine .chat-bubble { background: var(--header-bg); color: #fff; }
-  .chat-theirs .chat-bubble { background: var(--bg2); color: var(--text); }
+  .chat-mine .chat-bubble,
+  .chat-theirs .chat-bubble {
+    background: transparent;
+    color: var(--text);
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 12px;
+  }
   .chat-input-row { background: var(--surface); }
 }

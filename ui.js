@@ -68,9 +68,7 @@ const UI = {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span id="chat-unread" class="chat-unread" style="display:none"></span>
             </button>
-            <button class="hdr-btn desktop-hide" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-            </button>
+            <button class="hdr-btn desktop-hide list-toggle-btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show list">List</button>
             <button class="hdr-btn icon-btn" id="loc-btn" onclick="MapModule.toggleMyLocation()" title="My Location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-opacity="0.35"/></svg>
             </button>
@@ -78,7 +76,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.14</div>
+          <div class="header-credit">by Brent Billington &middot; v4.15</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -99,6 +97,7 @@ const UI = {
 
     document.getElementById('sidebar').innerHTML = `
       <div id="sidebar-header">
+        <button class="sidebar-close-btn desktop-hide" onclick="UI.toggleMap()" title="Close list">✕ Map</button>
         <div class="sb-filter-row">
           <select id="vol-filter-sel" onchange="UI.setVolunteerFilter(this.value)">
             <option value="">All Volunteers</option>
@@ -110,6 +109,9 @@ const UI = {
           </select>
         </div>
         <div class="sb-filter-row">
+          <select id="mode-filter-sel" onchange="UI.setModeFilter(this.value)" style="flex:1">
+            <option value="">All Types</option>
+          </select>
           <label class="hide-done-toggle" title="Hide completed houses">
             <input type="checkbox" id="hide-done-chk" onchange="UI.setHideDone(this.checked)"/> Hide done
           </label>
@@ -235,17 +237,6 @@ const UI = {
   },
 
   _postLogin() {
-    // Logout always lives as the 3rd button in header-right-top, regardless of mode
-    const existingLogout = document.getElementById('logout-hdr-btn');
-    if (!existingLogout) {
-      const logoutBtn = document.createElement('button');
-      logoutBtn.id = 'logout-hdr-btn';
-      logoutBtn.className = 'hdr-btn logout-small';
-      logoutBtn.textContent = 'Log out';
-      logoutBtn.onclick = () => UI._clearLogin();
-      document.querySelector('.header-right-top')?.appendChild(logoutBtn);
-    }
-
     if (this.isAdmin) {
       const adminRow2 = document.getElementById('admin-row2');
       if (adminRow2) {
@@ -253,7 +244,9 @@ const UI = {
         adminRow2.innerHTML = `
           <div class="admin-badge-row2">
             <span class="admin-shield">Admin</span>
-            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Exit Admin</button>
+            <span class="mode-label">Mode:</span>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
+            <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
           </div>
           <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
@@ -270,14 +263,34 @@ const UI = {
         nonAdminTools.style.display = 'flex';
         nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Add Missing House</button>`;
       }
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'hdr-btn logout-small';
+      logoutBtn.textContent = 'Log out';
+      logoutBtn.onclick = () => UI._clearLogin();
+      document.getElementById('header-controls')?.appendChild(logoutBtn);
     }
     App.init();
   },
 
   _dropToFieldMode() {
-    this.isAdmin = false;
-    this._saveLogin(this.currentUser, false, 'field', this.currentEmail);
-    location.reload();
+    this._modal('Switch to Field View', `
+      <div class="f-hint" style="margin-bottom:12px">Re-unlock admin with the lock button any time.</div>
+      <div class="mode-toggle-row">
+        <label class="mode-opt selected" id="fm-hanger"
+          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
+          Drop Hangers</label>
+        <label class="mode-opt" id="fm-doorknock"
+          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
+          Door Knock</label>
+      </div>
+    `, () => {
+      const mode = document.getElementById('fm-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
+      this.isAdmin = false;
+      this.userMode = mode;
+      this._saveLogin(this.currentUser, false, mode, this.currentEmail);
+      location.reload();
+      return true;
+    }, 'Switch to Field View');
   },
 
   // ── Admin unlock post-login ────────────────────────────────────────────────
@@ -331,7 +344,11 @@ const UI = {
       const sidebar = document.getElementById('sidebar');
       const btn     = document.getElementById('map-toggle-btn');
       const open    = sidebar?.classList.toggle('sidebar-open');
-      if (btn) btn.classList.toggle('active-btn', !!open);
+      if (btn) {
+        btn.classList.toggle('active-btn', !!open);
+        btn.textContent = open ? 'Map' : 'List';
+        btn.title = open ? 'Back to map' : 'Show list';
+      }
       return;
     }
     const wrap = document.getElementById('map-wrap');
@@ -511,7 +528,7 @@ const UI = {
 
   // ── Stats bar ────────────────────────────────────────────────────────────────
   updateStats(turfs) {
-    if (this.isAdmin) this._renderTop3();
+    this._renderTop3();
     const bar = document.getElementById('stats-bar');
     if (!bar) return;
 
@@ -585,8 +602,10 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    // All turfs always visible — no mode-based filtering
-    const modeApplied  = turfs;
+    // Non-admins only see turfs matching their mode
+    const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
+    // Apply explicit mode filter (from dropdown)
+    const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
     // Apply volunteer filter
     const filtered = this.volunteerFilter
       ? modeApplied.filter(t => {
@@ -600,7 +619,14 @@ const UI = {
       return;
     }
 
-    list.innerHTML = filtered.map((turf, i) => {
+    // Sort: current user's zones first, then unassigned, then other volunteers
+    const sorted = [...filtered].sort((a, b) => {
+      const aMe = a.volunteer === this.currentUser ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
+      const bMe = b.volunteer === this.currentUser ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
+      return aMe - bMe;
+    });
+
+    list.innerHTML = sorted.map((turf, i) => {
       const color     = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
       const houses    = this._filterHouses(turf.houses);
       const total     = turf.houses.length;
@@ -1053,7 +1079,7 @@ const UI = {
       const box = document.getElementById('addr-search-results');
       if (!box) return;
       if (q.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
-      const matches = ParcelsUtil.searchParcels(q, 8);
+      const matches = ParcelsUtil.searchParcels(q, 3);
       if (!matches.length) { box.innerHTML = '<div class="asr-empty">No results</div>'; box.style.display = 'block'; return; }
       box.innerHTML = matches.map((p, i) =>
         `<div class="asr-row" onclick="UI._addrSearchSelect(${i})" data-idx="${i}">
@@ -1096,9 +1122,9 @@ const UI = {
 
   // ── Add Knock Location — admin search-based (#8) ───────────────────────────
   showAddKnockModal() {
-    const knockTurfs = App.state.turfs.filter(t => (t.mode || 'hanger') === 'doorknock');
-    if (!knockTurfs.length) { this.toast('No door-knock zones exist yet', 'error'); return; }
-    const turfOpts = knockTurfs.map(t => `<option value="${t.letter}">${t.letter} — ${_esc(t.volunteer || 'Unassigned')}</option>`).join('');
+    const allTurfs = App.state.turfs;
+    if (!allTurfs.length) { this.toast('No zones exist yet', 'error'); return; }
+    const turfOpts = allTurfs.map(t => `<option value="${t.letter}">${t.letter} — ${_esc(t.volunteer || 'Unassigned')}</option>`).join('');
     this._modal('Add Knock Location', `
       <label class="f-label">Zone (knock zones only)</label>
       <select id="f-knock-turf" class="f-input">${turfOpts}</select>
@@ -1344,14 +1370,24 @@ const UI = {
       const data = await SheetsAPI.getChat();
       if (!data.messages) return;
       this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
-      const newCount = this._chatMessages.filter(m =>
-        m.ts > this._chatLastSeen && (m.session_id || m.sessionId) !== this.sessionId
+      // Count messages newer than last-seen that aren't from this session
+      const unread = this._chatMessages.filter(m =>
+        m.ts > (this._chatLastSeen || 0) && (m.session_id || m.sessionId) !== this.sessionId
       ).length;
-      if (newCount > 0) {
-        this._chatUnread = (this._chatUnread || 0) + newCount;
+      // Only update badge if chat panel is closed
+      if (!this._chatOpen && unread > 0) {
+        this._chatUnread = unread;
         this._updateUnreadBadges();
+      } else if (this._chatOpen) {
+        this._chatUnread = 0;
+        this._clearUnreadBadges();
+        if (data.messages.length) this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
       }
-      if (data.messages.length) this._chatLastSeen = Math.max(...data.messages.map(m => m.ts));
+      if (!this._chatLastSeen && data.messages.length) {
+        // First load — mark all existing as seen so we don't badge-spam on login
+        this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
+        this._chatUnread = 0;
+      }
       this._renderChatMessages('sc-messages');
       if (this._chatOpen) this._renderChatMessages('chat-messages');
     } catch(e) {}
@@ -1376,7 +1412,7 @@ const UI = {
     const el = document.getElementById(elId);
     if (!el) return;
     const msgs    = this._chatMessages || [];
-    const isStrip = elId === 'sc-messages';
+    const isStrip = elId === 'sc-messages' || elId === 'chat-messages';
     const display = isStrip ? msgs.slice(-50) : msgs;
     if (!display.length) {
       el.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
@@ -1395,7 +1431,7 @@ const UI = {
       }
       if (isStrip) {
         const nameColor = isMe ? '#9ca3af' : (this._users.find(u => u.name === m.name)?.color || 'var(--header-bg)');
-        const nameTag = `<span class="sc-name" style="color:${nameColor}">${isMe ? 'You' : _esc(m.name)}</span>`;
+        const nameTag = `<span class="sc-name" style="color:${nameColor}">${isMe ? 'You' : _esc(m.name)}:</span>`;
         html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
           ${nameTag}<span class="sc-bubble">${_esc(m.message)}</span>
           <span class="sc-time">${timeStr}</span>

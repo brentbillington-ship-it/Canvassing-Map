@@ -27,6 +27,7 @@ const MapModule = {
 
     this.map = L.map('map', {
       zoomControl: true,
+      minZoom: 12,
       maxZoom: 19,
       ...(cisdBounds ? { maxBounds: cisdBounds, maxBoundsViscosity: 0.85 } : {}),
     }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
@@ -37,7 +38,7 @@ const MapModule = {
     );
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 19, opacity: 0.6, crossOrigin: true }
+      { attribution: '© Esri', maxZoom: 19, opacity: 0.85, crossOrigin: true }
     );
 
     this.map.createPane('labelsPane');
@@ -228,8 +229,8 @@ const MapModule = {
     this.houseMarkers = {};
     turfs.forEach((turf, i) => {
       const color = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
-      // All dots always shown — no mode-based fading
-      const isOtherZone = false;
+      // Non-admins: fade dots for zones that don't match their mode
+      const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
       this._renderTurfPolygon(turf, color);
       turf.houses.forEach((house, idx) => this._renderHouse(house, turf, idx, color, isOtherZone));
     });
@@ -301,7 +302,7 @@ const MapModule = {
     const old = this.houseMarkers[house.id];
     if (!old) return;
     const color       = turf.color || CONFIG.TURF_COLORS[0];
-    const isOtherZone = false;
+    const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
     const updated     = this._makeMarker(house, turf, isOtherZone);
     updated.on('click', () => this._openHousePopup(house, turf, color));
     this.houseGroup.removeLayer(old);
@@ -343,7 +344,7 @@ const MapModule = {
           onclick="MapModule._saveNotes('${house.id}',document.getElementById('pnotes-${house.id}').value)">Save</button>
       </div>
       <div class="popup-chips">
-        ${['Kids in CISD 🏫','Talked 💬','Khanh Supporter ✕','Spanish 🗣️','Hindi 🗣️','Interested ✅'].map(c =>
+        ${['Kids in CISD 🏫','Khanh Supporter ❌','Interested ✅','+ Sign','Filled Form'].map(c =>
           `<span class="note-chip" onclick="MapModule._appendChip('${house.id}',this.textContent)">${c}</span>`
         ).join('')}
       </div>`;

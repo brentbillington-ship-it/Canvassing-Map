@@ -205,6 +205,8 @@ const MapModule = {
     if (wrap) {
       wrap.style.setProperty('--dot-size', size + 'px');
       wrap.style.setProperty('--dot-opacity', opacity);
+      // Hide zone badge when address chips are visible (zoom ≥ labelZoomMin)
+      wrap.classList.toggle('hide-turf-labels', z >= this._labelZoomMin);
     }
 
     // Update polygon fill opacity

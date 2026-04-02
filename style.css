@@ -1082,3 +1082,6 @@ body {
 .imp-addr { flex: 1; color: var(--text); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .imp-type { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
 .imp-more { padding: 5px 12px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+/* Hide zone number badge when zoomed in enough to show address chips */
+#map.hide-turf-labels .turf-label { display: none; }

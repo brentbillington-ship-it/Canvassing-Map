@@ -243,7 +243,7 @@ function addTurf(letter, color, volunteer, mode) {
   const sheet    = getSheet('turfs');
   const existing = sheetToObjects(sheet);
   if (existing.some(t => t.letter === letter)) return { error: 'Turf ' + letter + ' already exists' };
-  sheet.appendRow([letter, color||'', volunteer||'[UNASSIGNED]', mode||'hanger', '', new Date().toISOString()]);
+  sheet.appendRow([letter, color||'', volunteer||'[UNASSIGNED]', mode||'hanger', new Date().toISOString()]);
   SpreadsheetApp.flush();
   return { success: true };
 }

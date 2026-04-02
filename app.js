@@ -131,11 +131,22 @@ const App = {
           }
         });
       });
-      // Preserve polygon_geojson — not returned by getAll, stored separately
-      data.turfs.forEach(t => {
-        const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
-        if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
-      });
+      // Preserve polygon_geojson from existing state — re-fetch every 4th refresh
+      // to pick up newly created zones without hammering the API
+      this._silentRefreshCount = (this._silentRefreshCount || 0) + 1;
+      if (this._silentRefreshCount % 4 === 0) {
+        const freshPoly = await SheetsAPI.getPolygons().catch(() => null);
+        this._mergePolygons(freshPoly?.polygons);
+        data.turfs.forEach(t => {
+          const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
+          if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
+        });
+      } else {
+        data.turfs.forEach(t => {
+          const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
+          if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
+        });
+      }
       this.state.turfs = data.turfs;
       this.render();
     } catch(e) {}
@@ -358,7 +369,8 @@ const App = {
       const turf = this.state.turfs.find(t => t.letter === house.turf);
       if (turf) turf.houses.push(newHouse);
       this.render();
-      UI.toast('House added', 'success');
+      const isKnockTurf = (App.state.turfs.find(t => t.letter === house.turf)?.mode || 'hanger') === 'doorknock';
+      UI.toast(isKnockTurf ? 'Knock location added ✊' : 'House added', 'success');
       MapModule.focusHouse(newHouse);
     } catch(e) { UI.toast('Failed to add house', 'error'); }
   },

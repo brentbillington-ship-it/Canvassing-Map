@@ -103,7 +103,7 @@ const UI = {
           <select id="view-mode-sel" onchange="UI.setViewMode(this.value)" title="Filter by type">
             <option value="">All</option>
             <option value="hanger">Hangers</option>
-            <option value="knock">Knocks</option>
+            <option value="doorknock">Knocks</option>
           </select>
           <select id="vol-filter-sel" onchange="UI.setVolunteerFilter(this.value)">
             <option value="">All Volunteers</option>
@@ -495,7 +495,7 @@ const UI = {
       <div class="import-section">
         <div class="import-step-label">Step 1 — Download the template</div>
         <button class="import-template-btn" onclick="UI._downloadImportTemplate()">⬇ Download CSV Template</button>
-        <div class="f-hint">Columns: <strong>Address</strong>, <strong>Type</strong> (hanger or knock)</div>
+        <div class="f-hint">Columns: <strong>Address</strong>, <strong>Type</strong> (hanger or knock), <strong>Volunteer</strong> (optional — auto-routes to their zone)</div>
       </div>
       <div class="import-section">
         <div class="import-step-label">Step 2 — Fill it in &amp; upload</div>
@@ -504,33 +504,57 @@ const UI = {
         <label for="import-file-input" class="import-file-label" id="import-file-label">📂 Choose CSV file…</label>
       </div>
       <div class="import-section" id="import-zone-row" style="display:none">
-        <div class="import-step-label">Step 3 — Assign to zone</div>
+        <div class="import-step-label">Step 3 — Assign to zone <span class="f-hint" style="display:inline">(skipped if Volunteer column is present)</span></div>
         <select id="import-zone-sel" class="f-input">${zoneOpts}</select>
       </div>
       <div id="import-preview" class="import-preview" style="display:none"></div>
     `, async () => {
-      const rows   = UI._importRows;
-      const letter = document.getElementById('import-zone-sel')?.value;
+      const rows = UI._importRows;
       if (!rows || !rows.length) { UI.toast('No rows to import', 'error'); return false; }
-      if (!letter) { UI.toast('Select a zone', 'error'); return false; }
-      const turf   = App.state.turfs.find(t => t.letter === letter);
-      const houses = rows.filter(r => r.matched).map(r => ({
-        address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon
-      }));
-      if (!houses.length) { UI.toast('No matched addresses to import', 'error'); return false; }
-      await App.bulkImport([{
-        letter,
-        color: turf?.color || CONFIG.TURF_COLORS[0],
-        volunteer: turf?.volunteer || '[UNASSIGNED]',
-        houses
-      }]);
+
+      // Block if any volunteer name errors
+      if (rows.some(r => r.volunteerError)) {
+        UI.toast('Fix unrecognized volunteer name(s) before importing', 'error'); return false;
+      }
+      // Block if any Nominatim results still pending confirmation
+      if (rows.some(r => r.geocodeSource === 'nominatim' && !r.nominatimConfirmed)) {
+        UI.toast('Confirm or skip the Nominatim-geocoded address(es) first', 'error'); return false;
+      }
+
+      const hasVolCol = rows.some(r => r.volunteer != null);
+      const letter    = document.getElementById('import-zone-sel')?.value;
+
+      if (hasVolCol) {
+        const byZone = {};
+        for (const r of rows) {
+          if (!r.matched && !r.nominatimConfirmed) continue;
+          const z = r.zoneLetter || letter;
+          if (!z) continue;
+          if (!byZone[z]) byZone[z] = [];
+          byZone[z].push({ address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon });
+        }
+        const payloads = Object.entries(byZone).map(([l, houses]) => {
+          const turf = App.state.turfs.find(t => t.letter === l);
+          return { letter: l, color: turf?.color || CONFIG.TURF_COLORS[0], volunteer: turf?.volunteer || '[UNASSIGNED]', houses };
+        });
+        if (!payloads.length) { UI.toast('No importable rows', 'error'); return false; }
+        await App.bulkImport(payloads);
+      } else {
+        if (!letter) { UI.toast('Select a zone', 'error'); return false; }
+        const turf   = App.state.turfs.find(t => t.letter === letter);
+        const houses = rows.filter(r => r.matched || r.nominatimConfirmed).map(r => ({
+          address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon
+        }));
+        if (!houses.length) { UI.toast('No matched addresses to import', 'error'); return false; }
+        await App.bulkImport([{ letter, color: turf?.color || CONFIG.TURF_COLORS[0], volunteer: turf?.volunteer || '[UNASSIGNED]', houses }]);
+      }
       UI._importRows = null;
       return true;
     }, 'Import');
   },
 
   _downloadImportTemplate() {
-    const csv = 'Address,Type\n123 Main St,hanger\n456 Oak Ave,knock\n';
+    const csv = 'Address,Type,Volunteer\n123 Main St,hanger,Alice Smith\n456 Oak Ave,knock,Bob Jones\n789 Elm St,hanger,\n';
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -544,21 +568,45 @@ const UI = {
     if (!file) return;
     document.getElementById('import-file-label').textContent = '✓ ' + file.name;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
         if (!lines.length) { UI.toast('Empty file', 'error'); return; }
-        const header  = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-        const addrIdx = header.findIndex(h => h === 'address');
-        const typeIdx = header.findIndex(h => h === 'type');
+        const header   = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const addrIdx  = header.findIndex(h => h === 'address');
+        const typeIdx  = header.findIndex(h => h === 'type');
+        const volIdx   = header.findIndex(h => h === 'volunteer');
         if (addrIdx < 0) { UI.toast('CSV must have an "Address" column', 'error'); return; }
+
+        // Build volunteer → zone letter lookup
+        const volToZone = {};
+        App.state.turfs.forEach(t => {
+          if (t.volunteer && t.volunteer !== '[UNASSIGNED]')
+            volToZone[t.volunteer.trim().toLowerCase()] = t.letter;
+        });
+        const allKnownNames = new Set([
+          ...App.state.turfs.map(t => t.volunteer).filter(v => v && v !== '[UNASSIGNED]').map(v => v.trim().toLowerCase()),
+          ...(UI._users || []).map(u => u.name.trim().toLowerCase()),
+        ]);
+
+        const parseCols = line => (line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(','));
+
         const rows = lines.slice(1).map(line => {
-          const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(',');
+          const cols = parseCols(line);
           const addr = (cols[addrIdx] || '').replace(/^"|"$/g, '').trim();
           const type = typeIdx >= 0 ? (cols[typeIdx] || '').replace(/^"|"$/g, '').trim().toLowerCase() : 'hanger';
+          const vol  = volIdx  >= 0 ? (cols[volIdx]  || '').replace(/^"|"$/g, '').trim() : '';
           if (!addr) return null;
           const matches = ParcelsUtil.searchParcels(addr, 1);
           const match   = matches[0] || null;
+
+          let volunteerError = null, zoneLetter = null;
+          if (vol) {
+            const key = vol.toLowerCase();
+            if (!allKnownNames.has(key)) volunteerError = `"${vol}" not recognized`;
+            else zoneLetter = volToZone[key] || null;
+          }
+
           return {
             address: match ? match.address : addr,
             owner: match ? match.owner : '',
@@ -567,34 +615,102 @@ const UI = {
             type: type === 'knock' ? 'knock' : 'hanger',
             originalAddr: addr,
             matched: !!match,
+            geocodeSource: match ? 'parcel' : null,
+            nominatimConfirmed: false,
+            volunteer: vol || null,
+            volunteerError,
+            zoneLetter,
           };
         }).filter(Boolean);
+
         UI._importRows = rows;
-        const matched   = rows.filter(r => r.matched).length;
-        const unmatched = rows.length - matched;
-        const previewEl = document.getElementById('import-preview');
-        previewEl.style.display = 'block';
-        previewEl.innerHTML = `
-          <div class="import-summary">
-            <span class="import-ok">✓ ${matched} matched</span>
-            ${unmatched ? `<span class="import-warn">⚠ ${unmatched} not found (will be skipped)</span>` : ''}
-          </div>
-          <div class="import-row-list">
-            ${rows.slice(0, 10).map(r => `
-              <div class="import-row ${r.matched ? 'imp-ok' : 'imp-miss'}">
-                <span class="imp-icon">${r.matched ? '✓' : '✕'}</span>
-                <span class="imp-addr">${_esc(r.matched ? r.address : r.originalAddr)}</span>
-                <span class="imp-type">${r.type}</span>
-              </div>`).join('')}
-            ${rows.length > 10 ? `<div class="imp-more">…and ${rows.length - 10} more</div>` : ''}
-          </div>`;
-        document.getElementById('import-zone-row').style.display = matched ? '' : 'none';
+        UI._renderImportPreview(rows);
+
+        // Nominatim pass for unmatched rows
+        const unmatched = rows.filter(r => !r.matched);
+        if (unmatched.length) {
+          UI.toast(`Geocoding ${unmatched.length} unmatched address(es)…`, 'info');
+          for (const row of unmatched) {
+            await UI._nominatimGeocode(row);
+            UI._renderImportPreview(UI._importRows);
+            await new Promise(r => setTimeout(r, 1100));
+          }
+        }
       } catch(ex) {
         UI.toast('Could not parse CSV — check the format', 'error');
         console.error(ex);
       }
     };
     reader.readAsText(file);
+  },
+
+  async _nominatimGeocode(row) {
+    const query = encodeURIComponent(row.originalAddr + ', Coppell TX');
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=us`, { headers: { 'Accept-Language': 'en' } });
+      const data = await resp.json();
+      if (data && data[0]) {
+        row.lat = parseFloat(data[0].lat);
+        row.lon = parseFloat(data[0].lon);
+        row.address = data[0].display_name.split(',')[0].trim() || row.originalAddr;
+        row.geocodeSource = 'nominatim';
+        row.nominatimConfirmed = false;
+      }
+    } catch(e) { /* Nominatim unavailable — leave unmatched */ }
+  },
+
+  _confirmNominatim(idx, confirm) {
+    const row = UI._importRows[idx];
+    if (!row) return;
+    if (confirm) { row.nominatimConfirmed = true; row.matched = true; }
+    else { row.geocodeSource = null; row.lat = null; row.lon = null; }
+    UI._renderImportPreview(UI._importRows);
+  },
+
+  _renderImportPreview(rows) {
+    const previewEl = document.getElementById('import-preview');
+    if (!previewEl) return;
+    const matched    = rows.filter(r => r.matched || r.nominatimConfirmed).length;
+    const pending    = rows.filter(r => r.geocodeSource === 'nominatim' && !r.nominatimConfirmed).length;
+    const unmatched  = rows.filter(r => !r.matched && !r.geocodeSource).length;
+    const nameErrors = rows.filter(r => r.volunteerError).length;
+    const hasVolCol  = rows.some(r => r.volunteer != null);
+
+    previewEl.style.display = 'block';
+    previewEl.innerHTML = `
+      <div class="import-summary">
+        <span class="import-ok">✓ ${matched} matched</span>
+        ${pending    ? `<span class="import-warn">⏳ ${pending} awaiting confirmation</span>` : ''}
+        ${unmatched  ? `<span class="import-warn">✕ ${unmatched} not found</span>` : ''}
+        ${nameErrors ? `<span class="import-err">⚠ ${nameErrors} unknown volunteer(s)</span>` : ''}
+      </div>
+      <div class="import-row-list">
+        ${rows.map((r, i) => {
+          let cls = 'imp-ok', icon = '✓', extra = '';
+          if (r.volunteerError) {
+            cls = 'imp-err'; icon = '⚠';
+            extra = `<span class="imp-vol-err">${_esc(r.volunteerError)}</span>`;
+          } else if (r.geocodeSource === 'nominatim' && !r.nominatimConfirmed) {
+            cls = 'imp-nominatim'; icon = '⏳';
+            extra = `<span class="imp-nominatim-label">${_esc(r.address)}</span>
+              <button class="imp-confirm-btn" onclick="UI._confirmNominatim(${i},true)">✓ Use</button>
+              <button class="imp-reject-btn" onclick="UI._confirmNominatim(${i},false)">✕ Skip</button>`;
+          } else if (!r.matched && !r.nominatimConfirmed) {
+            cls = 'imp-miss'; icon = '✕';
+          }
+          const volTag = hasVolCol && r.volunteer
+            ? `<span class="imp-vol ${r.volunteerError ? 'imp-vol-bad' : ''}">${_esc(r.volunteer)}</span>`
+            : '';
+          return `<div class="import-row ${cls}">
+            <span class="imp-icon">${icon}</span>
+            <span class="imp-addr">${_esc(r.matched || r.nominatimConfirmed ? r.address : r.originalAddr)}</span>
+            <span class="imp-type">${r.type}</span>
+            ${volTag}${extra}
+          </div>`;
+        }).join('')}
+      </div>`;
+    const zoneRow = document.getElementById('import-zone-row');
+    if (zoneRow) zoneRow.style.display = (matched > 0 && !hasVolCol) ? '' : 'none';
   },
 
   // ── Draw mode ───────────────────────────────────────────────────────────────
@@ -763,12 +879,13 @@ const UI = {
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
         : '';
 
-      const isKnock = (turf.mode || 'hanger') === 'knock';
+      const isKnock = (turf.mode || 'hanger') === 'doorknock';
       return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${color}">${isKnock ? '◆' : turf.letter}</div>
           <div class="turf-info">
-            <div class="turf-volunteer">${isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
+            <div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
+            ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#7c4dcc;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
             ${this.isAdmin ? inlineAssign : ''}
             <div class="turf-progress-row">
               <div class="turf-prog-track">
@@ -971,7 +1088,18 @@ const UI = {
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-    if (onConfirm) document.getElementById('modal-confirm-btn').addEventListener('click', () => { if (onConfirm()) overlay.remove(); });
+    if (onConfirm) document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('modal-confirm-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+      try {
+        const result = await onConfirm();
+        if (result !== false) overlay.remove();
+      } catch(e) {
+        UI.toast('Something went wrong — try again', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = btn._origLabel || 'Save'; }
+      }
+    });
     setTimeout(() => overlay.querySelector('input')?.focus(), 50);
   },
 
@@ -1044,13 +1172,13 @@ const UI = {
           <button class="clear-turf-btn" onclick="UI._confirmClearTurf('${letter}')">Clear All Houses</button>
           <span class="clear-turf-hint">${turf.houses.length} houses · ${turf.houses.filter(h=>h.result).length} with results</span>
         </div>` : ''}
-    `, () => {
+    `, async () => {
       const sel       = document.getElementById('f-volunteer-sel');
       const volunteer = sel?.value || '[UNASSIGNED]';
       const opt       = sel?.options[sel.selectedIndex];
       const color     = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]') ? opt.dataset.color : '#6b7280';
       const script    = (document.getElementById('f-script')?.value || '').trim();
-      App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
+      await App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
       const t = App.state.turfs.find(x => x.letter === letter);
       if (t) t._script = script;
       return true;
@@ -1238,7 +1366,7 @@ const UI = {
       allVolunteers.map(v => `<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
 
     // Find or auto-create the Knocks zone (mode=knock, letter=K)
-    const knockTurf = App.state.turfs.find(t => (t.mode || 'hanger') === 'knock');
+    const knockTurf = App.state.turfs.find(t => (t.mode || 'hanger') === 'doorknock');
 
     this._modal('Add Knock Location', `
       <div class="f-hint" style="margin-bottom:10px">
@@ -1272,7 +1400,7 @@ const UI = {
           knockLetter = 'K' + n;
         }
         try {
-          await SheetsAPI.addTurf(knockLetter, '#7c4dcc', volunteer || '[UNASSIGNED]', 'knock');
+          await SheetsAPI.addTurf(knockLetter, '#7c4dcc', volunteer || '[UNASSIGNED]', 'doorknock');
           await App.loadData();
         } catch(e) { UI.toast('Failed to create Knocks zone', 'error'); return false; }
       } else if (volunteer) {
@@ -1302,7 +1430,7 @@ const UI = {
   _pendingKnockTurf: null,
 
   _startKnockMapPlace() {
-    const letter = UI._pendingKnockTurf || (App.state.turfs.find(t => (t.mode||'hanger')==='knock')?.letter) || 'K';
+    const letter = UI._pendingKnockTurf || (App.state.turfs.find(t => (t.mode||'hanger')==='doorknock')?.letter) || 'K';
     UI._pendingKnockTurf = letter;
     UI._mapTapPending = true;
     UI.toast('Click the map to place a knock location', 'info');

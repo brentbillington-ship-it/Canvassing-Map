@@ -76,7 +76,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.17</div>
+          <div class="header-credit">by Brent Billington &middot; v4.18</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -333,6 +333,7 @@ const UI = {
         btn.textContent = open ? 'Map' : 'List';
         btn.title = open ? 'Back to map' : 'Show list';
       }
+      if (open && sidebar) UI._initSidebarSwipe(sidebar);
       return;
     }
     const wrap = document.getElementById('map-wrap');
@@ -393,7 +394,11 @@ const UI = {
     const tally = {};
     weekH.forEach(h => { tally[h.result_by] = (tally[h.result_by] || 0) + 1; });
     const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    if (!sorted.length) { bar.style.display = 'none'; return; }
+    if (!sorted.length) {
+      bar.style.display = 'flex';
+      bar.innerHTML = `<button class="hdr-btn top3-lb-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">🏆 Leaderboard</button>`;
+      return;
+    }
     const medals = ['&#x1F947;','&#x1F948;','&#x1F949;'];
     bar.style.display = 'flex';
     bar.innerHTML = `<button class="hdr-btn top3-lb-btn" onclick="UI.showLeaderboard()" title="Full leaderboard">🏆 Leaderboard</button>` +
@@ -718,7 +723,6 @@ const UI = {
       const bMe = b.volunteer === this.currentUser ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
       return aMe - bMe;
     });
-
     list.innerHTML = sorted.map((turf, i) => {
       const color     = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
       const houses    = this._filterHouses(turf.houses);
@@ -1548,6 +1552,23 @@ const UI = {
   _scrollChatBottom(elId) {
     const el = document.getElementById(elId || 'sc-messages');
     if (el) el.scrollTop = el.scrollHeight;
+  },
+
+  // ── Swipe-down to close sidebar on mobile ─────────────────────────────────
+  _initSidebarSwipe(sidebar) {
+    if (sidebar._swipeInit) return;
+    sidebar._swipeInit = true;
+    let startY = 0, startX = 0;
+    sidebar.addEventListener('touchstart', e => {
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+    sidebar.addEventListener('touchend', e => {
+      const dy = e.changedTouches[0].clientY - startY;
+      const dx = Math.abs(e.changedTouches[0].clientX - startX);
+      // Swipe down ≥ 60px, more vertical than horizontal
+      if (dy > 60 && dx < dy * 0.6) UI.toggleMap();
+    }, { passive: true });
   },
 
   startChatPoll() {

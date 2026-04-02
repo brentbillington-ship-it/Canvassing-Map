@@ -263,17 +263,32 @@ const MapModule = {
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
-        // Zone label — bold, zoom-scaled via CSS var
-        L.marker(bounds.getCenter(), {
-          icon: L.divIcon({
-            html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
-            className: '',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-          }),
-          interactive: false,
-          pane: 'turfLabelPane',
-        }).addTo(this.turfLabelGroup);
+        // Zone label as SVG in overlayPane (z400) — always below markerPane (z600)
+        const center = bounds.getCenter();
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        svg.style.overflow = 'visible';
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', '50%'); circle.setAttribute('cy', '50%');
+        circle.setAttribute('r', '14'); circle.setAttribute('fill', color);
+        circle.setAttribute('stroke', 'rgba(255,255,255,0.7)'); circle.setAttribute('stroke-width', '2');
+        circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))');
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', '50%'); text.setAttribute('y', '50%');
+        text.setAttribute('text-anchor', 'middle'); text.setAttribute('dominant-baseline', 'central');
+        text.setAttribute('fill', '#fff'); text.setAttribute('font-weight', '900');
+        text.setAttribute('font-family', 'inherit'); text.setAttribute('font-size', '13');
+        text.setAttribute('pointer-events', 'none');
+        text.textContent = turf.letter;
+        svg.appendChild(circle); svg.appendChild(text);
+        // Tiny bounds (32x32px equivalent) centered on polygon center
+        const pad = 0.00015;
+        const svgBounds = L.latLngBounds(
+          [center.lat - pad, center.lng - pad],
+          [center.lat + pad, center.lng + pad]
+        );
+        L.svgOverlay(svg, svgBounds, { interactive: false, pane: 'overlayPane' })
+          .addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
   },

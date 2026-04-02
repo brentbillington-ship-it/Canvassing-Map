@@ -78,7 +78,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.13</div>
+          <div class="header-credit">by Brent Billington &middot; v4.14</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -110,11 +110,6 @@ const UI = {
           </select>
         </div>
         <div class="sb-filter-row">
-          <select id="mode-filter-sel" onchange="UI.setModeFilter(this.value)" style="flex:1">
-            <option value="">All Modes</option>
-            <option value="hanger">Hangers Only</option>
-            <option value="doorknock">Knocking Only</option>
-          </select>
           <label class="hide-done-toggle" title="Hide completed houses">
             <input type="checkbox" id="hide-done-chk" onchange="UI.setHideDone(this.checked)"/> Hide done
           </label>
@@ -240,6 +235,17 @@ const UI = {
   },
 
   _postLogin() {
+    // Logout always lives as the 3rd button in header-right-top, regardless of mode
+    const existingLogout = document.getElementById('logout-hdr-btn');
+    if (!existingLogout) {
+      const logoutBtn = document.createElement('button');
+      logoutBtn.id = 'logout-hdr-btn';
+      logoutBtn.className = 'hdr-btn logout-small';
+      logoutBtn.textContent = 'Log out';
+      logoutBtn.onclick = () => UI._clearLogin();
+      document.querySelector('.header-right-top')?.appendChild(logoutBtn);
+    }
+
     if (this.isAdmin) {
       const adminRow2 = document.getElementById('admin-row2');
       if (adminRow2) {
@@ -247,9 +253,7 @@ const UI = {
         adminRow2.innerHTML = `
           <div class="admin-badge-row2">
             <span class="admin-shield">Admin</span>
-            <span class="mode-label">Mode:</span>
-            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
-            <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Exit Admin</button>
           </div>
           <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
@@ -266,34 +270,14 @@ const UI = {
         nonAdminTools.style.display = 'flex';
         nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Add Missing House</button>`;
       }
-      const logoutBtn = document.createElement('button');
-      logoutBtn.className = 'hdr-btn logout-small';
-      logoutBtn.textContent = 'Log out';
-      logoutBtn.onclick = () => UI._clearLogin();
-      document.getElementById('header-controls')?.appendChild(logoutBtn);
     }
     App.init();
   },
 
   _dropToFieldMode() {
-    this._modal('Switch to Field View', `
-      <div class="f-hint" style="margin-bottom:12px">Re-unlock admin with the lock button any time.</div>
-      <div class="mode-toggle-row">
-        <label class="mode-opt selected" id="fm-hanger"
-          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          Drop Hangers</label>
-        <label class="mode-opt" id="fm-doorknock"
-          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          Door Knock</label>
-      </div>
-    `, () => {
-      const mode = document.getElementById('fm-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
-      this.isAdmin = false;
-      this.userMode = mode;
-      this._saveLogin(this.currentUser, false, mode, this.currentEmail);
-      location.reload();
-      return true;
-    }, 'Switch to Field View');
+    this.isAdmin = false;
+    this._saveLogin(this.currentUser, false, 'field', this.currentEmail);
+    location.reload();
   },
 
   // ── Admin unlock post-login ────────────────────────────────────────────────
@@ -601,10 +585,8 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    // Non-admins only see turfs matching their mode
-    const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
-    // Apply explicit mode filter (from dropdown)
-    const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
+    // All turfs always visible — no mode-based filtering
+    const modeApplied  = turfs;
     // Apply volunteer filter
     const filtered = this.volunteerFilter
       ? modeApplied.filter(t => {

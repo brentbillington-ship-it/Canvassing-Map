@@ -228,8 +228,8 @@ const MapModule = {
     this.houseMarkers = {};
     turfs.forEach((turf, i) => {
       const color = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
-      // Non-admins: fade dots for zones that don't match their mode
-      const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
+      // All dots always shown — no mode-based fading
+      const isOtherZone = false;
       this._renderTurfPolygon(turf, color);
       turf.houses.forEach((house, idx) => this._renderHouse(house, turf, idx, color, isOtherZone));
     });
@@ -301,7 +301,7 @@ const MapModule = {
     const old = this.houseMarkers[house.id];
     if (!old) return;
     const color       = turf.color || CONFIG.TURF_COLORS[0];
-    const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
+    const isOtherZone = false;
     const updated     = this._makeMarker(house, turf, isOtherZone);
     updated.on('click', () => this._openHousePopup(house, turf, color));
     this.houseGroup.removeLayer(old);

@@ -294,9 +294,9 @@ const MapModule = {
     const resultDef = CONFIG.RESULTS.find(r => r.key === result);
     const dotColor  = resultDef ? resultDef.color : '#6b7280';
     const isDone       = !!result;
-    const isDoorKnock  = (turf?.mode || 'hanger') === 'doorknock';
+    const isDoorKnock  = (turf?.mode || 'hanger') === 'knock';
 
-    // Circle = hanger, diamond = door knock
+    // Circle = hanger, diamond = knock
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
@@ -378,8 +378,8 @@ const MapModule = {
       ? `<button class="popup-clear-btn" onclick="MapModule._handlePopupResult('${house.id}','')">↩ Clear result</button>`
       : '';
 
-    const modeBadge = (turf.mode || 'hanger') === 'doorknock'
-      ? `<span class="mode-badge doorknock">Door Knock</span>`
+    const modeBadge = (turf.mode || 'hanger') === 'knock'
+      ? `<span class="mode-badge knock">Knock</span>`
       : `<span class="mode-badge hanger">Hanger</span>`;
 
     const gridCols = visibleResults.length <= 2 ? 2 : 3;

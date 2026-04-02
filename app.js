@@ -369,7 +369,7 @@ const App = {
       const turf = this.state.turfs.find(t => t.letter === house.turf);
       if (turf) turf.houses.push(newHouse);
       this.render();
-      const isKnockTurf = (App.state.turfs.find(t => t.letter === house.turf)?.mode || 'hanger') === 'doorknock';
+      const isKnockTurf = (App.state.turfs.find(t => t.letter === house.turf)?.mode || 'hanger') === 'knock';
       UI.toast(isKnockTurf ? 'Knock location added ✊' : 'House added', 'success');
       MapModule.focusHouse(newHouse);
     } catch(e) { UI.toast('Failed to add house', 'error'); }

@@ -380,7 +380,7 @@ const TurfDraw = (() => {
     }
     if (!pt && withoutResult.length) pt = withoutResult[0];
 
-    const sorted = turf.mode === 'doorknock'
+    const sorted = turf.mode === 'knock'
       ? withoutResult.slice().sort((a, b) => a.address.localeCompare(b.address))
       : ParcelsUtil.walkOrder(withoutResult, pt || { lat: 32.972, lon: -96.978 });
     App.reorderTurfHouses(letter, [...withResult, ...sorted]);

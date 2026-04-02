@@ -655,7 +655,7 @@ body {
 /* ─── Mode badge in popup ───────────────────────────────────────────────────── */
 .mode-badge { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-top: 3px; }
 .mode-badge.hanger { background: #e8f0fc; color: #2e6ec2; }
-.mode-badge.doorknock { background: #fdf3e3; color: #c9831a; }
+.mode-badge.knock { background: #fdf3e3; color: #c9831a; }
 
 /* ─── Hide done toggle ──────────────────────────────────────────────────────── */
 .hide-done-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text3); cursor: pointer; white-space: nowrap; padding: 4px 6px; }

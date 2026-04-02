@@ -103,7 +103,7 @@ const UI = {
           <select id="view-mode-sel" onchange="UI.setViewMode(this.value)" title="Filter by type">
             <option value="">All</option>
             <option value="hanger">Hangers</option>
-            <option value="doorknock">Knocks</option>
+            <option value="knock">Knocks</option>
           </select>
           <select id="vol-filter-sel" onchange="UI.setVolunteerFilter(this.value)">
             <option value="">All Volunteers</option>
@@ -156,7 +156,7 @@ const UI = {
             <div class="login-mode-label">I'm here to:</div>
             <div class="mode-toggle-row">
               <label class="mode-opt selected" id="lmode-hanger" onclick="UI._setLoginMode('hanger')">&#x1F5C2; Drop Hangers</label>
-              <label class="mode-opt" id="lmode-doorknock" onclick="UI._setLoginMode('doorknock')">&#x1F6AA; Door Knock</label>
+              <label class="mode-opt" id="lmode-knock" onclick="UI._setLoginMode('knock')">&#x1F6AA; Door Knock</label>
             </div>
           </div>
           <button class="login-btn" id="login-btn" onclick="UI._submitLogin()">Continue</button>
@@ -201,7 +201,7 @@ const UI = {
   _setLoginMode(mode) {
     this._pendingMode = mode;
     document.getElementById('lmode-hanger')?.classList.toggle('selected', mode === 'hanger');
-    document.getElementById('lmode-doorknock')?.classList.toggle('selected', mode === 'doorknock');
+    document.getElementById('lmode-knock')?.classList.toggle('selected', mode === 'knock');
   },
 
   async _submitLogin() {
@@ -764,7 +764,7 @@ const UI = {
     const hPct     = hTotal ? Math.round(hDone / hTotal * 100) : 0;
 
     // Door knock turfs only
-    const knockHouses = turfs.filter(t => (t.mode || 'hanger') === 'doorknock').flatMap(t => t.houses);
+    const knockHouses = turfs.filter(t => (t.mode || 'hanger') === 'knock').flatMap(t => t.houses);
     const kTotal   = knockHouses.length;
     const kDone    = knockHouses.filter(h => h.result === 'knocked' || h.result === 'not_home').length;
     const kKnocked = knockHouses.filter(h => h.result === 'knocked').length;
@@ -879,7 +879,7 @@ const UI = {
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
         : '';
 
-      const isKnock = (turf.mode || 'hanger') === 'doorknock';
+      const isKnock = (turf.mode || 'hanger') === 'knock';
       return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${color}">${isKnock ? '◆' : turf.letter}</div>
@@ -943,8 +943,8 @@ const UI = {
       ? `<span class="house-badge" style="background:${resultDef.bg};color:${resultDef.color}">${resultDef.icon} ${resultDef.label}</span>`
       : `<span class="house-badge unvisited">Not visited</span>`;
 
-    // Done key depends on mode: hanger turfs → 'hanger', doorknock → 'knocked'
-    const doneKey = (turf.mode || 'hanger') === 'doorknock' ? 'knocked' : 'hanger';
+    // Done key depends on mode: hanger turfs → 'hanger', knock turfs → 'knocked'
+    const doneKey = (turf.mode || 'hanger') === 'knock' ? 'knocked' : 'hanger';
     const doneR   = CONFIG.RESULTS.find(x => x.key === doneKey);
     const skipR   = CONFIG.RESULTS.find(x => x.key === 'skip');
     const isDone  = house.result === doneKey;
@@ -1366,7 +1366,10 @@ const UI = {
       allVolunteers.map(v => `<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
 
     // Find or auto-create the Knocks zone (mode=knock, letter=K)
-    const knockTurf = App.state.turfs.find(t => (t.mode || 'hanger') === 'doorknock');
+    const knockTurf = App.state.turfs.find(t => (t.mode || 'hanger') === 'knock');
+
+    // Track whether user wants map placement instead of address search
+    let _placeOnMapRequested = false;
 
     this._modal('Add Knock Location', `
       <div class="f-hint" style="margin-bottom:10px">
@@ -1381,13 +1384,15 @@ const UI = {
       <div id="parcel-results" class="parcel-results"></div>
       <div id="parcel-selected" class="parcel-selected" style="display:none"></div>
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-        <button class="import-template-btn" style="flex:1" onclick="UI._startKnockMapPlace();UI._closeModal()">
+        <button class="import-template-btn" style="flex:1" onclick="document.getElementById('_knock-place-flag').value='1';document.getElementById('modal-confirm-btn').click()">
           📍 Place on Map Instead
         </button>
       </div>
+      <input type="hidden" id="_knock-place-flag" value="0"/>
     `, async () => {
       const selected  = UI._selectedParcel;
       const volunteer = document.getElementById('f-knock-vol')?.value || '';
+      const placeOnMap = document.getElementById('_knock-place-flag')?.value === '1';
 
       // Ensure knock zone exists — create it if not
       let knockLetter = knockTurf?.letter;
@@ -1400,7 +1405,7 @@ const UI = {
           knockLetter = 'K' + n;
         }
         try {
-          await SheetsAPI.addTurf(knockLetter, '#7c4dcc', volunteer || '[UNASSIGNED]', 'doorknock');
+          await SheetsAPI.addTurf(knockLetter, '#7c4dcc', volunteer || '[UNASSIGNED]', 'knock');
           await App.loadData();
         } catch(e) { UI.toast('Failed to create Knocks zone', 'error'); return false; }
       } else if (volunteer) {
@@ -1408,11 +1413,15 @@ const UI = {
         await SheetsAPI.updateTurf(knockLetter, { volunteer }).catch(() => {});
       }
 
-      if (selected) {
+      if (placeOnMap) {
+        // Switch to map-click placement mode after modal closes
+        UI._pendingKnockTurf = knockLetter;
+        UI._startKnockMapPlace();
+      } else if (selected) {
         // Address was selected from parcel search
         await App.addHouse({ turf: knockLetter, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
       } else {
-        // No address — switch to map-click placement mode after modal closes
+        // No address and no map placement — switch to map placement
         UI._pendingKnockTurf = knockLetter;
         UI._startKnockMapPlace();
       }
@@ -1430,7 +1439,7 @@ const UI = {
   _pendingKnockTurf: null,
 
   _startKnockMapPlace() {
-    const letter = UI._pendingKnockTurf || (App.state.turfs.find(t => (t.mode||'hanger')==='doorknock')?.letter) || 'K';
+    const letter = UI._pendingKnockTurf || (App.state.turfs.find(t => (t.mode||'hanger')==='knock')?.letter) || 'K';
     UI._pendingKnockTurf = letter;
     UI._mapTapPending = true;
     UI.toast('Click the map to place a knock location', 'info');

@@ -263,16 +263,16 @@ const MapModule = {
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
-        // Zone label in shadowPane (z500) — Leaflet's own pane, always below markerPane (z600)
+        // Zone label in tooltipPane (z650) — above markerPane (z600), always on top of dots
         L.marker(bounds.getCenter(), {
           icon: L.divIcon({
             html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
             className: '',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
           }),
           interactive: false,
-          pane: 'shadowPane',
+          pane: 'tooltipPane',
         }).addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }

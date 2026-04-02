@@ -49,9 +49,18 @@ const MapModule = {
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
+    // Zone label pane — above tile labels, below house dots
+    this.map.createPane('turfLabelPane');
+    this.map.getPane('turfLabelPane').style.zIndex = 620;
+    this.map.getPane('turfLabelPane').style.pointerEvents = 'none';
+
+    // House marker pane — above zone labels
+    this.map.createPane('housePane');
+    this.map.getPane('housePane').style.zIndex = 640;
+
     // Address label pane — above house markers
     this.map.createPane('addrPane');
-    this.map.getPane('addrPane').style.zIndex = 650;
+    this.map.getPane('addrPane').style.zIndex = 660;
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
@@ -82,8 +91,8 @@ const MapModule = {
       { position: 'bottomright', collapsed: true }
     ).addTo(this.map);
 
-    this.turfPolygonGroup = L.layerGroup().addTo(this.map);
-    this.houseGroup       = L.layerGroup().addTo(this.map);
+    this.turfPolygonGroup  = L.layerGroup().addTo(this.map);
+    this.houseGroup        = L.layerGroup({ pane: 'housePane' }).addTo(this.map);
     this.addressLabelGroup = L.layerGroup({ pane: 'addrPane' }).addTo(this.map);
 
     setTimeout(() => this.map.invalidateSize(), 100);
@@ -264,7 +273,8 @@ const MapModule = {
             iconAnchor: [16, 16]
           }),
           interactive: false,
-          zIndexOffset: -500
+          pane: 'turfLabelPane',
+          zIndexOffset: 0
         }).addTo(this.turfPolygonGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
@@ -294,6 +304,7 @@ const MapModule = {
         iconSize: [26, 26],
         iconAnchor: [13, 13],
       }),
+      pane: 'housePane',
       zIndexOffset: isOtherZone ? -200 : (isDone ? 0 : 100),
     });
   },

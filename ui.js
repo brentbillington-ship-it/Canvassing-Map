@@ -76,7 +76,7 @@ const UI = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
-          <div class="header-credit">by Brent Billington &middot; v4.15</div>
+          <div class="header-credit">by Brent Billington &middot; v4.16</div>
         </div>
       </div>
       <div class="header-row2" id="header-row2">
@@ -109,9 +109,6 @@ const UI = {
           </select>
         </div>
         <div class="sb-filter-row">
-          <select id="mode-filter-sel" onchange="UI.setModeFilter(this.value)" style="flex:1">
-            <option value="">All Types</option>
-          </select>
           <label class="hide-done-toggle" title="Hide completed houses">
             <input type="checkbox" id="hide-done-chk" onchange="UI.setHideDone(this.checked)"/> Hide done
           </label>
@@ -237,6 +234,17 @@ const UI = {
   },
 
   _postLogin() {
+    // Logout always lives as the 3rd button in header-right-top, regardless of mode
+    const existingLogout = document.getElementById('logout-hdr-btn');
+    if (!existingLogout) {
+      const logoutBtn = document.createElement('button');
+      logoutBtn.id = 'logout-hdr-btn';
+      logoutBtn.className = 'hdr-btn logout-small';
+      logoutBtn.textContent = 'Log out';
+      logoutBtn.onclick = () => UI._clearLogin();
+      document.querySelector('.header-right-top')?.appendChild(logoutBtn);
+    }
+
     if (this.isAdmin) {
       const adminRow2 = document.getElementById('admin-row2');
       if (adminRow2) {
@@ -244,9 +252,7 @@ const UI = {
         adminRow2.innerHTML = `
           <div class="admin-badge-row2">
             <span class="admin-shield">Admin</span>
-            <span class="mode-label">Mode:</span>
-            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Field</button>
-            <button class="admin-logout-btn" onclick="UI._clearLogin()">Log out</button>
+            <button class="admin-field-btn" onclick="UI._dropToFieldMode()">Exit Admin</button>
           </div>
           <button class="admin-btn" id="draw-mode-btn" onclick="UI.toggleDrawMode()">Draw Zone</button>
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
@@ -263,34 +269,14 @@ const UI = {
         nonAdminTools.style.display = 'flex';
         nonAdminTools.innerHTML = `<button class="admin-btn" onclick="UI.startMissingHouseReport()">+ Add Missing House</button>`;
       }
-      const logoutBtn = document.createElement('button');
-      logoutBtn.className = 'hdr-btn logout-small';
-      logoutBtn.textContent = 'Log out';
-      logoutBtn.onclick = () => UI._clearLogin();
-      document.getElementById('header-controls')?.appendChild(logoutBtn);
     }
     App.init();
   },
 
   _dropToFieldMode() {
-    this._modal('Switch to Field View', `
-      <div class="f-hint" style="margin-bottom:12px">Re-unlock admin with the lock button any time.</div>
-      <div class="mode-toggle-row">
-        <label class="mode-opt selected" id="fm-hanger"
-          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          Drop Hangers</label>
-        <label class="mode-opt" id="fm-doorknock"
-          onclick="this.parentElement.querySelectorAll('.mode-opt').forEach(m=>m.classList.remove('selected'));this.classList.add('selected')">
-          Door Knock</label>
-      </div>
-    `, () => {
-      const mode = document.getElementById('fm-doorknock')?.classList.contains('selected') ? 'doorknock' : 'hanger';
-      this.isAdmin = false;
-      this.userMode = mode;
-      this._saveLogin(this.currentUser, false, mode, this.currentEmail);
-      location.reload();
-      return true;
-    }, 'Switch to Field View');
+    this.isAdmin = false;
+    this._saveLogin(this.currentUser, false, 'field', this.currentEmail);
+    location.reload();
   },
 
   // ── Admin unlock post-login ────────────────────────────────────────────────
@@ -490,6 +476,126 @@ const UI = {
     this.toast('CSV exported ✓', 'success');
   },
 
+  // ── CSV Import ────────────────────────────────────────────────────────────
+  showImportModal() {
+    const zones = App.state.turfs;
+    const zoneOpts = zones.length
+      ? zones.map(t => `<option value="${t.letter}">${t.letter}${t.volunteer && t.volunteer !== '[UNASSIGNED]' ? ' — ' + _esc(t.volunteer) : ''}</option>`).join('')
+      : '<option value="">No zones yet</option>';
+
+    this._modal('Import Addresses', `
+      <div class="import-section">
+        <div class="import-step-label">Step 1 — Download the template</div>
+        <button class="import-template-btn" onclick="UI._downloadImportTemplate()">⬇ Download CSV Template</button>
+        <div class="f-hint">Columns: <strong>Address</strong>, <strong>Type</strong> (hanger or knock)</div>
+      </div>
+      <div class="import-section">
+        <div class="import-step-label">Step 2 — Fill it in &amp; upload</div>
+        <input type="file" id="import-file-input" accept=".csv" class="import-file-input"
+          onchange="UI._handleImportFile(this)"/>
+        <label for="import-file-input" class="import-file-label" id="import-file-label">📂 Choose CSV file…</label>
+      </div>
+      <div class="import-section" id="import-zone-row" style="display:none">
+        <div class="import-step-label">Step 3 — Assign to zone</div>
+        <select id="import-zone-sel" class="f-input">${zoneOpts}</select>
+      </div>
+      <div id="import-preview" class="import-preview" style="display:none"></div>
+    `, async () => {
+      const rows = UI._importRows;
+      const letter = document.getElementById('import-zone-sel')?.value;
+      if (!rows || !rows.length) { UI.toast('No rows to import', 'error'); return false; }
+      if (!letter) { UI.toast('Select a zone', 'error'); return false; }
+      const turf = App.state.turfs.find(t => t.letter === letter);
+      const houses = rows.filter(r => r.matched).map(r => ({
+        address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon
+      }));
+      if (!houses.length) { UI.toast('No matched addresses to import', 'error'); return false; }
+      await App.bulkImport([{
+        letter,
+        color: turf?.color || CONFIG.TURF_COLORS[0],
+        volunteer: turf?.volunteer || '[UNASSIGNED]',
+        houses
+      }]);
+      UI._importRows = null;
+      return true;
+    }, 'Import');
+  },
+
+  _downloadImportTemplate() {
+    const csv = 'Address,Type\n123 Main St,hanger\n456 Oak Ave,knock\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'chaka_import_template.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+
+  _handleImportFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('import-file-label').textContent = '✓ ' + file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+        if (!lines.length) { UI.toast('Empty file', 'error'); return; }
+        // Parse header
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const addrIdx = header.findIndex(h => h === 'address');
+        const typeIdx = header.findIndex(h => h === 'type');
+        if (addrIdx < 0) { UI.toast('CSV must have an "Address" column', 'error'); return; }
+
+        const dataLines = lines.slice(1);
+        const rows = dataLines.map(line => {
+          // Handle quoted fields
+          const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(',');
+          const addr = (cols[addrIdx] || '').replace(/^"|"$/g, '').trim();
+          const type = typeIdx >= 0 ? (cols[typeIdx] || '').replace(/^"|"$/g, '').trim().toLowerCase() : 'hanger';
+          if (!addr) return null;
+          // Geocode against parcels
+          const matches = ParcelsUtil.searchParcels(addr, 1);
+          const match = matches[0] || null;
+          return {
+            address: match ? match.address : addr,
+            owner: match ? match.owner : '',
+            lat: match ? match.lat : null,
+            lon: match ? match.lon : null,
+            type: type === 'knock' ? 'knock' : 'hanger',
+            originalAddr: addr,
+            matched: !!match,
+          };
+        }).filter(Boolean);
+
+        UI._importRows = rows;
+        const matched   = rows.filter(r => r.matched).length;
+        const unmatched = rows.length - matched;
+
+        const previewEl = document.getElementById('import-preview');
+        previewEl.style.display = 'block';
+        previewEl.innerHTML = `
+          <div class="import-summary">
+            <span class="import-ok">✓ ${matched} matched</span>
+            ${unmatched ? `<span class="import-warn">⚠ ${unmatched} not found (will be skipped)</span>` : ''}
+          </div>
+          <div class="import-row-list">
+            ${rows.slice(0, 10).map(r => `
+              <div class="import-row ${r.matched ? 'imp-ok' : 'imp-miss'}">
+                <span class="imp-icon">${r.matched ? '✓' : '✕'}</span>
+                <span class="imp-addr">${_esc(r.matched ? r.address : r.originalAddr)}</span>
+                <span class="imp-type">${r.type}</span>
+              </div>`).join('')}
+            ${rows.length > 10 ? `<div class="imp-more">…and ${rows.length - 10} more</div>` : ''}
+          </div>`;
+        document.getElementById('import-zone-row').style.display = matched ? '' : 'none';
+      } catch(ex) {
+        UI.toast('Could not parse CSV — check the format', 'error');
+        console.error(ex);
+      }
+    };
+    reader.readAsText(file);
+  },
+
   // ── Draw mode ───────────────────────────────────────────────────────────────
   toggleDrawMode() {
     const on  = TurfDraw.toggle();
@@ -602,10 +708,8 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    // Non-admins only see turfs matching their mode
-    const modeFiltered = this.isAdmin ? turfs : turfs.filter(t => (t.mode || 'hanger') === this.userMode);
-    // Apply explicit mode filter (from dropdown)
-    const modeApplied  = this.modeFilter ? modeFiltered.filter(t => (t.mode || 'hanger') === this.modeFilter) : modeFiltered;
+    // All turfs always visible — no mode-based filtering
+    const modeApplied  = turfs;
     // Apply volunteer filter
     const filtered = this.volunteerFilter
       ? modeApplied.filter(t => {
@@ -1370,23 +1474,21 @@ const UI = {
       const data = await SheetsAPI.getChat();
       if (!data.messages) return;
       this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
-      // Count messages newer than last-seen that aren't from this session
+      if (!this._chatLastSeen && this._chatMessages.length) {
+        // First load — mark all existing as seen so we don't badge-spam on login
+        this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
+        this._chatUnread = 0;
+      }
       const unread = this._chatMessages.filter(m =>
         m.ts > (this._chatLastSeen || 0) && (m.session_id || m.sessionId) !== this.sessionId
       ).length;
-      // Only update badge if chat panel is closed
       if (!this._chatOpen && unread > 0) {
         this._chatUnread = unread;
         this._updateUnreadBadges();
       } else if (this._chatOpen) {
         this._chatUnread = 0;
         this._clearUnreadBadges();
-        if (data.messages.length) this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
-      }
-      if (!this._chatLastSeen && data.messages.length) {
-        // First load — mark all existing as seen so we don't badge-spam on login
-        this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
-        this._chatUnread = 0;
+        if (this._chatMessages.length) this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
       }
       this._renderChatMessages('sc-messages');
       if (this._chatOpen) this._renderChatMessages('chat-messages');

@@ -237,7 +237,8 @@ body {
   flex-shrink: 0;
   z-index: 10;
 }
-.sb-filter-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.sb-filter-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+#view-mode-sel { min-width: 72px; flex-shrink: 0; }
 .sb-filter-row select {
   flex: 1;
   padding: 5px 8px;
@@ -290,6 +291,8 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 800; flex-shrink: 0;
 }
+.turf-knock { border-left: 3px solid #7c4dcc; }
+.knock-badge { border-radius: 4px; transform: rotate(45deg); font-size: 11px; }
 .turf-info { flex: 1; min-width: 0; }
 .turf-volunteer { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .turf-progress-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
@@ -1075,14 +1078,28 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .import-row:last-child { border-bottom: none; }
-.imp-ok   { background: #f0fdf4; }
-.imp-miss { background: #fef2f2; }
+.imp-ok        { background: #f0fdf4; }
+.imp-miss      { background: #fef2f2; }
+.imp-nominatim { background: #fffbeb; }
+.imp-err       { background: #fef2f2; }
+.import-err    { color: #c44848; }
 .imp-icon { font-size: 11px; font-weight: 700; width: 14px; flex-shrink: 0; }
-.imp-ok   .imp-icon { color: #2d9e5f; }
-.imp-miss .imp-icon { color: #c44848; }
+.imp-ok        .imp-icon { color: #2d9e5f; }
+.imp-miss      .imp-icon { color: #c44848; }
+.imp-nominatim .imp-icon { color: #c9831a; }
+.imp-err       .imp-icon { color: #c44848; }
 .imp-addr { flex: 1; color: var(--text); font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .imp-type { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
 .imp-more { padding: 5px 12px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+.imp-vol { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #e8f0fc; color: #2e6ec2; flex-shrink: 0; }
+.imp-vol.imp-vol-bad { background: #fde8e8; color: #c44848; }
+.imp-vol-err { font-size: 10px; color: #c44848; flex-shrink: 0; }
+.imp-nominatim-label { font-size: 10px; color: #c9831a; flex-shrink: 0; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-confirm-btn, .imp-reject-btn { font-size: 10px; padding: 1px 5px; border-radius: 3px; cursor: pointer; border: 1px solid; flex-shrink: 0; }
+.imp-confirm-btn { background: #e6f7ee; color: #2d9e5f; border-color: #2d9e5f; }
+.imp-confirm-btn:hover { background: #2d9e5f; color: #fff; }
+.imp-reject-btn  { background: #fde8e8; color: #c44848; border-color: #c44848; }
+.imp-reject-btn:hover  { background: #c44848; color: #fff; }
 
 /* Hide zone number badge when zoomed in enough to show address chips */
 #map.hide-turf-labels .turf-label { display: none; }

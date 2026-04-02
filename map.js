@@ -166,6 +166,34 @@ const MapModule = {
         interactive: false,
       }).addTo(this.addressLabelGroup);
     }
+
+    // Pass 3: render address labels for imported houses not in parcels.js
+    // Fixes blank chips — Nominatim-geocoded houses have lat/lon + address in Sheets
+    // but no parcels.js entry, so Pass 2 never fires for them.
+    if (typeof App !== 'undefined' && App.state && App.state.turfs) {
+      for (const turf of App.state.turfs) {
+        for (const house of (turf.houses || [])) {
+          const addr = (house.address || '').trim();
+          if (!addr) continue;
+          const num = addr.match(/^(\d+)/)?.[1];
+          if (!num || parseInt(num, 10) > 9999) continue;
+          const dedupeKey = addr.toUpperCase().replace(/\s+/g, ' ').trim();
+          if (seen.has(dedupeKey)) continue; // already rendered from parcels.js
+          if (!bounds.contains([house.lat, house.lon])) continue;
+          seen.add(dedupeKey);
+          L.marker([house.lat, house.lon], {
+            icon: L.divIcon({
+              html: `<div class="addr-label">${num}</div>`,
+              className: '',
+              iconSize: null,
+              iconAnchor: [0, 0],
+            }),
+            pane: 'addrPane',
+            interactive: false,
+          }).addTo(this.addressLabelGroup);
+        }
+      }
+    }
   },
 
   // ── School labels — toggleable layer ─────────────────────────────────────

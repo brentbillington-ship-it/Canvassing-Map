@@ -166,34 +166,6 @@ const MapModule = {
         interactive: false,
       }).addTo(this.addressLabelGroup);
     }
-
-    // Pass 3: render address labels for imported houses not in parcels.js
-    // Fixes blank chips — Nominatim-geocoded houses have lat/lon + address in Sheets
-    // but no parcels.js entry, so Pass 2 never fires for them.
-    if (typeof App !== 'undefined' && App.state && App.state.turfs) {
-      for (const turf of App.state.turfs) {
-        for (const house of (turf.houses || [])) {
-          const addr = (house.address || '').trim();
-          if (!addr) continue;
-          const num = addr.match(/^(\d+)/)?.[1];
-          if (!num || parseInt(num, 10) > 9999) continue;
-          const dedupeKey = addr.toUpperCase().replace(/\s+/g, ' ').trim();
-          if (seen.has(dedupeKey)) continue; // already rendered from parcels.js
-          if (!bounds.contains([house.lat, house.lon])) continue;
-          seen.add(dedupeKey);
-          L.marker([house.lat, house.lon], {
-            icon: L.divIcon({
-              html: `<div class="addr-label">${num}</div>`,
-              className: '',
-              iconSize: null,
-              iconAnchor: [0, 0],
-            }),
-            pane: 'addrPane',
-            interactive: false,
-          }).addTo(this.addressLabelGroup);
-        }
-      }
-    }
   },
 
   // ── School labels — toggleable layer ─────────────────────────────────────
@@ -382,7 +354,7 @@ const MapModule = {
           onclick="MapModule._saveNotes('${house.id}',document.getElementById('pnotes-${house.id}').value)">Save</button>
       </div>
       <div class="popup-chips">
-        ${['Kids in CISD 🏫','Khanh Supporter ❌','Interested ✅','+ Sign','Filled Form'].map(c =>
+        ${['Kids in CISD 🏫','Khanh Supporter ❌','Interested ✅','🪧 Wants Sign','📋 Filled Form'].map(c =>
           `<span class="note-chip" onclick="MapModule._appendChip('${house.id}',this.textContent)">${c}</span>`
         ).join('')}
       </div>`;
@@ -462,15 +434,21 @@ const MapModule = {
         <span class="legend-label">${r.icon} ${r.label}</span>
       </div>`;
     }).join('');
+    // Diamond shape helper for knock result rows
+    const diamondRowHtml = (keys) => keys.map(k => {
+      const r = CONFIG.RESULTS.find(x => x.key === k);
+      return `<div class="legend-row">
+        <span class="legend-dot legend-diamond" style="background:${r.color}"></span>
+        <span class="legend-label">${r.icon} ${r.label}</span>
+      </div>`;
+    }).join('');
+
     const legendContent =
       rowHtml(group1) +
       `<div class="legend-row"><span class="legend-dot" style="background:#9ca3af"></span><span class="legend-label">Not visited</span></div>` +
       `<div class="legend-divider"></div>` +
-      rowHtml(group2) +
-      `<div class="legend-row" style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1)">
-        <span class="legend-dot" style="border-radius:3px;background:#6b7280"></span>
-        <span class="legend-label">&#9670; Door Knock</span>
-      </div>`;
+      diamondRowHtml(group2) +
+      `<div class="legend-row"><span class="legend-dot legend-diamond" style="background:#9ca3af"></span><span class="legend-label">Not knocked</span></div>`;
 
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {

@@ -75,13 +75,28 @@ const App = {
 
   _visibleTurfs() {
     let turfs = this.state.turfs;
-    // Apply view mode filter (All / Hangers / Knocks) — drives both sidebar AND map
+
+    // View mode (All / Hangers / Knocks) — filters both sidebar AND map
     if (UI.viewMode) {
       turfs = turfs.filter(t => (t.mode || 'hanger') === UI.viewMode);
     }
-    // Apply single-zone filter
+    // Single-zone filter
     if (UI.turfFilter) {
       turfs = turfs.filter(t => String(t.letter) === String(UI.turfFilter));
+    }
+    // Volunteer filter — hide other volunteers' zones from map too
+    if (UI.volunteerFilter) {
+      turfs = turfs.filter(t => {
+        if (UI.volunteerFilter === '[UNASSIGNED]') return !t.volunteer || t.volunteer === '[UNASSIGNED]';
+        return t.volunteer === UI.volunteerFilter;
+      });
+    }
+    // Result filter — only show turfs that contain at least one house matching the result
+    if (UI.resultFilter) {
+      turfs = turfs.filter(t => t.houses.some(h => {
+        if (UI.resultFilter === 'none') return !h.result;
+        return h.result === UI.resultFilter;
+      }));
     }
     return turfs;
   },

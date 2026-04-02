@@ -57,7 +57,7 @@ const MapModule = {
 
     // Address label pane — above default markerPane
     this.map.createPane('addrPane');
-    this.map.getPane('addrPane').style.zIndex = 650;
+    this.map.getPane('addrPane').style.zIndex = 660;
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);

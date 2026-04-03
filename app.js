@@ -379,9 +379,11 @@ const App = {
     try {
       const res = await SheetsAPI.claimZone(letter, user.name, user.color);
       if (res.error) { UI.toast(res.error, 'error'); return; }
-      // Update local state
+      // Update local state immediately
       const turf = this.state.turfs.find(t => t.letter === letter);
       if (turf) { turf.volunteer = user.name; turf.color = user.color; }
+      // Refresh users cache so _turfColor() resolves correctly, then render
+      try { const ur = await SheetsAPI.getUsers(); UI._users = ur.users || []; } catch(e) {}
       this.render();
       UI.toast(`Zone ${letter} claimed ✓`, 'success');
     } catch(e) { UI.toast('Failed to claim zone', 'error'); }
@@ -400,7 +402,8 @@ const App = {
     UI.toast('Updating boundary…', 'info');
     try {
       // Save new boundary
-      await SheetsAPI.saveTurfPolygon(letter, geojson);
+      const saveRes = await SheetsAPI.saveTurfPolygon(letter, geojson);
+      if (saveRes?.error) { UI.toast(`Boundary save failed: ${saveRes.error}`, 'error'); return; }
 
       // Remove houses with no result
       for (const h of toRemove) {
@@ -418,9 +421,13 @@ const App = {
         }]);
       }
 
+      // Full reload so polygon + houses are consistent
       await this.loadData();
       UI.toast(`Zone ${letter} boundary updated ✓`, 'success');
-    } catch(e) { UI.toast('Failed to update boundary', 'error'); console.error(e); }
+    } catch(e) {
+      UI.toast('Failed to update boundary', 'error');
+      console.error('updateTurfBoundary error:', e);
+    }
   },
 
   async addHouse(house) {

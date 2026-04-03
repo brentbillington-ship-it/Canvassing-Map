@@ -107,6 +107,9 @@ const UI = {
           <option value="hanger">Hangers</option>
           <option value="knock">Knocks</option>
         </select>
+        <select id="mmf-vol" onchange="UI.setVolunteerFilter(this.value)" title="Volunteer">
+          <option value="">All Volunteers</option>
+        </select>
         <select id="mmf-result" onchange="UI.setResultFilter(this.value)" title="Result">
           <option value="">All Results</option>
           <option value="none">Not visited</option>
@@ -886,9 +889,17 @@ const UI = {
       const volunteers = [...new Set(
         allTurfs.map(t => t.volunteer).filter(v => v && v !== '[UNASSIGNED]')
       )].sort();
-      sel.innerHTML = '<option value="">All Volunteers</option>' +
+      const volOpts = '<option value="">All Volunteers</option>' +
         '<option value="[UNASSIGNED]"' + (cur === '[UNASSIGNED]' ? ' selected' : '') + '>Unassigned</option>' +
         volunteers.map(v => `<option value="${_esc(v)}"${cur === v ? ' selected' : ''}>${_esc(v)}</option>`).join('');
+      sel.innerHTML = volOpts;
+      // Sync mobile volunteer dropdown
+      const mmfVol = document.getElementById('mmf-vol');
+      if (mmfVol) {
+        const mmfCur = mmfVol.value;
+        mmfVol.innerHTML = volOpts;
+        mmfVol.value = mmfCur || this.volunteerFilter || '';
+      }
     }
 
     const list = document.getElementById('turf-list');
@@ -911,10 +922,17 @@ const UI = {
     }
 
     const sorted = [...filtered].sort((a, b) => {
-      const aKnock = (a.mode || 'hanger') === 'knock' ? -1 : 0;
-      const bKnock = (b.mode || 'hanger') === 'knock' ? -1 : 0;
+      const aKnock = (a.mode || 'hanger') === 'knock' ? 0 : 1;
+      const bKnock = (b.mode || 'hanger') === 'knock' ? 0 : 1;
       if (aKnock !== bKnock) return aKnock - bKnock;
-      // Sort numerically by zone letter
+
+      // Within hanger zones: my assigned zones first, then unassigned, then others
+      const me = UI.currentUser;
+      const aMe = a.volunteer === me ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
+      const bMe = b.volunteer === me ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
+      if (aMe !== bMe) return aMe - bMe;
+
+      // Sort numerically within each group
       const aNum = parseInt(a.letter, 10);
       const bNum = parseInt(b.letter, 10);
       if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
@@ -1635,6 +1653,36 @@ const UI = {
       ${jumpBtn}
     `, null, null);
   },
+
+  // ── Admin zone popup — clicking zone marker in admin mode ────────────────
+  showZoneAdminPopup(letter) {
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const color = _turfColor(turf);
+    const isKnock = (turf.mode || 'hanger') === 'knock';
+    const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
+    const total = turf.houses.length;
+    const contacted = turf.houses.filter(h => h.result && h.result !== 'skip').length;
+    const pct = total ? Math.round(contacted / total * 100) : 0;
+
+    this._modal(`Zone ${letter} — Admin`, `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0">${isKnock ? '✊' : letter}</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">${isKnock ? 'Knock Zone' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}</div>
+          <div style="font-size:12px;color:var(--text3)">${total} houses · ${pct}% complete</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+        <button class="admin-btn" style="padding:8px;font-size:12px" onclick="document.getElementById('modal-overlay')?.remove();UI.showEditTurfModal('${letter}')">✎ Edit Volunteer</button>
+        <button class="admin-btn" style="padding:8px;font-size:12px" onclick="document.getElementById('modal-overlay')?.remove();TurfDraw.startEditBoundary('${letter}')">⬡ Edit Boundary</button>
+        <button class="admin-btn" style="padding:8px;font-size:12px" onclick="document.getElementById('modal-overlay')?.remove();TurfDraw.resortTurf('${letter}',MapModule.getCurrentLatLon())">🔄 Re-sort Walk</button>
+        <button class="admin-btn danger" style="padding:8px;font-size:12px;background:#fee2e2;border-color:#fca5a5;color:#c44848" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>UI.confirmDeleteTurf('${letter}'),50)">✕ Delete Zone</button>
+      </div>
+      <button class="modal-cancel" style="width:100%;margin-top:6px" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>{const el=document.getElementById('turf-block-${letter}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid ${color}';setTimeout(()=>el.style.outline='',1500);}},100)">Jump to Zone in List</button>
+    `, null, null);
+  },
+
   _mapTapPending: false,
   _mapTapMarker: null,
 

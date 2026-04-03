@@ -62,14 +62,7 @@ const MapModule = {
 
     satellite.addTo(this.map);
     labels.addTo(this.map);
-    // Apply brightness boost so aerial looks consistent on high-DPI mobile screens
-    satellite.on('add', () => {
-      const pane = this.map.getPane('tilePane');
-      if (pane) pane.style.filter = 'brightness(1.3)';
-    });
-    if (this.map.getPane('tilePane')) {
-      this.map.getPane('tilePane').style.filter = 'brightness(1.3)';
-    }
+    // No brightness boost — tile opacity (0.65) already provides correct levels on all devices.
 
     // CISD boundary layer
     this._cisdLayer = null;
@@ -205,9 +198,9 @@ const MapModule = {
     const z = this.map.getZoom();
     const belowThreshold = z < this._minMarkerZoom;
 
-    // Show/hide house markers based on zoom threshold
-    const housePane = this.houseGroup?.getPane?.() || this.map.getPane('markerPane');
-    if (housePane) housePane.style.display = belowThreshold ? 'none' : '';
+    // Show/hide house markers based on zoom threshold via the pane (no clear needed)
+    const markerPane = this.map.getPane('markerPane');
+    if (markerPane) markerPane.style.display = belowThreshold ? 'none' : '';
 
     if (belowThreshold) {
       // Still update polygon fill
@@ -222,8 +215,8 @@ const MapModule = {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
     const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
-    const size    = Math.round(lerp(6, 26, t));
-    const opacity = lerp(0.25, 0.92, t).toFixed(2);
+    const size    = Math.round(lerp(8, 26, t));
+    const opacity = lerp(0.65, 0.95, t).toFixed(2);  // was 0.25→0.92, now higher floor
     const anchor  = Math.round(size / 2);
     const polyFill = lerp(0.28, 0.15, t).toFixed(2); // more fill when zoomed out
 
@@ -257,7 +250,7 @@ const MapModule = {
     });
   },
 
-  _minMarkerZoom: 13,
+  _minMarkerZoom: 14,
   _allTurfsCache: [],  // store last rendered turfs for viewport refresh
 
   // ── Full render ────────────────────────────────────────────────────────────
@@ -281,22 +274,19 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
-    // Below threshold — hide all markers
+    // Below threshold — pane is hidden via _updateZoomStyle; skip marker work entirely
     if (zoom < this._minMarkerZoom) {
-      this.houseGroup.clearLayers();
-      this.houseMarkers = {};
       return;
     }
 
-    const bounds = this.map.getBounds().pad(0.1);
+    const bounds = this.map.getBounds().pad(0.15);
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
 
-    turfs.forEach((turf, i) => {
+    turfs.forEach((turf) => {
       const color = _turfColor(turf);
       const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
       turf.houses.forEach((house, idx) => {
-        // Viewport cull — skip houses outside current bounds
         if (!bounds.contains([house.lat, house.lon])) return;
         this._renderHouse(house, turf, idx, color, isOtherZone);
       });
@@ -333,7 +323,11 @@ const MapModule = {
       });
       marker.on('click', e => {
         L.DomEvent.stopPropagation(e);
-        UI.showZoneStatsPopup(turf.letter);
+        if (UI.isAdmin) {
+          UI.showZoneAdminPopup(turf.letter);
+        } else {
+          UI.showZoneStatsPopup(turf.letter);
+        }
       });
       marker.addTo(this.turfLabelGroup);
       }

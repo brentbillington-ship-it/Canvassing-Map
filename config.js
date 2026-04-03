@@ -35,5 +35,5 @@ const CONFIG = {
   CANVASS_SCRIPT: `Hi, I'm a neighbor volunteering for Kevin Chaka, who's running for Coppell ISD Place 5 School Board. We're focused on keeping our schools excellent and fiscally responsible. Do you have a moment to hear more?`,
 
   REFRESH_INTERVAL: 15000,
-  PRESENCE_TIMEOUT: 90000,
+  PRESENCE_TIMEOUT: 120000,
 };

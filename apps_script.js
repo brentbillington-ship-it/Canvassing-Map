@@ -490,7 +490,7 @@ function getPresence() {
   const rows    = sheet.getDataRange().getValues();
   const hdrs    = rows[0];
   const sidCol  = hdrs.indexOf('session_id'), nameCol = hdrs.indexOf('name'), seenCol = hdrs.indexOf('last_seen');
-  const cutoff  = Date.now() - 90000;
+  const cutoff  = Date.now() - 120000;
   const users   = rows.slice(1)
     .filter(r => r[seenCol] && new Date(r[seenCol]).getTime() >= cutoff)
     .map(r => ({ sessionId: String(r[sidCol]), name: r[nameCol]||'Unknown', last_seen: r[seenCol] }));

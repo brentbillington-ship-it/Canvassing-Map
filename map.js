@@ -40,7 +40,7 @@ const MapModule = {
     const isMobileDevice = window.innerWidth <= 680 || ('ontouchstart' in window && window.innerWidth <= 900);
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 19, opacity: isMobileDevice ? 1.0 : 0.65, crossOrigin: true }
+      { attribution: '© Esri', maxZoom: 19, opacity: 0.65, crossOrigin: true }
     );
 
     this.map.createPane('labelsPane');
@@ -68,7 +68,7 @@ const MapModule = {
 
     satellite.addTo(this.map);
     labels.addTo(this.map);
-    // Mobile: opacity 1.0 (screen renders correctly at full). Desktop: 0.65 (avoids washout on bright monitors).
+    // Aerial tile opacity 0.65 on all devices for consistent look
 
     // CISD boundary layer
     this._cisdLayer = null;

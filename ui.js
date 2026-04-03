@@ -948,9 +948,9 @@ const UI = {
       const aUnassigned = !a.volunteer || a.volunteer === '[UNASSIGNED]';
       const bUnassigned = !b.volunteer || b.volunteer === '[UNASSIGNED]';
 
-      // Group: my zones (0), other assigned (1), unassigned (2)
-      const aGroup = a.volunteer === me ? 0 : aUnassigned ? 2 : 1;
-      const bGroup = b.volunteer === me ? 0 : bUnassigned ? 2 : 1;
+      // Group: my zones (0), unassigned (1), other volunteers (2)
+      const aGroup = a.volunteer === me ? 0 : aUnassigned ? 1 : 2;
+      const bGroup = b.volunteer === me ? 0 : bUnassigned ? 1 : 2;
       if (aGroup !== bGroup) return aGroup - bGroup;
 
       // Within assigned groups: sort by volunteer name alphabetically
@@ -1019,7 +1019,7 @@ const UI = {
           ${adminBtns}
         </div>
         <div class="turf-houses" id="houses-${turf.letter}" style="display:${expanded ? 'block' : 'none'}">
-          ${expanded && houses.length > 0 ? `
+          ${houses.length > 0 ? `
           <div class="ms-bar" id="ms-bar-${turf.letter}">
             ${this._multiSelectTurf === turf.letter ? `
               <div class="ms-active-bar">
@@ -1251,6 +1251,7 @@ const UI = {
   },
 
   // ── Presence ─────────────────────────────────────────────────────────────────
+  _knownPresenceNames: new Set(),
   updatePresence(users) {
     const bar = document.getElementById('presence-bar');
     if (!bar) return;
@@ -1283,9 +1284,32 @@ const UI = {
       const found = this._users.find(u => u.name === name);
       return found?.color || '#6b7280';
     };
+    // Dedup: same person on multiple devices → keep most recent last_seen
+    const others = users.filter(u => u.sessionId !== this.sessionId);
+    const byName = {};
+    others.forEach(u => {
+      const key = (u.name || '').trim();
+      if (!key) return;
+      if (!byName[key] || new Date(u.last_seen) > new Date(byName[key].last_seen)) {
+        byName[key] = u;
+      }
+    });
+    const deduped = Object.values(byName).map(u => ({ ...u, me: false }));
+
+    // "X joined 👋" toast for new arrivals
+    const currentNames = new Set(deduped.map(u => (u.name || '').trim()).filter(Boolean));
+    if (this._knownPresenceNames.size > 0) {
+      for (const name of currentNames) {
+        if (!this._knownPresenceNames.has(name)) {
+          this.toast(`${name} joined 👋`, 'info');
+        }
+      }
+    }
+    this._knownPresenceNames = currentNames;
+
     const all = [
       { name: this.currentUser, sessionId: this.sessionId, me: true, last_seen: new Date().toISOString() },
-      ...users.filter(u => u.sessionId !== this.sessionId).map(u => ({ ...u, me: false }))
+      ...deduped
     ];
     bar.innerHTML = all.map(u => {
       const bgColor   = userColorFor(u.name, u.me);

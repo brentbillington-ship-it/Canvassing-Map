@@ -122,7 +122,7 @@ const App = {
 
   _startTimers() {
     this._refreshTimer  = setInterval(() => this._silentRefresh(), CONFIG.REFRESH_INTERVAL);
-    this._presenceTimer = setInterval(() => this._heartbeat(), 30000);
+    this._presenceTimer = setInterval(() => this._heartbeat(), 15000);
     this._heartbeat();
     this._pollPresence();
     setInterval(() => this._pollPresence(), 15000);

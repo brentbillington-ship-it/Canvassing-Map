@@ -821,8 +821,8 @@ body {
 .school-label-hs { font-size: 11px; font-weight: 900; border-width: 2px; }
 .school-label-ms { font-size: 10px; font-weight: 800; }
 .school-label-es { font-size: 9px;  font-weight: 700; }
-/* Mobile school label and aerial overrides moved to end of file for specificity */
-/* Mobile: no brightness filter — tile opacity:0.65 handles exposure on all devices */
+/* Mobile school label overrides moved to end of file for specificity */
+/* Tile opacity 0.65 on all devices — set in map.js */
 
 /* ─── Mobile chat ───────────────────────────────────────────────────────────── */
 #chat-panel {
@@ -1245,8 +1245,6 @@ body {
     box-shadow: 0 1px 6px rgba(0,0,0,0.55) !important;
     font-weight: 800 !important;
   }
-  /* Aerial tile: force full opacity on mobile — JS detection may misfire */
-  .leaflet-tile-pane img { opacity: 1 !important; }
   /* addr-label wrapper: always transparent regardless of dark mode */
   .leaflet-pane.leaflet-shadow-pane,
   .leaflet-marker-pane > div { background: transparent !important; }

@@ -53,7 +53,7 @@ const MapModule = {
     // Zone label pane — above markerPane (z600) but below addrPane (z660)
     this.map.createPane('turfLabelPane');
     this.map.getPane('turfLabelPane').style.zIndex = 645;
-    this.map.getPane('turfLabelPane').style.pointerEvents = 'none';
+    this.map.getPane('turfLabelPane').style.pointerEvents = 'auto';
 
     // Address label pane — above default markerPane
     this.map.createPane('addrPane');
@@ -274,17 +274,22 @@ const MapModule = {
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
-        // Zone label in turfLabelPane (z645) — above dots (z600), below address chips (z660)
-        L.marker(bounds.getCenter(), {
-          icon: L.divIcon({
-            html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
-            className: '',
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-          }),
-          interactive: false,
-          pane: 'turfLabelPane',
-        }).addTo(this.turfLabelGroup);
+      // Zone label in turfLabelPane (z645) — above dots (z600), below address chips (z660)
+      const marker = L.marker(bounds.getCenter(), {
+        icon: L.divIcon({
+          html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
+          className: '',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+        }),
+        interactive: true,
+        pane: 'turfLabelPane',
+      });
+      marker.on('click', e => {
+        L.DomEvent.stopPropagation(e);
+        UI.showZoneStatsPopup(turf.letter);
+      });
+      marker.addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
   },

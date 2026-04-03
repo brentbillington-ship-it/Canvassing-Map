@@ -96,7 +96,24 @@ const UI = {
       </div>`;
 
     document.getElementById('offline-banner').textContent = 'Offline - results will sync when reconnected';
-    // Inject mobile FAB if not already present
+    // Mobile map filter overlay — visible when list is closed on mobile
+    if (!document.getElementById('mobile-map-filter')) {
+      const f = document.createElement('div');
+      f.id = 'mobile-map-filter';
+      f.className = 'mobile-map-filter';
+      f.innerHTML = `
+        <select id="mmf-view" onchange="UI.setViewMode(this.value);UI._syncMobileFilter()" title="Type">
+          <option value="">All</option>
+          <option value="hanger">Hangers</option>
+          <option value="knock">Knocks</option>
+        </select>
+        <select id="mmf-result" onchange="UI.setResultFilter(this.value)" title="Result">
+          <option value="">All Results</option>
+          <option value="none">Not visited</option>
+          ${CONFIG.RESULTS.map(r => `<option value="${r.key}">${r.icon} ${r.label}</option>`).join('')}
+        </select>`;
+      document.getElementById('map-wrap')?.appendChild(f);
+    }
     if (!document.getElementById('mobile-list-fab')) {
       const fab = document.createElement('button');
       fab.id = 'mobile-list-fab';
@@ -352,7 +369,7 @@ const UI = {
         btn.title = open ? 'Back to map' : 'Show list';
       }
       if (fab) fab.innerHTML = open ? '🗺️' : '📋';
-      if (open && sidebar) UI._initSidebarSwipe(sidebar);
+      if (open && sidebar) { /* swipe removed */ }
       return;
     }
     const wrap = document.getElementById('map-wrap');
@@ -897,9 +914,11 @@ const UI = {
       const aKnock = (a.mode || 'hanger') === 'knock' ? -1 : 0;
       const bKnock = (b.mode || 'hanger') === 'knock' ? -1 : 0;
       if (aKnock !== bKnock) return aKnock - bKnock;
-      const aMe = a.volunteer === this.currentUser ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
-      const bMe = b.volunteer === this.currentUser ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
-      return aMe - bMe;
+      // Sort numerically by zone letter
+      const aNum = parseInt(a.letter, 10);
+      const bNum = parseInt(b.letter, 10);
+      if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+      return String(a.letter).localeCompare(String(b.letter));
     });
     list.innerHTML = sorted.map((turf, i) => {
       const color     = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
@@ -970,10 +989,8 @@ const UI = {
     const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     const volunteer = volunteerName || '[UNASSIGNED]';
-    // Find color from users list — preserve existing turf color when unassigning
     const userRec = this._users.find(u => u.name === volunteer);
-    const color = userRec?.color ||
-      (turf.color && turf.color !== '#6b7280' ? turf.color : CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || '#6b7280');
+    const color   = userRec?.color || '#6b7280';
     try {
       const res = await SheetsAPI.updateTurf(letter, { volunteer, color });
       if (res?.error) { UI.toast(res.error, 'error'); return; }
@@ -1237,7 +1254,7 @@ const UI = {
       const opt       = sel?.options[sel.selectedIndex];
       const color = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]')
         ? opt.dataset.color
-        : (turf.color && turf.color !== '#6b7280' ? turf.color : CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || '#6b7280');
+        : '#6b7280';
       const script    = (document.getElementById('f-script')?.value || '').trim();
       await App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
       const t = App.state.turfs.find(x => x.letter === letter);
@@ -1578,7 +1595,46 @@ const UI = {
     App.removeHouse(id);
   },
 
-  // ── Report Missing House (non-admin map-tap) ──────────────────────────────
+  // ── Zone stats popup (clicking zone number on map) ────────────────────────
+  showZoneStatsPopup(letter) {
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const total     = turf.houses.length;
+    const contacted = turf.houses.filter(h => h.result && h.result !== 'skip').length;
+    const pct       = total ? Math.round(contacted / total * 100) : 0;
+    const isKnock   = (turf.mode || 'hanger') === 'knock';
+    const color     = turf.color || '#6b7280';
+    const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
+
+    // Result breakdown
+    const breakdown = CONFIG.RESULTS
+      .filter(r => isKnock ? ['knocked','not_home','refused'].includes(r.key) : ['hanger','skip','not_home'].includes(r.key))
+      .map(r => {
+        const cnt = turf.houses.filter(h => h.result === r.key).length;
+        return cnt ? `<div class="zsb-row"><span>${r.icon} ${r.label}</span><strong>${cnt}</strong></div>` : '';
+      }).join('');
+
+    const claimBtn = !this.isAdmin && isUnassigned
+      ? `<button class="modal-confirm" style="margin-top:12px;width:100%" onclick="App.claimZone('${letter}');document.getElementById('modal-overlay')?.remove()">Claim Zone ${letter}</button>`
+      : '';
+    const jumpBtn = `<button class="modal-cancel" style="margin-top:8px;width:100%" onclick="document.getElementById('modal-overlay')?.remove();UI.setTurfFilter('${letter}');document.getElementById('turf-block-${letter}')?.scrollIntoView({behavior:'smooth'})">Jump to Zone in List</button>`;
+
+    this._modal(`Zone ${letter}`, `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:36px;height:36px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0">${isKnock ? '✊' : letter}</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">${isKnock ? 'Knock Zone' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}</div>
+          <div style="font-size:12px;color:var(--text3)">${total} houses · ${pct}% complete</div>
+        </div>
+      </div>
+      <div class="turf-prog-track" style="width:100%;height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:12px">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width 0.4s"></div>
+      </div>
+      <div class="zsb-breakdown">${breakdown || '<div style="color:var(--text3);font-size:12px">No contacts recorded yet</div>'}</div>
+      ${claimBtn}
+      ${jumpBtn}
+    `, null, null);
+  },
   _mapTapPending: false,
   _mapTapMarker: null,
 
@@ -1808,7 +1864,7 @@ const UI = {
       const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true });
       const isMe    = (m.session_id || m.sessionId) === this.sessionId;
       let html = '';
-      if (!isStrip && dateStr !== lastDate) {
+      if (dateStr !== lastDate) {
         lastDate = dateStr;
         html += `<div class="chat-date-bar"><span>${dateStr}</span></div>`;
       }
@@ -1844,21 +1900,10 @@ const UI = {
     if (el) el.scrollTop = el.scrollHeight;
   },
 
-  // ── Swipe-down to close sidebar on mobile ─────────────────────────────────
-  _initSidebarSwipe(sidebar) {
-    if (sidebar._swipeInit) return;
-    sidebar._swipeInit = true;
-    let startY = 0, startX = 0;
-    sidebar.addEventListener('touchstart', e => {
-      startY = e.touches[0].clientY;
-      startX = e.touches[0].clientX;
-    }, { passive: true });
-    sidebar.addEventListener('touchend', e => {
-      const dy = e.changedTouches[0].clientY - startY;
-      const dx = Math.abs(e.changedTouches[0].clientX - startX);
-      // Swipe down ≥ 60px, more vertical than horizontal
-      if (dy > 60 && dx < dy * 0.6) UI.toggleMap();
-    }, { passive: true });
+  _syncMobileFilter() {
+    const mmf = document.getElementById('mmf-view');
+    const sel = document.getElementById('view-mode-sel');
+    if (mmf && sel) sel.value = mmf.value;
   },
 
   startChatPoll() {

@@ -1187,3 +1187,27 @@ body {
   /* Hide old header list button on mobile — FAB replaces it */
   .list-toggle-btn { display: none !important; }
 }
+
+/* ─── Zone stats popup ──────────────────────────────────────────────────────── */
+.zsb-breakdown { display: flex; flex-direction: column; gap: 4px; }
+.zsb-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.zsb-row:last-child { border-bottom: none; }
+.turf-label { cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; }
+.turf-label:hover { transform: scale(1.12); box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+
+/* ─── Mobile map filter overlay ─────────────────────────────────────────────── */
+.mobile-map-filter { display: none; }
+@media (max-width: 680px) {
+  .mobile-map-filter {
+    display: flex; gap: 6px; position: absolute;
+    top: 8px; left: 8px; right: 70px; z-index: 1000;
+    pointer-events: auto;
+  }
+  .mobile-map-filter select {
+    flex: 1; font-size: 12px; padding: 5px 6px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: rgba(255,255,255,0.95); color: var(--text);
+    font-family: inherit; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+}

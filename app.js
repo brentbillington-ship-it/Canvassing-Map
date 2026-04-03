@@ -45,14 +45,6 @@ const App = {
       if (data.error) throw new Error(data.error);
       this.state.turfs = data.turfs;
       this._mergePolygons(polyData?.polygons);
-      // Heal any zones stuck with fallback grey color (#6b7280)
-      this.state.turfs.forEach((turf, i) => {
-        if (turf.color === '#6b7280') {
-          const healed = CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
-          turf.color = healed;
-          SheetsAPI.updateTurf(turf.letter, { color: healed }).catch(() => {});
-        }
-      });
       this.render();
       UI.toast('Data loaded ✓', 'success');
       UI.setOffline(false);
@@ -446,13 +438,25 @@ const App = {
   },
 
   async removeHouse(id) {
+    // Optimistic remove — update UI immediately, restore on failure
+    let removed = null, removedTurf = null, removedIdx = -1;
+    for (const turf of this.state.turfs) {
+      const idx = turf.houses.findIndex(h => h.id === id);
+      if (idx >= 0) { removed = turf.houses[idx]; removedTurf = turf; removedIdx = idx; break; }
+    }
+    if (removed) { removedTurf.houses.splice(removedIdx, 1); this.render(); }
     try {
       const res = await SheetsAPI.removeHouse(id);
-      if (res.error) { UI.toast(res.error, 'error'); return; }
-      this.state.turfs.forEach(t => { t.houses = t.houses.filter(h => h.id !== id); });
-      this.render();
-      UI.toast('House removed');
-    } catch(e) { UI.toast('Failed to remove house', 'error'); }
+      if (res.error) {
+        // Restore on failure
+        if (removed && removedTurf) { removedTurf.houses.splice(removedIdx, 0, removed); this.render(); }
+        UI.toast(res.error, 'error'); return;
+      }
+      UI.toast('Marker removed');
+    } catch(e) {
+      if (removed && removedTurf) { removedTurf.houses.splice(removedIdx, 0, removed); this.render(); }
+      UI.toast('Failed to remove marker', 'error');
+    }
   },
 
   async bulkImport(turfs) {

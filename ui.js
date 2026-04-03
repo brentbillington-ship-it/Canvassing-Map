@@ -882,6 +882,9 @@ const UI = {
     }
 
     const sorted = [...filtered].sort((a, b) => {
+      const aKnock = (a.mode || 'hanger') === 'knock' ? -1 : 0;
+      const bKnock = (b.mode || 'hanger') === 'knock' ? -1 : 0;
+      if (aKnock !== bKnock) return aKnock - bKnock;
       const aMe = a.volunteer === this.currentUser ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
       const bMe = b.volunteer === this.currentUser ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
       return aMe - bMe;
@@ -922,9 +925,11 @@ const UI = {
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${isKnock ? '#b3a8c8' : color}">${isKnock ? '<span style="display:inline-block;transform:rotate(-45deg);font-size:14px;line-height:1">✊</span>' : turf.letter}</div>
           <div class="turf-info">
-            <div class="turf-volunteer">${this.isAdmin ? '' : (isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
+            ${this.isAdmin
+              ? inlineAssign
+              : `<div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>`
+            }
             ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#b3a8c8;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
-            ${this.isAdmin ? inlineAssign : ''}
             <div class="turf-progress-row">
               <div class="turf-prog-track">
                 <div class="turf-prog-fill" style="width:${pct}%;background:${is100 ? '#2d9e5f' : color}"></div>
@@ -1015,9 +1020,9 @@ const UI = {
       onclick="UI._cardClick('${house.id}')">
       <div class="house-num" style="background:${result ? (resultDef?.color || '#9ca3af') : '#d1d5db'}">${streetNum}</div>
       <div class="house-body">
-        <div class="house-addr">${_esc(house.address)}${house.notes ? '<span class="note-star"> ✱</span>' : ''}</div>
+        <div class="house-addr">${_esc(house.address)}</div>
         ${house.owner ? `<div class="house-name">${_esc(house.owner)}</div>` : ''}
-        ${house.notes ? `<div class="house-notes">📝 ${_esc(house.notes)}</div>` : ''}
+        ${house.notes ? `<div class="house-notes">${_esc(house.notes)}</div>` : ''}
         ${scriptHtml}
         <div class="house-footer">${badgeHtml}${attribution}</div>
       </div>
@@ -1108,7 +1113,7 @@ const UI = {
   },
 
   // ── Modal helper ──────────────────────────────────────────────────────────────
-  _modal(title, bodyHtml, onConfirm, confirmLabel = 'Save') {
+  _modal(title, bodyHtml, onConfirm, confirmLabel = 'Save', onCancel = null) {
     document.getElementById('modal-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.id    = 'modal-overlay';
@@ -1116,16 +1121,19 @@ const UI = {
       <div class="modal-card">
         <div class="modal-header">
           <div class="modal-title">${title}</div>
-          <button class="modal-close" onclick="document.getElementById('modal-overlay').remove()">✕</button>
+          <button class="modal-close" id="modal-x-close">✕</button>
         </div>
         <div class="modal-body">${bodyHtml}</div>
         <div class="modal-footer">
-          ${onConfirm ? `<button class="modal-cancel" onclick="document.getElementById('modal-overlay').remove()">Cancel</button>` : ''}
-          ${onConfirm ? `<button class="modal-confirm" id="modal-confirm-btn">${confirmLabel}</button>` : `<button class="modal-cancel" onclick="document.getElementById('modal-overlay').remove()">Close</button>`}
+          ${onConfirm ? `<button class="modal-cancel" id="modal-cancel-close">Cancel</button>` : ''}
+          ${onConfirm ? `<button class="modal-confirm" id="modal-confirm-btn">${confirmLabel}</button>` : `<button class="modal-cancel" id="modal-cancel-close">Close</button>`}
         </div>
       </div>`;
     document.body.appendChild(overlay);
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    const doCancel = () => { overlay.remove(); onCancel?.(); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) doCancel(); });
+    document.getElementById('modal-x-close')?.addEventListener('click', doCancel);
+    document.getElementById('modal-cancel-close')?.addEventListener('click', doCancel);
     if (onConfirm) document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
       const btn = document.getElementById('modal-confirm-btn');
       if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }

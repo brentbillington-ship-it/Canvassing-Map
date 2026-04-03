@@ -222,12 +222,8 @@ const TurfDraw = (() => {
     _cancelEditMode();
     _editingLetter = letter;
 
-    // Disable any active polygon draw handler — edit mode is separate
-    if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} _polygonHandler = null; }
-    // Add draw control to map (needed for Leaflet.draw CSS/handles) but do NOT activate draw
-    if (!_isMobile()) {
-      try { _map.addControl(_drawControl); } catch(e) {}
-    }
+    // Do NOT add draw control during edit — it overrides polygon colors with Leaflet.draw blue
+    // L.EditToolbar.Edit works standalone without the draw toolbar mounted
 
     let foundLayer = null;
     Object.entries(_turfLetters).forEach(([lid, l]) => {
@@ -254,7 +250,6 @@ const TurfDraw = (() => {
     }
     _onEditedPolygon(_editingLetter, _editLayer);
     _editingLetter = null; _editLayer = null;
-    if (!_isMobile()) { try { _map.removeControl(_drawControl); } catch(e) {} }
     UI.hideEditBoundaryBanner();
   }
 
@@ -263,7 +258,6 @@ const TurfDraw = (() => {
       try { _editLayer._ckEditHandler.revertLayers(); _editLayer._ckEditHandler.disable(); } catch(e) {}
     }
     _editingLetter = null; _editLayer = null;
-    if (!_isMobile() && !_active) { try { _map.removeControl(_drawControl); } catch(e) {} }
     UI.hideEditBoundaryBanner();
   }
 
@@ -275,8 +269,15 @@ const TurfDraw = (() => {
     const centroid = ParcelsUtil.leafletRingCentroid(ring);
     const sorted   = ParcelsUtil.walkOrder(residential, centroid);
     _showPopulateModal({ layer, ring, sorted, excluded });
-    // Deactivate draw handler after shape complete
+    // Disable current handler — will re-arm after modal resolves
     if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} _polygonHandler = null; }
+  }
+
+  // Re-arm polygon draw so user can immediately draw another zone
+  function _rearmDraw() {
+    if (!_active || _editingLetter || _isMobile()) return;
+    _activatePolygonDraw();
+    UI.toast('Draw mode ready — click to start next zone', 'info', 2000);
   }
 
   // ── Edited polygon ────────────────────────────────────────────────────────
@@ -370,9 +371,10 @@ const TurfDraw = (() => {
       const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
 
       const geojson = geojsonSnapshot;
-      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels });
+      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels, pendingLayer: layer });
+      _rearmDraw();
       return true;
-    }, 'Create Zone');
+    }, 'Create Zone', () => _rearmDraw());
   }
   // ── Diff modal ────────────────────────────────────────────────────────────
   function _showDiffModal({ letter, layer, toKeep, toRemove, toAdd, excluded }) {
@@ -432,8 +434,10 @@ const TurfDraw = (() => {
     return Array.isArray(lls[0]) ? lls[0] : lls;
   }
 
+  function isEditing() { return !!_editingLetter; }
+
   return {
-    init, toggle, isActive, loadTurfs, removeTurfLayer,
+    init, toggle, isActive, isEditing, loadTurfs, removeTurfLayer,
     startEditBoundary, resortTurf, _onCommercialToggle, _cancelMobileRect,
     _commitEdit, _cancelEditMode,
   };

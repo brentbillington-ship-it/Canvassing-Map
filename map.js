@@ -385,6 +385,10 @@ const MapModule = {
       ? `<button class="popup-clear-btn" onclick="MapModule._handlePopupResult('${house.id}','')">↩ Clear result</button>`
       : '';
 
+    const deleteBtn = UI.isAdmin
+      ? `<button class="popup-delete-btn" onclick="MapModule._confirmDeleteMarker('${house.id}')">🗑 Remove marker</button>`
+      : '';
+
     const modeBadge = (turf.mode || 'hanger') === 'knock'
       ? `<span class="mode-badge knock">Knock</span>`
       : `<span class="mode-badge hanger">Hanger</span>`;
@@ -404,6 +408,7 @@ const MapModule = {
         <div class="popup-result-grid" style="grid-template-columns:repeat(${gridCols},1fr)">${btnRows}</div>
         ${notesHtml}
         ${clearBtn}
+        ${deleteBtn}
       </div>`;
 
     this.map.closePopup();
@@ -446,7 +451,17 @@ const MapModule = {
     if (cached) MapModule._openHousePopup(cached.house, cached.turf, cached.color);
   },
 
-  // -- Legend — desktop always-on, mobile info button ──────────────────────────
+  async _confirmDeleteMarker(houseId) {
+    this.map.closePopup();
+    const { house } = App._findHouse(houseId);
+    const label = house?.address || 'this marker';
+    const confirmed = await UI._confirm(
+      'Remove Marker',
+      `Remove <strong>${_esc(label)}</strong> from the map?<br><br>This cannot be undone.`,
+      'Remove', true
+    );
+    if (confirmed) App.removeHouse(houseId);
+  },
   _renderLegend() {
     if (this._legend) this._legend.remove();
     const group1 = ['hanger', 'skip'];

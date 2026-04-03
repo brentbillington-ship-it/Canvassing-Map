@@ -69,7 +69,8 @@ const App = {
     UI.updateStats(this.state.turfs);
     UI.renderSidebar(turfs);
     MapModule.renderAll(turfs);
-    TurfDraw.loadTurfs(this.state.turfs);
+    // Don't rebuild drawn layers or re-render polygons while an edit is in progress
+    if (!TurfDraw.isEditing()) TurfDraw.loadTurfs(this.state.turfs);
     UI.checkZoneCompletion(this.state.turfs);
   },
 
@@ -276,29 +277,100 @@ const App = {
     } catch(e) {}
   },
 
-  // ── Create turf from draw (new) ───────────────────────────────────────────
-  async createTurfFromDraw({ letter, color, volunteer, geojson, parcels }) {
-    App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
-    try {
-      const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
-      // Single atomic call: creates turf + polygon + houses, rolls back on failure
-      let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+  // ── Zone creation queue — processes in background, no full-screen freeze ──
+  _createQueue: [],
+  _queueRunning: false,
+  _pendingPolygons: {}, // letter → Leaflet layer
 
-      // Collision detected — server tells us the next safe number; offer to retry
-      if (res.error && res.nextAvailable) {
-        App._showCreatingOverlay(false);
-        const retry = await UI._confirm('Zone Taken', `Zone ${letter} was just created by another admin.<br><br>Create as Zone ${res.nextAvailable} instead?`, `Create as Zone ${res.nextAvailable}`);
-        if (!retry) return;
-        letter = String(res.nextAvailable);
-        App._showCreatingOverlay(true, `Creating Zone ${letter}…`);
-        res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+  createTurfFromDraw({ letter, color, volunteer, geojson, parcels, pendingLayer }) {
+    // Show a shaded "pending" polygon immediately so user can see where it is
+    if (pendingLayer) {
+      const pending = L.geoJSON(
+        { type: 'Feature', geometry: geojson, properties: {} },
+        { style: { color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.18, weight: 2, dashArray: '6,4', opacity: 0.6 } }
+      ).addTo(MapModule.map);
+      this._pendingPolygons[letter] = pending;
+    }
+    UI.toast(`Zone ${letter} queued — drawing next zone now`, 'info', 2500);
+    this._createQueue.push({ letter, color, volunteer, geojson, parcels });
+    this._updateQueueBanner();
+    if (!this._queueRunning) this._runCreateQueue();
+  },
+
+  _updateQueueBanner() {
+    let banner = document.getElementById('zone-queue-banner');
+    const total = this._createQueue.length;
+    const running = this._queueRunning;
+    if (!total && !running) { banner?.remove(); return; }
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'zone-queue-banner';
+      document.body.appendChild(banner);
+    }
+    const current = this._createQueue[0];
+    banner.className = 'zone-queue-banner';
+    banner.innerHTML = total > 1
+      ? `⏳ Creating Zone ${current?.letter}… <span class="zqb-count">${total} zones in queue</span>`
+      : `⏳ Creating Zone ${current?.letter}…`;
+  },
+
+  async _runCreateQueue() {
+    if (this._queueRunning || !this._createQueue.length) return;
+    this._queueRunning = true;
+    this._updateQueueBanner();
+    while (this._createQueue.length) {
+      const job = this._createQueue[0];
+      let { letter, color, volunteer, geojson, parcels } = job;
+      this._updateQueueBanner();
+      try {
+        const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
+        let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+
+        // Collision — another admin grabbed this number
+        if (res.error && res.nextAvailable) {
+          if (this._pendingPolygons[letter]) {
+            MapModule.map.removeLayer(this._pendingPolygons[letter]);
+            delete this._pendingPolygons[letter];
+          }
+          const retry = await UI._confirm(
+            'Zone Taken',
+            `Zone ${letter} was just created by another admin.<br><br>Create as Zone ${res.nextAvailable} instead?`,
+            `Create as Zone ${res.nextAvailable}`
+          );
+          if (!retry) {
+            this._createQueue.shift();
+            this._updateQueueBanner();
+            continue;
+          }
+          letter = String(res.nextAvailable);
+          res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+        }
+
+        // Remove pending polygon — real one comes from loadData
+        if (this._pendingPolygons[letter]) {
+          MapModule.map.removeLayer(this._pendingPolygons[letter]);
+          delete this._pendingPolygons[letter];
+        }
+
+        if (res.error) {
+          UI.toast(`Zone ${letter} failed: ${res.error}`, 'error');
+        } else {
+          await this.loadData();
+          UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
+        }
+      } catch(e) {
+        UI.toast(`Zone ${letter} failed — check connection`, 'error');
+        console.error(e);
+        if (this._pendingPolygons[letter]) {
+          MapModule.map.removeLayer(this._pendingPolygons[letter]);
+          delete this._pendingPolygons[letter];
+        }
       }
-
-      if (res.error) { UI.toast(res.error, 'error'); return; }
-      await this.loadData();
-      UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
-    } catch(e) { UI.toast('Failed to create zone — check connection', 'error'); console.error(e); }
-    finally { App._showCreatingOverlay(false); }
+      this._createQueue.shift();
+      this._updateQueueBanner();
+    }
+    this._queueRunning = false;
+    this._updateQueueBanner();
   },
 
   async claimZone(letter) {
@@ -321,15 +393,6 @@ const App = {
     if (!email) return { name: UI.currentUser, color: '#6b7280' };
     const found = UI._users.find(u => u.email === email);
     return found || { name: UI.currentUser, color: '#6b7280' };
-  },
-
-  _showCreatingOverlay(show, msg = 'Working…') {
-    document.getElementById('creating-overlay')?.remove();
-    if (!show) return;
-    const el = document.createElement('div');
-    el.id = 'creating-overlay';
-    el.innerHTML = `<div class="creating-spinner"></div><div class="creating-text">${msg}</div>`;
-    document.getElementById('map-wrap')?.appendChild(el);
   },
 
   // ── Update turf boundary (edit) ────────────────────────────────────────────

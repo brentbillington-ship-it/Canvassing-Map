@@ -962,8 +962,8 @@ body {
 .turf-inline-assign {
   font-size: 11px; padding: 2px 5px; border: 1px solid var(--border);
   border-radius: 5px; background: var(--bg); color: var(--text);
-  font-family: inherit; cursor: pointer; margin-top: 2px;
-  max-width: 140px;
+  font-family: inherit; cursor: pointer;
+  width: 100%; box-sizing: border-box;
 }
 .turf-inline-assign:focus { outline: none; border-color: var(--header-bg); }
 
@@ -1145,4 +1145,26 @@ body {
   .my-prog-track { width: 70px; }
   .my-prog-label { display: none; }
   .my-prog-count { display: none; }
+}
+
+/* ─── Popup delete marker button (admin) ────────────────────────────────────── */
+.popup-delete-btn {
+  display: block; width: calc(100% - 16px); margin: 0 8px 8px;
+  padding: 5px; background: transparent;
+  border: 1px solid #fca5a5; border-radius: var(--radius-sm);
+  color: #c44848; font-size: 11px; cursor: pointer; text-align: center;
+}
+.popup-delete-btn:hover { background: #fee2e2; border-color: #c44848; }
+
+/* ─── Zone creation queue banner ────────────────────────────────────────────── */
+.zone-queue-banner {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 8500;
+  background: #1c355e; color: #fff;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.25);
+}
+.zqb-count {
+  background: rgba(255,255,255,0.2); border-radius: 10px;
+  padding: 1px 8px; font-size: 11px; font-weight: 700;
 }

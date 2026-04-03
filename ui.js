@@ -2096,9 +2096,8 @@ const UI = {
         const nameColor = isMe ? '#9ca3af' : (this._users.find(u => u.name === m.name)?.color || 'var(--header-bg)');
         const nameStr = isMe ? 'You' : _esc(m.name);
         html += `<div class="sc-msg ${isMe ? 'sc-mine' : 'sc-theirs'}">
-          <div class="sc-name" style="color:${nameColor}">${nameStr}:</div>
+          <div class="sc-msg-header"><span class="sc-name" style="color:${nameColor}">${nameStr}:</span><span class="sc-time">${timeStr}</span></div>
           <div class="sc-bubble">${_esc(m.message)}</div>
-          <div class="sc-time">${timeStr}</div>
         </div>`;
       } else {
         const nameStr = isMe ? 'You' : _esc(m.name || 'Unknown');

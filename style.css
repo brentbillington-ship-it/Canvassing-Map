@@ -783,10 +783,11 @@ body {
 .sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; flex-direction: column; gap: 1px; padding: 3px 0; }
 .sc-mine { color: var(--text2); }
 .sc-theirs { color: var(--text); }
+.sc-msg-header { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; }
 .sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); }
 .sc-mine .sc-name { color: var(--text3); }
 .sc-bubble { font-size: 12px; color: var(--text); padding-left: 2px; }
-.sc-time { font-size: 10px; color: var(--text4); text-align: right; }
+.sc-time { font-size: 10px; color: var(--text4); flex-shrink: 0; }
 .sc-input-row { display: flex; gap: 5px; padding: 6px 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .sc-input {
   flex: 1; padding: 5px 9px; border: 1.5px solid var(--border);

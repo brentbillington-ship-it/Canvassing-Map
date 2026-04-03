@@ -392,14 +392,26 @@ const App = {
     try {
       const res = await SheetsAPI.claimZone(letter, user.name, user.color);
       if (res.error) { UI.toast(res.error, 'error'); return; }
-      // Update local state immediately
-      const turf = this.state.turfs.find(t => t.letter === letter);
+      // Ensure user is in _users cache so _turfColor resolves immediately
+      if (!UI._users.find(u => u.name === user.name)) {
+        UI._users = [...UI._users, { name: user.name, color: user.color }];
+      }
+      const turf = this.state.turfs.find(t => String(t.letter) === String(letter));
       if (turf) { turf.volunteer = user.name; turf.color = user.color; }
-      // Refresh users cache so _turfColor() resolves correctly, then render
-      try { const ur = await SheetsAPI.getUsers(); UI._users = ur.users || []; } catch(e) {}
       this.render();
       UI.toast(`Zone ${letter} claimed ✓`, 'success');
     } catch(e) { UI.toast('Failed to claim zone', 'error'); }
+  },
+
+  async unclaimZone(letter) {
+    try {
+      const res = await SheetsAPI.updateTurf(letter, { volunteer: '[UNASSIGNED]', color: '#6b7280' });
+      if (res.error) { UI.toast(res.error, 'error'); return; }
+      const turf = this.state.turfs.find(t => String(t.letter) === String(letter));
+      if (turf) { turf.volunteer = '[UNASSIGNED]'; turf.color = '#6b7280'; }
+      this.render();
+      UI.toast(`Zone ${letter} unclaimed`, 'success');
+    } catch(e) { UI.toast('Failed to unclaim zone', 'error'); }
   },
 
   _getUserRecord() {
@@ -508,6 +520,66 @@ const App = {
       const ids = newOrder.map(h => h.id);
       await SheetsAPI.reorderHouses(letter, ids);
     } catch(e) { UI.toast('Re-order saved locally', 'info'); }
+  },
+
+  async applyMultiResult(ids, resultKey, notes) {
+    if (!ids.length) return;
+    // Snapshot previous state for undo
+    const prev = ids.map(id => {
+      const { house } = this._findHouse(id);
+      return house ? { id, result: house.result, result_by: house.result_by, result_date: house.result_date, notes: house.notes } : null;
+    }).filter(Boolean);
+
+    // Optimistic update all immediately
+    const now = new Date().toISOString();
+    ids.forEach(id => {
+      const { house, turf, idx } = this._findHouse(id);
+      if (!house) return;
+      house.result      = resultKey;
+      house.result_by   = UI.currentUser;
+      house.result_date = now;
+      if (notes) house.notes = house.notes ? house.notes + '; ' + notes : notes;
+      this._writeLock[id] = Date.now() + 15000;
+      MapModule.updateHouseMarker(house, turf, idx);
+    });
+    UI.renderSidebar(this._visibleTurfs());
+    UI.updateStats(this.state.turfs);
+
+    const icon = CONFIG.RESULTS.find(r => r.key === resultKey)?.icon || '';
+    // Show undo toast
+    UI.toastUndo(`${icon} Applied to ${ids.length} houses`, () => {
+      // Undo: restore all to previous state
+      prev.forEach(p => {
+        const { house, turf, idx } = this._findHouse(p.id);
+        if (!house) return;
+        house.result      = p.result;
+        house.result_by   = p.result_by;
+        house.result_date = p.result_date;
+        house.notes       = p.notes;
+        this._writeLock[p.id] = Date.now() + 10000;
+        MapModule.updateHouseMarker(house, turf, idx);
+        // Fire undo API call
+        if (p.result) SheetsAPI.setResult(p.id, p.result, p.result_by).catch(() => {});
+        else SheetsAPI.clearResult(p.id).catch(() => {});
+      });
+      UI.renderSidebar(this._visibleTurfs());
+      UI.updateStats(this.state.turfs);
+      UI.toast('Undone ✓', 'success');
+    });
+
+    // Fire all API calls in background
+    UI.setSyncStatus('syncing');
+    let failed = 0;
+    await Promise.all(ids.map(async id => {
+      try {
+        const res = resultKey
+          ? await SheetsAPI.setResult(id, resultKey, UI.currentUser)
+          : await SheetsAPI.clearResult(id);
+        if (res.error) failed++;
+      } catch(e) { failed++; }
+    }));
+    UI.setSyncStatus(failed ? 'error' : 'ok');
+    if (failed) UI.toast(`${failed} houses failed to sync`, 'error');
   },
 
   _findHouse(id) {

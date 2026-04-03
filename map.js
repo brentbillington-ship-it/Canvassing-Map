@@ -355,7 +355,21 @@ const MapModule = {
   // ── House dot — blank, color = result status, shape = turf mode ───────────
   _renderHouse(house, turf, idx, color, isOtherZone) {
     const marker = this._makeMarker(house, turf, isOtherZone);
-    marker.on('click', () => this._openHousePopup(house, turf, color));
+    marker.on('click', () => {
+      // In multi-select mode: toggle selection instead of opening popup
+      if (UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter)) {
+        if (UI._selectedHouseIds.has(house.id)) {
+          UI._selectedHouseIds.delete(house.id);
+        } else {
+          UI._selectedHouseIds.add(house.id);
+        }
+        App.render();
+        return;
+      }
+      // Auto-expand this zone in sidebar
+      UI._expandedTurfs.add(turf.letter);
+      this._openHousePopup(house, turf, color);
+    });
     marker.addTo(this.houseGroup);
     this.houseMarkers[house.id] = marker;
   },

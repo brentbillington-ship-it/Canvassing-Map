@@ -522,6 +522,17 @@ function sendChat(name, sessionId, message) {
   const id = uid(), now = new Date().toISOString();
   sheet.appendRow([id, now, name||'Unknown', sessionId||'', message.trim()]);
   SpreadsheetApp.flush();
+  // 1-in-10 chance: prune messages older than 7 days
+  if (Math.random() < 0.1) {
+    try {
+      const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const data = sheet.getDataRange().getValues();
+      for (let i = data.length - 1; i >= 1; i--) {
+        if (new Date(data[i][1]).getTime() < cutoff) sheet.deleteRow(i + 1);
+      }
+      SpreadsheetApp.flush();
+    } catch(e) {}
+  }
   return { success: true, id, timestamp: now };
 }
 

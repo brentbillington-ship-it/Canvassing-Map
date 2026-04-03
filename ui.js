@@ -17,6 +17,8 @@ const UI = {
     '#1a9e9e','#c27a1a','#4d8c2f','#4a7abf','#a0522d','#2e8b57',
   ],
   _expandedTurfs: new Set(),
+  _multiSelectTurf: null,      // letter of zone in multi-select mode
+  _selectedHouseIds: new Set(), // currently selected house IDs
 
   // localStorage key version — bump to force relogin after schema changes
   _LOGIN_KEY: 'ck_user_v2',
@@ -942,13 +944,21 @@ const UI = {
       const bKnock = (b.mode || 'hanger') === 'knock' ? 0 : 1;
       if (aKnock !== bKnock) return aKnock - bKnock;
 
-      // Within hanger zones: my assigned zones first, then unassigned, then others
       const me = UI.currentUser;
-      const aMe = a.volunteer === me ? 0 : (!a.volunteer || a.volunteer === '[UNASSIGNED]') ? 1 : 2;
-      const bMe = b.volunteer === me ? 0 : (!b.volunteer || b.volunteer === '[UNASSIGNED]') ? 1 : 2;
-      if (aMe !== bMe) return aMe - bMe;
+      const aUnassigned = !a.volunteer || a.volunteer === '[UNASSIGNED]';
+      const bUnassigned = !b.volunteer || b.volunteer === '[UNASSIGNED]';
 
-      // Sort numerically within each group
+      // Group: my zones (0), other assigned (1), unassigned (2)
+      const aGroup = a.volunteer === me ? 0 : aUnassigned ? 2 : 1;
+      const bGroup = b.volunteer === me ? 0 : bUnassigned ? 2 : 1;
+      if (aGroup !== bGroup) return aGroup - bGroup;
+
+      // Within assigned groups: sort by volunteer name alphabetically
+      const aVol = aUnassigned ? '' : (a.volunteer || '');
+      const bVol = bUnassigned ? '' : (b.volunteer || '');
+      if (aVol !== bVol) return aVol.localeCompare(bVol);
+
+      // Within same volunteer (or unassigned): sort numerically by zone letter
       const aNum = parseInt(a.letter, 10);
       const bNum = parseInt(b.letter, 10);
       if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
@@ -981,8 +991,12 @@ const UI = {
       })() : '';
 
       const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
-      const claimBtn = !this.isAdmin && isUnassigned
+      const isMyZone = !this.isAdmin && turf.volunteer === this.currentUser;
+      const claimBtn = !this.isAdmin && isUnassigned && !isKnock
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
+        : '';
+      const unclaimBtn = isMyZone && !isKnock
+        ? `<button class="unclaim-zone-btn" onclick="event.stopPropagation();UI._confirmUnclaimZone('${turf.letter}')">Unclaim</button>`
         : '';
 
       const isKnock = (turf.mode || 'hanger') === 'knock';
@@ -992,7 +1006,7 @@ const UI = {
           <div class="turf-info">
             ${this.isAdmin
               ? inlineAssign
-              : `<div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>`
+              : `<div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}${unclaimBtn}</div>`
             }
             ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#b3a8c8;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
             <div class="turf-progress-row">
@@ -1006,6 +1020,25 @@ const UI = {
           ${adminBtns}
         </div>
         <div class="turf-houses" id="houses-${turf.letter}" style="display:${expanded ? 'block' : 'none'}">
+          ${expanded && houses.length > 0 ? `
+          <div class="ms-bar" id="ms-bar-${turf.letter}">
+            ${this._multiSelectTurf === turf.letter ? `
+              <div class="ms-active-bar">
+                <div class="ms-street-wrap">
+                  <select class="ms-street-sel" onchange="UI._selectByStreet('${turf.letter}',this.value)">
+                    <option value="">Select street…</option>
+                    ${[...new Set(turf.houses.map(h => (h.address||'').replace(/^\d+\s*/,'').split(',')[0].trim()).filter(Boolean))].sort().map(s => `<option value="${_esc(s)}">${_esc(s)}</option>`).join('')}
+                  </select>
+                </div>
+                <button class="ms-btn ms-all" onclick="UI._msSelectAll('${turf.letter}')">All</button>
+                <button class="ms-btn ms-none" onclick="UI._msSelectNone('${turf.letter}')">None</button>
+                <button class="ms-btn ms-apply" onclick="UI._msApply('${turf.letter}')">Apply (${this._multiSelectTurf === turf.letter ? this._selectedHouseIds.size : 0})</button>
+                <button class="ms-btn ms-cancel" onclick="UI._msCancel()">✕</button>
+              </div>
+            ` : `
+              <button class="ms-start-btn" onclick="event.stopPropagation();UI._msStart('${turf.letter}')">☑ Update Multiple</button>
+            `}
+          </div>` : ''}
           ${houseCards || `<div class="sb-empty-turf">No houses${this.resultFilter ? ' matching filter' : ''}.${this.isAdmin ? ' Draw a zone boundary to populate.' : ''}</div>`}
         </div>
       </div>`;
@@ -1022,6 +1055,92 @@ const UI = {
     );
     if (!ok) return;
     App.claimZone(letter);
+  },
+
+  async _confirmUnclaimZone(letter) {
+    const ok = await this._confirm(
+      `Unclaim Zone ${letter}`,
+      `Remove yourself from Zone <strong>${letter}</strong>?<br><br>It will become unassigned.`,
+      'Unclaim', true
+    );
+    if (!ok) return;
+    App.unclaimZone(letter);
+  },
+
+  // ── Multi-select ──────────────────────────────────────────────────────────
+  _msStart(letter) {
+    this._multiSelectTurf = letter;
+    this._selectedHouseIds = new Set();
+    this._expandedTurfs.add(letter);
+    App.render();
+  },
+
+  _msCancel() {
+    this._multiSelectTurf = null;
+    this._selectedHouseIds = new Set();
+    App.render();
+  },
+
+  _msSelectAll(letter) {
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const houses = this._filterHouses(turf.houses);
+    houses.forEach(h => this._selectedHouseIds.add(h.id));
+    App.render();
+  },
+
+  _msSelectNone(letter) {
+    this._selectedHouseIds = new Set();
+    App.render();
+  },
+
+  _selectByStreet(letter, streetName) {
+    if (!streetName) return;
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const houses = this._filterHouses(turf.houses);
+    houses.forEach(h => {
+      const st = (h.address || '').replace(/^\d+\s*/, '').split(',')[0].trim();
+      if (st === streetName) this._selectedHouseIds.add(h.id);
+    });
+    App.render();
+  },
+
+  async _msApply(letter) {
+    const ids = [...this._selectedHouseIds];
+    if (!ids.length) { this.toast('No houses selected', 'info'); return; }
+    const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
+    if (!turf) return;
+    const isKnock = (turf.mode || 'hanger') === 'knock';
+    const results = isKnock
+      ? CONFIG.RESULTS.filter(r => ['knocked','not_home','refused','skip'].includes(r.key))
+      : CONFIG.RESULTS.filter(r => ['hanger','not_home','skip'].includes(r.key));
+
+    const resultOptions = results.map(r =>
+      `<label class="ms-result-opt" style="--rc:${r.bg};--rcc:${r.color}">
+        <input type="radio" name="ms_result" value="${r.key}">
+        <span>${r.icon} ${r.label}</span>
+      </label>`
+    ).join('');
+
+    const html = `
+      <div style="margin-bottom:10px;font-size:13px;color:var(--text3)">${ids.length} house${ids.length !== 1 ? 's' : ''} selected</div>
+      <div class="ms-result-grid">${resultOptions}</div>
+      <div style="margin-top:12px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">Note (optional)</label>
+        <input id="ms-note-inp" type="text" placeholder="Add a note…" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text)"/>
+      </div>`;
+
+    const ok = await this._confirm('Apply to Selected', html, `Apply to ${ids.length}`);
+    if (!ok) return;
+
+    const sel = document.querySelector('input[name="ms_result"]:checked');
+    if (!sel) { this.toast('Pick a result first', 'info'); return; }
+    const resultKey = sel.value;
+    const note = (document.getElementById('ms-note-inp')?.value || '').trim();
+
+    await App.applyMultiResult(ids, resultKey, note || null);
+    this._msCancel();
   },
 
   async _inlineAssignVolunteer(letter, volunteerName) {
@@ -1085,8 +1204,9 @@ const UI = {
     const scriptHtml = turf._script
       ? `<div class="house-script">📋 ${_esc(turf._script)}</div>` : '';
 
-    return `<div class="house-card${result ? ' house-done' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}" id="hcard-${house.id}"
+    return `<div class="house-card${result ? ' house-done' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${UI._multiSelectTurf === turf.letter ? ' ms-mode' : ''}${UI._selectedHouseIds.has(house.id) ? ' ms-selected' : ''}" id="hcard-${house.id}"
       onclick="UI._cardClick('${house.id}')">
+      ${UI._multiSelectTurf === turf.letter ? `<div class="ms-check">${UI._selectedHouseIds.has(house.id) ? '✓' : ''}</div>` : ''}
       <div class="house-num" style="background:${result ? (resultDef?.color || '#9ca3af') : '#d1d5db'}">${streetNum}</div>
       <div class="house-body">
         <div class="house-addr">${_esc(house.address)}</div>
@@ -1101,6 +1221,18 @@ const UI = {
   },
 
   _cardClick(houseId) {
+    // In multi-select mode: toggle selection instead of opening popup
+    if (this._multiSelectTurf) {
+      const cached = window._houseCache?.[houseId];
+      if (!cached || String(cached.turf.letter) !== String(this._multiSelectTurf)) return;
+      if (this._selectedHouseIds.has(houseId)) {
+        this._selectedHouseIds.delete(houseId);
+      } else {
+        this._selectedHouseIds.add(houseId);
+      }
+      App.render();
+      return;
+    }
     const cached = window._houseCache?.[houseId];
     if (!cached) return;
     MapModule.focusHouse(cached.house);
@@ -1179,6 +1311,23 @@ const UI = {
     document.getElementById('toast-container')?.appendChild(t);
     requestAnimationFrame(() => t.classList.add('toast-show'));
     setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 2800);
+  },
+
+  toastUndo(msg, onUndo) {
+    // Remove any existing undo toast
+    document.querySelector('.toast-undo')?.remove();
+    const t = document.createElement('div');
+    t.className = 'toast toast-success toast-undo';
+    t.innerHTML = `<span>${msg}</span><button class="toast-undo-btn">Undo</button>`;
+    document.getElementById('toast-container')?.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('toast-show'));
+    const timer = setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 6000);
+    t.querySelector('.toast-undo-btn').addEventListener('click', () => {
+      clearTimeout(timer);
+      t.classList.remove('toast-show');
+      setTimeout(() => t.remove(), 300);
+      onUndo();
+    });
   },
 
   // ── Modal helper ──────────────────────────────────────────────────────────────
@@ -1867,12 +2016,16 @@ const UI = {
     inp.value = '';
     // Optimistic: append locally right away so it feels instant
     const now = new Date().toISOString();
-    const optimistic = { id: '_opt_' + Date.now(), timestamp: now, name: this.currentUser,
+    const optId = '_opt_' + Date.now();
+    const optimistic = { id: optId, timestamp: now, name: this.currentUser,
       session_id: this.sessionId, message: msg, ts: Date.now() };
     this._chatMessages = [...(this._chatMessages || []), optimistic];
     this._renderChatMessages('sc-messages');
     if (this._chatOpen) this._renderChatMessages('chat-messages');
-    // Fire-and-forget send, then fetch to confirm
+    // Always scroll to bottom on own send regardless of scroll position
+    this._scrollChatBottom('sc-messages');
+    if (this._chatOpen) this._scrollChatBottom('chat-messages');
+    // Send then fetch — _fetchChat will replace optimistic with real message
     SheetsAPI.sendChat(this.currentUser, this.sessionId, msg)
       .then(() => this._fetchChat())
       .catch(() => this.toast('Failed to send - check connection', 'error'));

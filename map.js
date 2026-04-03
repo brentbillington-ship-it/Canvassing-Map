@@ -11,7 +11,7 @@ const MapModule = {
   _labelZoomMin: 18,
 
   init() {
-    console.log('%c Chaka Canvassing map.js v4.30d loaded — _minMarkerZoom=' + this._minMarkerZoom, 'background:#1c355e;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+    console.log('%c Chaka Canvassing map.js v4.31 loaded — _minMarkerZoom=' + this._minMarkerZoom, 'background:#1c355e;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
     // Compute CISD bounds for maxBounds
     let cisdBounds = null;
     if (typeof CISD_BOUNDARY !== 'undefined') {
@@ -274,7 +274,7 @@ const MapModule = {
     });
   },
 
-  _minMarkerZoom: 15,
+  _minMarkerZoom: 16,
   _allTurfsCache: [],  // store last rendered turfs for viewport refresh
 
   // ── Full render ────────────────────────────────────────────────────────────

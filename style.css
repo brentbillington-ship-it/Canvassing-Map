@@ -814,16 +814,7 @@ body {
 .school-label-hs { font-size: 11px; font-weight: 900; border-width: 2px; }
 .school-label-ms { font-size: 10px; font-weight: 800; }
 .school-label-es { font-size: 9px;  font-weight: 700; }
-/* Mobile: fully opaque white bg so text reads clearly over aerial */
-@media (max-width: 680px) {
-  .school-label {
-    background: #ffffff;
-    color: #7f1d1d;
-    border-color: rgba(127,29,29,0.8);
-    box-shadow: 0 1px 6px rgba(0,0,0,0.6);
-    font-weight: 900;
-  }
-}
+/* Mobile school label and aerial overrides moved to end of file for specificity */
 /* Mobile: no brightness filter — tile opacity:0.65 handles exposure on all devices */
 
 /* ─── Mobile chat ───────────────────────────────────────────────────────────── */
@@ -1235,4 +1226,18 @@ body {
   .leaflet-top.leaflet-left { margin-top: 52px !important; margin-left: 8px; }
   /* Push map content down so filter bar doesn't overlap markers */
   #map-wrap { padding-top: 40px; box-sizing: border-box; }
+}
+
+/* ═══ FINAL MOBILE OVERRIDES — must stay at end of file ═══════════════════════ */
+@media (max-width: 680px) {
+  /* School labels: fully opaque white pill, dark red text — matches desktop exactly */
+  .school-label {
+    background: #ffffff !important;
+    color: #7f1d1d !important;
+    border: 1.5px solid rgba(127,29,29,0.8) !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.55) !important;
+    font-weight: 800 !important;
+  }
+  /* Aerial tile: no brightness filter — opacity:0.65 on the tile layer is sufficient */
+  .leaflet-tile-pane { filter: none !important; }
 }

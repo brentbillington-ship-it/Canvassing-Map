@@ -37,7 +37,6 @@ const MapModule = {
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       { attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>', maxZoom: 20, subdomains: 'abcd' }
     );
-    const isMobileDevice = window.innerWidth <= 680 || ('ontouchstart' in window && window.innerWidth <= 900);
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: '© Esri', maxZoom: 19, opacity: 0.65, crossOrigin: true }
@@ -290,18 +289,14 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
-    // Below threshold — clear all markers and return. No markers added = none visible.
-    if (zoom < this._minMarkerZoom) {
-      this.houseGroup.clearLayers();
-      this.houseMarkers = {};
-      return;
-    }
-
     const bounds = this.map.getBounds().pad(0.05);
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
 
     turfs.forEach((turf) => {
+      const isKnock = (turf.mode || 'hanger') === 'knock';
+      // Hanger markers: only show at zoom >= threshold. Knock markers: always visible.
+      if (!isKnock && zoom < this._minMarkerZoom) return;
       const color = _turfColor(turf);
       const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
       turf.houses.forEach((house, idx) => {

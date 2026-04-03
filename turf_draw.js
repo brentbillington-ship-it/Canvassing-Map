@@ -42,11 +42,26 @@ const TurfDraw = (() => {
       });
     });
 
-    // Right-click cancels draw or edit
+    // Right-click: undo last vertex during draw (first), cancel (second within 1s)
+    let _lastRightClickTime = 0;
     _map.on('contextmenu', e => {
       L.DomEvent.preventDefault(e.originalEvent);
-      if (_editingLetter) { _cancelEditMode(); UI.toast('Edit cancelled'); }
-      else if (_active)   { _deactivateDraw(); UI.toast('Draw cancelled'); }
+      if (_editingLetter) { _cancelEditMode(); UI.toast('Edit cancelled'); return; }
+      if (_active && _polygonHandler) {
+        const now = Date.now();
+        if (_lastRightClickTime && now - _lastRightClickTime < 1000) {
+          _deactivateDraw();
+          _active = false;
+          const btn = document.getElementById('draw-mode-btn');
+          if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+          _hideDrawToolbar();
+          UI.toast('Draw cancelled');
+        } else {
+          try { _polygonHandler.deleteLastVertex(); } catch(err) {}
+          UI.toast('Last point removed — right-click again to cancel', 'info');
+        }
+        _lastRightClickTime = now;
+      }
     });
 
     // ESC: first press removes last vertex during draw; second press cancels draw
@@ -58,8 +73,10 @@ const TurfDraw = (() => {
         if (_lastEscTime && now - _lastEscTime < 1000) {
           // Second ESC within 1s — cancel draw entirely
           _deactivateDraw();
+          _active = false;
           const btn = document.getElementById('draw-mode-btn');
           if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+          _hideDrawToolbar();
           UI.toast('Draw cancelled');
         } else {
           // First ESC — delete last vertex
@@ -82,10 +99,12 @@ const TurfDraw = (() => {
         // Desktop: add toolbar and immediately activate polygon handler
         _map.addControl(_drawControl);
         _activatePolygonDraw();
-        UI.toast('Click to place polygon vertices — double-click to finish', 'info');
+        _showDrawToolbar();
+        UI.toast('Click to place vertices — double-click to finish', 'info');
       }
     } else {
       _deactivateDraw();
+      _hideDrawToolbar();
       UI.toast('Draw mode OFF');
     }
     return _active;
@@ -219,6 +238,13 @@ const TurfDraw = (() => {
     if (!turf || !turf.polygon_geojson) {
       UI.toast('No boundary yet — draw one first', 'error'); return;
     }
+    // Deactivate draw mode if active — prevents draw staying on after edit exits
+    if (_active) {
+      _deactivateDraw();
+      _active = false;
+      const btn = document.getElementById('draw-mode-btn');
+      if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+    }
     _cancelEditMode();
     _editingLetter = letter;
 
@@ -268,6 +294,7 @@ const TurfDraw = (() => {
     const { residential, excluded } = ParcelsUtil.parcelsInPolygon(ring, false);
     const centroid = ParcelsUtil.leafletRingCentroid(ring);
     const sorted   = ParcelsUtil.walkOrder(residential, centroid);
+    _hideDrawToolbar();
     _showPopulateModal({ layer, ring, sorted, excluded });
     // Disable current handler — will re-arm after modal resolves
     if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} _polygonHandler = null; }
@@ -277,6 +304,7 @@ const TurfDraw = (() => {
   function _rearmDraw() {
     if (!_active || _editingLetter || _isMobile()) return;
     _activatePolygonDraw();
+    _showDrawToolbar();
     UI.toast('Draw mode ready — click to start next zone', 'info', 2000);
   }
 
@@ -436,9 +464,41 @@ const TurfDraw = (() => {
 
   function isEditing() { return !!_editingLetter; }
 
+  // ── Floating draw toolbar ──────────────────────────────────────────────────
+  function _showDrawToolbar() {
+    _hideDrawToolbar();
+    const bar = document.createElement('div');
+    bar.id = 'draw-toolbar';
+    bar.className = 'draw-toolbar';
+    bar.innerHTML = `
+      <span class="dt-hint">Click to place points · Double-click to finish</span>
+      <button class="dt-btn dt-undo" onclick="TurfDraw._undoLastVertex()">↩ Undo Last Point</button>
+      <button class="dt-btn dt-cancel" onclick="TurfDraw._cancelDraw()">✕ Cancel</button>`;
+    document.body.appendChild(bar);
+  }
+
+  function _hideDrawToolbar() {
+    document.getElementById('draw-toolbar')?.remove();
+  }
+
+  function _undoLastVertex() {
+    if (_polygonHandler) {
+      try { _polygonHandler.deleteLastVertex(); } catch(e) {}
+    }
+  }
+
+  function _cancelDraw() {
+    _deactivateDraw();
+    _active = false;
+    _hideDrawToolbar();
+    const btn = document.getElementById('draw-mode-btn');
+    if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+    UI.toast('Draw cancelled');
+  }
+
   return {
     init, toggle, isActive, isEditing, loadTurfs, removeTurfLayer,
     startEditBoundary, resortTurf, _onCommercialToggle, _cancelMobileRect,
-    _commitEdit, _cancelEditMode,
+    _commitEdit, _cancelEditMode, _undoLastVertex, _cancelDraw,
   };
 })();

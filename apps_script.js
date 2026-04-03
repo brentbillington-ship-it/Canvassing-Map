@@ -150,8 +150,13 @@ function getAllData() {
 
 function getPolygons() {
   const polyData = sheetToObjects(getSheet('polygons'));
+  // Dedup by letter — keep last occurrence (most recently written)
+  const byLetter = {};
+  polyData.forEach(p => {
+    if (p.letter != null) byLetter[String(p.letter)] = p;
+  });
   return {
-    polygons: polyData.map(p => ({
+    polygons: Object.values(byLetter).map(p => ({
       letter:          p.letter,
       polygon_geojson: p.polygon_geojson || ''
     }))
@@ -313,13 +318,20 @@ function saveTurfPolygon(letter, geojson) {
   const sheet  = getSheet('polygons');
   const data   = sheet.getDataRange().getValues();
   const geoStr = geojson ? JSON.stringify(geojson) : '';
-  // Update existing row if found
+  // Find all rows matching this letter
+  const matches = [];
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(letter)) {
-      sheet.getRange(i + 1, 2).setValue(geoStr);
-      SpreadsheetApp.flush();
-      return { success: true };
+    if (String(data[i][0]) === String(letter)) matches.push(i);
+  }
+  if (matches.length > 0) {
+    // Update first match
+    sheet.getRange(matches[0] + 1, 2).setValue(geoStr);
+    // Delete any duplicates (reverse order to preserve row indices)
+    for (let d = matches.length - 1; d >= 1; d--) {
+      sheet.deleteRow(matches[d] + 1);
     }
+    SpreadsheetApp.flush();
+    return { success: true };
   }
   // Insert new row if not found
   sheet.appendRow([letter, geoStr]);

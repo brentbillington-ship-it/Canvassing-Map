@@ -1118,34 +1118,20 @@ const UI = {
     const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     const isKnock = (turf.mode || 'hanger') === 'knock';
-    const results = isKnock
-      ? CONFIG.RESULTS.filter(r => ['knocked','not_home','refused','skip'].includes(r.key))
-      : CONFIG.RESULTS.filter(r => ['hanger','not_home','skip'].includes(r.key));
+    const resultKey = isKnock ? 'knocked' : 'hanger';
+    const resultDef = CONFIG.RESULTS.find(r => r.key === resultKey);
 
-    const resultOptions = results.map(r =>
-      `<label class="ms-result-opt" style="--rc:${r.bg};--rcc:${r.color}">
-        <input type="radio" name="ms_result" value="${r.key}">
-        <span>${r.icon} ${r.label}</span>
-      </label>`
-    ).join('');
-
-    const html = `
-      <div style="margin-bottom:10px;font-size:13px;color:var(--text3)">${ids.length} house${ids.length !== 1 ? 's' : ''} selected</div>
-      <div class="ms-result-grid">${resultOptions}</div>
-      <div style="margin-top:12px">
-        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">Note (optional)</label>
-        <input id="ms-note-inp" type="text" placeholder="Add a note…" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text)"/>
-      </div>`;
-
-    const ok = await this._confirm('Apply to Selected', html, `Apply to ${ids.length}`);
+    const ok = await this._confirm(
+      `Mark ${ids.length} as ${resultDef.label}`,
+      `<div style="display:flex;align-items:center;gap:8px;font-size:14px">
+        <span style="font-size:20px">${resultDef.icon}</span>
+        <span>Apply <strong>${resultDef.label}</strong> to <strong>${ids.length}</strong> house${ids.length !== 1 ? 's' : ''}?</span>
+      </div>`,
+      `${resultDef.icon} Apply to ${ids.length}`
+    );
     if (!ok) return;
 
-    const sel = document.querySelector('input[name="ms_result"]:checked');
-    if (!sel) { this.toast('Pick a result first', 'info'); return; }
-    const resultKey = sel.value;
-    const note = (document.getElementById('ms-note-inp')?.value || '').trim();
-
-    await App.applyMultiResult(ids, resultKey, note || null);
+    await App.applyMultiResult(ids, resultKey, null);
     this._msCancel();
   },
 
@@ -1210,10 +1196,17 @@ const UI = {
     const scriptHtml = turf._script
       ? `<div class="house-script">📋 ${_esc(turf._script)}</div>` : '';
 
-    return `<div class="house-card${result ? ' house-done' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${UI._multiSelectTurf === turf.letter ? ' ms-mode' : ''}${UI._selectedHouseIds.has(house.id) ? ' ms-selected' : ''}" id="hcard-${house.id}"
+    const inMs = UI._multiSelectTurf === turf.letter;
+    const isSelected = UI._selectedHouseIds.has(house.id);
+    const numBg = inMs
+      ? (isSelected ? '#2d9e5f' : '#d1d5db')
+      : (result ? (resultDef?.color || '#9ca3af') : '#d1d5db');
+    const numContent = inMs ? (isSelected ? '✓' : '') : streetNum;
+    const numClass = `house-num${inMs ? ' ms-num' : ''}${isSelected ? ' ms-num-selected' : ''}`;
+
+    return `<div class="house-card${result ? ' house-done' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${inMs ? ' ms-mode' : ''}${isSelected ? ' ms-selected' : ''}" id="hcard-${house.id}"
       onclick="UI._cardClick('${house.id}')">
-      ${UI._multiSelectTurf === turf.letter ? `<div class="ms-check">${UI._selectedHouseIds.has(house.id) ? '✓' : ''}</div>` : ''}
-      <div class="house-num" style="background:${result ? (resultDef?.color || '#9ca3af') : '#d1d5db'}">${streetNum}</div>
+      <div class="${numClass}" style="background:${numBg}">${numContent}</div>
       <div class="house-body">
         <div class="house-addr">${_esc(house.address)}</div>
         ${house.owner ? `<div class="house-name">${_esc(house.owner)}</div>` : ''}
@@ -2070,7 +2063,20 @@ const UI = {
     try {
       const data = await SheetsAPI.getChat();
       if (!data.messages) return;
-      this._chatMessages = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
+      const serverMsgs = data.messages.map(m => ({ ...m, ts: new Date(m.timestamp).getTime() }));
+      // Merge: keep optimistic messages that don't yet have a server match
+      const optimistic = (this._chatMessages || []).filter(m => String(m.id).startsWith('_opt_'));
+      const merged = [...serverMsgs];
+      optimistic.forEach(opt => {
+        // Match by sender + message text + timestamp within 30s
+        const match = serverMsgs.find(s =>
+          s.name === opt.name && s.message === opt.message &&
+          Math.abs(s.ts - opt.ts) < 30000
+        );
+        if (!match) merged.push(opt); // keep optimistic until server catches up
+      });
+      merged.sort((a, b) => a.ts - b.ts);
+      this._chatMessages = merged;
       if (!this._chatLastSeen && this._chatMessages.length) {
         this._chatLastSeen = Math.max(...this._chatMessages.map(m => m.ts));
         this._chatUnread = 0;

@@ -302,8 +302,14 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
-    // Below threshold — pane is hidden via _updateZoomStyle; skip marker work entirely
+    // Below threshold — hide pane and clear any lingering markers
     if (zoom < this._minMarkerZoom) {
+      const hp = this.map.getPane('housePane');
+      if (hp) hp.style.display = 'none';
+      if (this.houseGroup.getLayers().length) {
+        this.houseGroup.clearLayers();
+        this.houseMarkers = {};
+      }
       return;
     }
 

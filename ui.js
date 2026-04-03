@@ -115,7 +115,7 @@ const UI = {
           <option value="none">Not visited</option>
           ${CONFIG.RESULTS.map(r => `<option value="${r.key}">${r.icon} ${r.label}</option>`).join('')}
         </select>`;
-      document.getElementById('map-wrap')?.appendChild(f);
+      document.body.appendChild(f);
     }
     if (!document.getElementById('mobile-list-fab')) {
       const fab = document.createElement('button');
@@ -126,6 +126,8 @@ const UI = {
       fab.onclick = () => UI.toggleMap();
       document.body.appendChild(fab);
     }
+    // Measure actual header height and set CSS var for mobile filter positioning
+    this._setMobileHeaderVar();
 
     document.getElementById('sidebar').innerHTML = `
       <div id="sidebar-header">
@@ -165,6 +167,18 @@ const UI = {
           <button class="sc-send" onclick="UI._sendChat()">Send</button>
         </div>
       </div>`;
+  },
+
+  // ── Set mobile header height CSS var for filter bar positioning ─────────────
+  _setMobileHeaderVar() {
+    const set = () => {
+      const h = document.getElementById('header')?.offsetHeight || 90;
+      document.documentElement.style.setProperty('--mobile-header-h', h + 'px');
+    };
+    set();
+    // Re-measure after fonts/content load
+    window.addEventListener('load', set, { once: true });
+    window.addEventListener('resize', set, { passive: true });
   },
 
   // -- Login modal (email-based accounts) ------------------------------------
@@ -306,6 +320,8 @@ const UI = {
       }
     }
     App.init();
+    // Re-measure header height now that admin/user UI is fully rendered
+    setTimeout(() => this._setMobileHeaderVar(), 100);
   },
 
   _dropToFieldMode() {

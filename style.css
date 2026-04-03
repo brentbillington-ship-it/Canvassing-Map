@@ -1190,10 +1190,10 @@ body {
 @media (max-width: 680px) {
   .mobile-list-fab {
     display: flex; align-items: center; justify-content: center;
-    position: fixed; bottom: 88px; right: 16px; z-index: 8000;
-    width: 52px; height: 52px; border-radius: 50%;
+    position: fixed; bottom: 54px; right: 8px; z-index: 8000;
+    width: 46px; height: 46px; border-radius: 50%;
     background: var(--header-bg); color: #fff;
-    border: none; font-size: 22px; cursor: pointer;
+    border: none; font-size: 20px; cursor: pointer;
     box-shadow: 0 4px 16px rgba(0,0,0,0.35);
     transition: transform 0.15s, box-shadow 0.15s;
   }
@@ -1212,21 +1212,28 @@ body {
 /* ─── Mobile map filter overlay ─────────────────────────────────────────────── */
 .mobile-map-filter { display: none; }
 @media (max-width: 680px) {
+  /* Filter bar sits fixed just below the header — uses CSS var set by JS */
   .mobile-map-filter {
-    display: flex; gap: 5px; position: absolute;
-    top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; gap: 5px;
+    position: fixed;
+    top: var(--mobile-header-h, 90px);
+    left: 0; right: 0;
+    z-index: 2000;
     pointer-events: auto; flex-wrap: nowrap;
-    padding: 6px 8px;
-    background: rgba(255,255,255,0.96);
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.97);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   }
   .mobile-map-filter select {
-    flex: 1; min-width: 0; font-size: 11px; padding: 4px 4px;
+    flex: 1; min-width: 0; font-size: 11px; padding: 4px 3px;
     border: 1px solid var(--border); border-radius: 6px;
     background: var(--surface); color: var(--text);
     font-family: inherit; cursor: pointer;
+    -webkit-appearance: auto;
   }
   /* Push Leaflet zoom controls below the filter bar */
-  .leaflet-top.leaflet-left { margin-top: 48px !important; margin-left: 8px; }
+  .leaflet-top.leaflet-left { margin-top: 52px !important; margin-left: 8px; }
+  /* Push map content down so filter bar doesn't overlap markers */
+  #map-wrap { padding-top: 40px; box-sizing: border-box; }
 }

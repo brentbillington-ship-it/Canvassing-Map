@@ -1225,7 +1225,7 @@ body {
   /* Push Leaflet zoom controls below the filter bar */
   .leaflet-top.leaflet-left { margin-top: 52px !important; margin-left: 8px; }
   /* Push map content down so filter bar doesn't overlap markers */
-  #map-wrap { padding-top: 40px; box-sizing: border-box; }
+
 }
 
 /* ═══ FINAL MOBILE OVERRIDES — must stay at end of file ═══════════════════════ */

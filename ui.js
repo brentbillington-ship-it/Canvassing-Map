@@ -1013,9 +1013,14 @@ const UI = {
   },
 
 
-  _confirmClaimZone(letter) {
+  async _confirmClaimZone(letter) {
     const user = App._getUserRecord();
-    if (!confirm(`Claim Zone ${letter} for ${user.name}?\n\nYou'll be assigned as the volunteer for this zone.`)) return;
+    const ok = await this._confirm(
+      `Claim Zone ${letter}`,
+      `Assign Zone <strong>${letter}</strong> to <strong>${user.name}</strong>?<br><br>You'll be listed as the volunteer for this zone.`,
+      'Claim Zone'
+    );
+    if (!ok) return;
     App.claimZone(letter);
   },
 
@@ -1818,11 +1823,6 @@ const UI = {
       }
     });
   },
-  _chatOpen: false,
-  _chatMessages: [],
-  _chatLastSeen: 0,
-  _chatPollTimer: null,
-
   toggleChat() {
     let panel = document.getElementById('chat-panel');
     if (!panel) this._buildMobileChatPanel();

@@ -11,7 +11,6 @@ const MapModule = {
   _labelZoomMin: 18,
 
   init() {
-    console.log('%c Chaka Canvassing map.js v4.31 loaded — _minMarkerZoom=' + this._minMarkerZoom, 'background:#1c355e;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
     // Compute CISD bounds for maxBounds
     let cisdBounds = null;
     if (typeof CISD_BOUNDARY !== 'undefined') {
@@ -166,22 +165,12 @@ const MapModule = {
       inViewport.push({ f, addr2, street, c });
     }
 
-    // Build set of tracked house addresses to suppress duplicate labels
-    const trackedAddrs = new Set();
-    if (typeof App !== 'undefined' && App.state?.turfs) {
-      App.state.turfs.forEach(t => t.houses.forEach(h => {
-        trackedAddrs.add((h.address || '').toUpperCase().replace(/\s+/g, ' ').trim());
-      }));
-    }
-
-    // Pass 2: render only parcels whose street has 3+ local occurrences
-    // Skip any parcel whose address matches a tracked house (avoid duplicate labels)
+    // Pass 2: render all parcels with a valid street number
     const seen = new Set();
     for (const { f, addr2, street, c } of inViewport) {
-      if ((streetCount[street] || 0) < 3) continue;
+      if ((streetCount[street] || 0) < 1) continue;
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
-      if (trackedAddrs.has(dedupeKey)) continue;  // suppress — house marker already shows number
       seen.add(dedupeKey);
       const num = addr2.match(/^(\d+)/)?.[1];
       if (!num || parseInt(num, 10) > 9999) continue;
@@ -274,7 +263,7 @@ const MapModule = {
     });
   },
 
-  _minMarkerZoom: 16,
+  _minMarkerZoom: 17,
   _allTurfsCache: [],  // store last rendered turfs for viewport refresh
 
   // ── Full render ────────────────────────────────────────────────────────────

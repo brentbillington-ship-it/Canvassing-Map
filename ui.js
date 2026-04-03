@@ -96,6 +96,16 @@ const UI = {
       </div>`;
 
     document.getElementById('offline-banner').textContent = 'Offline - results will sync when reconnected';
+    // Inject mobile FAB if not already present
+    if (!document.getElementById('mobile-list-fab')) {
+      const fab = document.createElement('button');
+      fab.id = 'mobile-list-fab';
+      fab.className = 'mobile-list-fab';
+      fab.innerHTML = '📋';
+      fab.title = 'Show list';
+      fab.onclick = () => UI.toggleMap();
+      document.body.appendChild(fab);
+    }
 
     document.getElementById('sidebar').innerHTML = `
       <div id="sidebar-header">
@@ -331,6 +341,7 @@ const UI = {
   // ── Map toggle ────────────────────────────────────────────────────────────
   toggleMap() {
     const isMobile = window.innerWidth <= 680;
+    const fab = document.getElementById('mobile-list-fab');
     if (isMobile) {
       const sidebar = document.getElementById('sidebar');
       const btn     = document.getElementById('map-toggle-btn');
@@ -340,6 +351,7 @@ const UI = {
         btn.textContent = open ? 'Map' : 'List';
         btn.title = open ? 'Back to map' : 'Show list';
       }
+      if (fab) fab.innerHTML = open ? '🗺️' : '📋';
       if (open && sidebar) UI._initSidebarSwipe(sidebar);
       return;
     }
@@ -958,9 +970,10 @@ const UI = {
     const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
     const volunteer = volunteerName || '[UNASSIGNED]';
-    // Find color from users list
+    // Find color from users list — preserve existing turf color when unassigning
     const userRec = this._users.find(u => u.name === volunteer);
-    const color   = userRec?.color || turf.color || '#6b7280';
+    const color = userRec?.color ||
+      (turf.color && turf.color !== '#6b7280' ? turf.color : CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || '#6b7280');
     try {
       const res = await SheetsAPI.updateTurf(letter, { volunteer, color });
       if (res?.error) { UI.toast(res.error, 'error'); return; }
@@ -1222,7 +1235,9 @@ const UI = {
       const sel       = document.getElementById('f-volunteer-sel');
       const volunteer = sel?.value || '[UNASSIGNED]';
       const opt       = sel?.options[sel.selectedIndex];
-      const color     = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]') ? opt.dataset.color : '#6b7280';
+      const color = (opt?.dataset?.color && volunteer !== '[UNASSIGNED]')
+        ? opt.dataset.color
+        : (turf.color && turf.color !== '#6b7280' ? turf.color : CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || '#6b7280');
       const script    = (document.getElementById('f-script')?.value || '').trim();
       await App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
       const t = App.state.turfs.find(x => x.letter === letter);

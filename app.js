@@ -45,6 +45,14 @@ const App = {
       if (data.error) throw new Error(data.error);
       this.state.turfs = data.turfs;
       this._mergePolygons(polyData?.polygons);
+      // Heal any zones stuck with fallback grey color (#6b7280)
+      this.state.turfs.forEach((turf, i) => {
+        if (turf.color === '#6b7280') {
+          const healed = CONFIG.TURF_COLORS[(parseInt(turf.letter) - 1) % CONFIG.TURF_COLORS.length] || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
+          turf.color = healed;
+          SheetsAPI.updateTurf(turf.letter, { color: healed }).catch(() => {});
+        }
+      });
       this.render();
       UI.toast('Data loaded ✓', 'success');
       UI.setOffline(false);

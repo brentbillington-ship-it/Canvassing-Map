@@ -62,6 +62,14 @@ const MapModule = {
 
     satellite.addTo(this.map);
     labels.addTo(this.map);
+    // Apply brightness boost so aerial looks consistent on high-DPI mobile screens
+    satellite.on('add', () => {
+      const pane = this.map.getPane('tilePane');
+      if (pane) pane.style.filter = 'brightness(1.3)';
+    });
+    if (this.map.getPane('tilePane')) {
+      this.map.getPane('tilePane').style.filter = 'brightness(1.3)';
+    }
 
     // CISD boundary layer
     this._cisdLayer = null;

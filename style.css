@@ -1168,3 +1168,22 @@ body {
   background: rgba(255,255,255,0.2); border-radius: 10px;
   padding: 1px 8px; font-size: 11px; font-weight: 700;
 }
+
+/* ─── Mobile list FAB ───────────────────────────────────────────────────────── */
+.mobile-list-fab {
+  display: none;
+}
+@media (max-width: 680px) {
+  .mobile-list-fab {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; bottom: 24px; right: 16px; z-index: 8000;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--header-bg); color: #fff;
+    border: none; font-size: 22px; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .mobile-list-fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  /* Hide old header list button on mobile — FAB replaces it */
+  .list-toggle-btn { display: none !important; }
+}

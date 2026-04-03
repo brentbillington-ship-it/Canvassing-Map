@@ -780,8 +780,7 @@ body {
   height: 180px;
   flex-shrink: 0;
 }
-.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; flex-direction: column; gap: 1px; padding: 3px 0; border-bottom: 1px solid var(--border); }
-.sc-msg:last-child { border-bottom: none; }
+.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; flex-direction: column; gap: 1px; padding: 3px 0; }
 .sc-mine { color: var(--text2); }
 .sc-theirs { color: var(--text); }
 .sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); }

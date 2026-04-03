@@ -35,8 +35,12 @@ const App = {
     } else { el?.remove(); }
   },
 
+  _loadInProgress: false,
+
   async loadData() {
-    const _attempt = async () => {
+    if (this._loadInProgress) return;
+    this._loadInProgress = true;
+    try {
       const [data, polyData] = await Promise.all([
         SheetsAPI.getAll(),
         SheetsAPI.getPolygons().catch(() => null)
@@ -46,21 +50,26 @@ const App = {
       this._mergePolygons(polyData?.polygons);
       this.render();
       UI.setOffline(false);
-    };
-    try {
-      await _attempt();
     } catch(e) {
-      console.warn('Load failed, retrying in 2s…', e);
-      await new Promise(r => setTimeout(r, 2000));
+      console.warn('Load failed, retrying once in 3s…', e);
+      await new Promise(r => setTimeout(r, 3000));
       try {
-        await _attempt();
+        const [data, polyData] = await Promise.all([
+          SheetsAPI.getAll(),
+          SheetsAPI.getPolygons().catch(() => null)
+        ]);
+        if (data.error) throw new Error(data.error);
+        this.state.turfs = data.turfs;
+        this._mergePolygons(polyData?.polygons);
+        this.render();
+        UI.setOffline(false);
       } catch(e2) {
         console.error('Load failed after retry:', e2);
-        UI.toast('Failed to load — retrying…', 'error');
+        UI.toast('Failed to load — will retry automatically', 'error');
         UI.setOffline(true);
-        // Try one more time after 5s silently
-        setTimeout(() => this.loadData(), 5000);
       }
+    } finally {
+      this._loadInProgress = false;
     }
   },
 
@@ -124,6 +133,7 @@ const App = {
   async _silentRefresh() {
     if (document.getElementById('modal-overlay')) return;
     if (!navigator.onLine || document.visibilityState === 'hidden') return;
+    if (this._loadInProgress) return;
     try {
       const data = await SheetsAPI.getAll();
       if (data.error) return;

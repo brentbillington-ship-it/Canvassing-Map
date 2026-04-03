@@ -1,3 +1,4 @@
+/* v4.30 */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ─── Variables ──────────────────────────────────────────────────────────── */
@@ -292,6 +293,7 @@ body {
   font-size: 14px; font-weight: 800; flex-shrink: 0;
 }
 .turf-knock { border-left: 3px solid #b3a8c8; }
+.turf-knock .turf-header { --tc: #b3a8c8 !important; }
 .knock-badge { border-radius: 4px; transform: rotate(45deg); font-size: 11px; }
 .turf-info { flex: 1; min-width: 0; }
 .turf-volunteer { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

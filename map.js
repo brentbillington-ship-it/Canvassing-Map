@@ -55,6 +55,11 @@ const MapModule = {
     this.map.getPane('turfLabelPane').style.zIndex = 645;
     this.map.getPane('turfLabelPane').style.pointerEvents = 'auto';
 
+    // Dedicated house marker pane — hidden below _minMarkerZoom without touching markerPane
+    this.map.createPane('housePane');
+    this.map.getPane('housePane').style.zIndex = 620;
+    this.map.getPane('housePane').style.pointerEvents = 'auto';
+
     // Address label pane — above default markerPane
     this.map.createPane('addrPane');
     this.map.getPane('addrPane').style.zIndex = 660;
@@ -217,9 +222,9 @@ const MapModule = {
     const z = this.map.getZoom();
     const belowThreshold = z < this._minMarkerZoom;
 
-    // Show/hide house markers based on zoom threshold via the pane (no clear needed)
-    const markerPane = this.map.getPane('markerPane');
-    if (markerPane) markerPane.style.display = belowThreshold ? 'none' : '';
+    // Show/hide house markers by toggling the dedicated housePane
+    const housePane = this.map.getPane('housePane');
+    if (housePane) housePane.style.display = belowThreshold ? 'none' : '';
 
     if (belowThreshold) {
       // Still update polygon fill
@@ -253,6 +258,8 @@ const MapModule = {
     });
 
     // Update all marker icon sizes without full re-render
+    const hPaneEl = this.map.getPane('housePane');
+    if (hPaneEl) hPaneEl.style.display = '';
     this.houseGroup?.eachLayer(marker => {
       if (!marker._icon) return;
       const icon = marker._icon.querySelector('.house-dot');
@@ -379,6 +386,7 @@ const MapModule = {
         iconSize: [26, 26],
         iconAnchor: [13, 13],
       }),
+      pane: 'housePane',
       zIndexOffset: isOtherZone ? -200 : (isDone ? 0 : 100),
     });
   },
@@ -595,6 +603,7 @@ const MapModule = {
         iconAnchor: [22, 22],
       }),
       zIndexOffset: 2000,
+      pane: 'housePane',
       interactive: false,
     }).addTo(this.houseGroup);
   },

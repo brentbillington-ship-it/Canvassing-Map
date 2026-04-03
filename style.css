@@ -541,8 +541,8 @@ body {
   .presence-bar { display: none; }
   .stat-pills { display: flex; }
   .map-legend { margin-left: 10px; }
-  .leaflet-bottom.leaflet-right { margin-bottom: 4px; margin-right: 6px; }
-  .leaflet-bottom.leaflet-left { margin-bottom: 6px; margin-left: 10px; }
+  .leaflet-bottom.leaflet-right { margin-bottom: 8px; margin-right: 8px; }
+  .leaflet-bottom.leaflet-left { margin-bottom: 8px; margin-left: 8px; }
   .app-footer { bottom: 2px; right: 6px; font-size: 9px; }
 }
 
@@ -814,18 +814,17 @@ body {
 .school-label-hs { font-size: 11px; font-weight: 900; border-width: 2px; }
 .school-label-ms { font-size: 10px; font-weight: 800; }
 .school-label-es { font-size: 9px;  font-weight: 700; }
-/* Mobile: boost contrast on aerial background */
+/* Mobile: fully opaque white bg so text reads clearly over aerial */
 @media (max-width: 680px) {
   .school-label {
-    background: rgba(255,255,255,0.97);
-    border-color: rgba(127,29,29,0.7);
-    box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+    background: #ffffff;
+    color: #7f1d1d;
+    border-color: rgba(127,29,29,0.8);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.6);
+    font-weight: 900;
   }
 }
-/* Mobile: reduce aerial tile brightness to match desktop rendering */
-@media (max-width: 680px) {
-  .leaflet-tile-pane { filter: brightness(0.88) saturate(0.92); }
-}
+/* Mobile: no brightness filter — tile opacity:0.65 handles exposure on all devices */
 
 /* ─── Mobile chat ───────────────────────────────────────────────────────────── */
 #chat-panel {
@@ -1190,7 +1189,7 @@ body {
 @media (max-width: 680px) {
   .mobile-list-fab {
     display: flex; align-items: center; justify-content: center;
-    position: fixed; bottom: 54px; right: 8px; z-index: 8000;
+    position: fixed; bottom: 8px; right: 8px; z-index: 8000;
     width: 46px; height: 46px; border-radius: 50%;
     background: var(--header-bg); color: #fff;
     border: none; font-size: 20px; cursor: pointer;

@@ -85,14 +85,15 @@ const MapModule = {
     this.map.getPane('schoolPane').style.pointerEvents = 'none';
     this._renderSchoolLabels();
 
-    L.control.layers(
+    const layerControlPos = window.innerWidth <= 680 ? 'bottomleft' : 'bottomright';
+    this._layerControl = L.control.layers(
       { 'Aerial': satellite, 'Street': street },
       {
         'Road Labels': labels,
         ...(this._cisdLayer ? { 'CISD Boundary': this._cisdLayer } : {}),
         ...(this._schoolLayer ? { 'School Labels': this._schoolLayer } : {}),
       },
-      { position: 'bottomright', collapsed: true }
+      { position: layerControlPos, collapsed: true }
     ).addTo(this.map);
 
     this.turfPolygonGroup  = L.layerGroup().addTo(this.map);

@@ -13,7 +13,7 @@ const UI = {
   sessionId:    localStorage.getItem('ck_sess') || ('s_' + Math.random().toString(36).slice(2) + Date.now().toString(36)),
   _users:       [],
   _userColorPalette: [
-    '#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#7c4dcc','#c4487a',
+    '#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#8b5e9e','#c4487a',
     '#1a9e9e','#c27a1a','#4d8c2f','#4a7abf','#a0522d','#2e8b57',
   ],
   _expandedTurfs: new Set(),
@@ -86,6 +86,7 @@ const UI = {
             oninput="UI._addrSearchInput()" onkeydown="UI._addrSearchKey(event)"/>
           <div id="addr-search-results" class="addr-search-results" style="display:none"></div>
         </div>
+        <div id="my-progress-bar" class="my-progress-bar" style="display:none"></div>
         <div id="stats-bar" class="stats-bar"></div>
         <div id="top3-bar" class="top3-bar" style="display:none"></div>
         <div id="row2-right" class="row2-right">
@@ -372,7 +373,7 @@ const UI = {
     const loc = MapModule.getCurrentLatLon();
     if (!loc) return;
     let best = null, bestDist = Infinity;
-    for (const zone of App.state.turfs) {
+    for (const turf of App.state.turfs) {
       if (!this.isAdmin && (turf.mode || 'hanger') !== this.userMode) continue;
       for (const h of turf.houses) {
         if (h.result) continue;
@@ -721,7 +722,7 @@ const UI = {
   },
 
   // ── Edit boundary banner ────────────────────────────────────────────────────
-  showEditBoundaryBanner(letter, onSave, onCancel) {
+  showEditBoundaryBanner(letter) {
     document.getElementById('edit-boundary-banner')?.remove();
     const banner = document.createElement('div');
     banner.id = 'edit-boundary-banner';
@@ -729,8 +730,8 @@ const UI = {
     banner.innerHTML = `
       <span>Editing Zone <strong>${letter}</strong> boundary — drag vertices</span>
       <div class="ebb-btns">
-        <button class="ebb-save" onclick="(${onSave.toString()})()">✓ Save</button>
-        <button class="ebb-cancel" onclick="(${onCancel.toString()})()">✕ Cancel</button>
+        <button class="ebb-save" onclick="TurfDraw._commitEdit()">✓ Save</button>
+        <button class="ebb-cancel" onclick="TurfDraw._cancelEditMode();UI.toast('Edit cancelled')">✕ Cancel</button>
       </div>`;
     document.body.appendChild(banner);
   },
@@ -808,6 +809,43 @@ const UI = {
     const divider = (hTotal && kTotal) ? '<div class="stat-divider"></div>' : '';
 
     bar.innerHTML = hangerGroup + divider + knockGroup;
+    this.updateMyProgress(turfs);
+  },
+
+  // ── Personal progress bar — shows assigned hanger progress for current user ──
+  updateMyProgress(turfs) {
+    const bar = document.getElementById('my-progress-bar');
+    if (!bar || this.isAdmin) { if (bar) bar.style.display = 'none'; return; }
+
+    // My hanger zones only
+    const myTurfs = turfs.filter(t =>
+      (t.mode || 'hanger') === 'hanger' && t.volunteer === this.currentUser
+    );
+    if (!myTurfs.length) { bar.style.display = 'none'; return; }
+
+    const myHouses  = myTurfs.flatMap(t => t.houses);
+    const myTotal   = myHouses.length;
+    const myDone    = myHouses.filter(h => h.result === 'hanger' || h.result === 'skip' || h.result === 'not_home').length;
+    const myHangers = myHouses.filter(h => h.result === 'hanger').length;
+    const myPct     = myTotal ? Math.round(myDone / myTotal * 100) : 0;
+
+    const col = {};
+    CONFIG.RESULTS.forEach(r => { col[r.key] = r.color; });
+
+    const hPct    = myTotal ? (myHouses.filter(h=>h.result==='hanger').length / myTotal * 100).toFixed(1) : 0;
+    const sPct    = myTotal ? (myHouses.filter(h=>h.result==='skip').length   / myTotal * 100).toFixed(1) : 0;
+    const nhPct   = myTotal ? (myHouses.filter(h=>h.result==='not_home').length / myTotal * 100).toFixed(1) : 0;
+
+    bar.style.display = 'flex';
+    bar.innerHTML = `
+      <span class="my-prog-label">My Progress</span>
+      <div class="my-prog-track">
+        <div class="my-prog-seg" style="width:${hPct}%;background:${col.hanger}" title="Hangers: ${myHangers}"></div>
+        <div class="my-prog-seg" style="width:${sPct}%;background:${col.skip}"   title="Skipped"></div>
+        <div class="my-prog-seg" style="width:${nhPct}%;background:${col.not_home}" title="Not home"></div>
+      </div>
+      <span class="my-prog-pct">${myPct}%</span>
+      <span class="my-prog-count">${myDone}/${myTotal}</span>`;
   },
 
   // ── Sidebar ──────────────────────────────────────────────────────────────────
@@ -882,10 +920,10 @@ const UI = {
       const isKnock = (turf.mode || 'hanger') === 'knock';
       return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
-          <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${color}">${isKnock ? '◆' : turf.letter}</div>
+          <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${isKnock ? '#b3a8c8' : color}">${isKnock ? '<span style="display:inline-block;transform:rotate(-45deg);font-size:14px;line-height:1">✊</span>' : turf.letter}</div>
           <div class="turf-info">
-            <div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
-            ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#7c4dcc;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
+            <div class="turf-volunteer">${this.isAdmin ? '' : (isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}</div>
+            ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#b3a8c8;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
             ${this.isAdmin ? inlineAssign : ''}
             <div class="turf-progress-row">
               <div class="turf-prog-track">
@@ -943,7 +981,7 @@ const UI = {
       ? `<span class="house-badge" style="background:${resultDef.bg};color:${resultDef.color}">${resultDef.icon} ${resultDef.label}</span>`
       : `<span class="house-badge unvisited">Not visited</span>`;
 
-    // Done key depends on mode: hanger turfs → 'hanger', knock turfs → 'knocked'
+    // Done key depends on mode: hanger turfs → 'hanger', knock → 'knocked'
     const doneKey = (turf.mode || 'hanger') === 'knock' ? 'knocked' : 'hanger';
     const doneR   = CONFIG.RESULTS.find(x => x.key === doneKey);
     const skipR   = CONFIG.RESULTS.find(x => x.key === 'skip');
@@ -1368,9 +1406,6 @@ const UI = {
     // Find or auto-create the Knocks zone (mode=knock, letter=K)
     const knockTurf = App.state.turfs.find(t => (t.mode || 'hanger') === 'knock');
 
-    // Track whether user wants map placement instead of address search
-    let _placeOnMapRequested = false;
-
     this._modal('Add Knock Location', `
       <div class="f-hint" style="margin-bottom:10px">
         Knock locations go into the shared <strong>Knocks</strong> zone. Address is optional —
@@ -1384,15 +1419,13 @@ const UI = {
       <div id="parcel-results" class="parcel-results"></div>
       <div id="parcel-selected" class="parcel-selected" style="display:none"></div>
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-        <button class="import-template-btn" style="flex:1" onclick="document.getElementById('_knock-place-flag').value='1';document.getElementById('modal-confirm-btn').click()">
+        <button class="import-template-btn" style="flex:1" onclick="UI._startKnockMapPlace();UI._closeModal()">
           📍 Place on Map Instead
         </button>
       </div>
-      <input type="hidden" id="_knock-place-flag" value="0"/>
     `, async () => {
       const selected  = UI._selectedParcel;
       const volunteer = document.getElementById('f-knock-vol')?.value || '';
-      const placeOnMap = document.getElementById('_knock-place-flag')?.value === '1';
 
       // Ensure knock zone exists — create it if not
       let knockLetter = knockTurf?.letter;
@@ -1405,7 +1438,7 @@ const UI = {
           knockLetter = 'K' + n;
         }
         try {
-          await SheetsAPI.addTurf(knockLetter, '#7c4dcc', volunteer || '[UNASSIGNED]', 'knock');
+          await SheetsAPI.addTurf(knockLetter, '#b3a8c8', volunteer || '[UNASSIGNED]', 'knock');
           await App.loadData();
         } catch(e) { UI.toast('Failed to create Knocks zone', 'error'); return false; }
       } else if (volunteer) {
@@ -1413,15 +1446,11 @@ const UI = {
         await SheetsAPI.updateTurf(knockLetter, { volunteer }).catch(() => {});
       }
 
-      if (placeOnMap) {
-        // Switch to map-click placement mode after modal closes
-        UI._pendingKnockTurf = knockLetter;
-        UI._startKnockMapPlace();
-      } else if (selected) {
+      if (selected) {
         // Address was selected from parcel search
         await App.addHouse({ turf: knockLetter, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
       } else {
-        // No address and no map placement — switch to map placement
+        // No address — switch to map-click placement mode after modal closes
         UI._pendingKnockTurf = knockLetter;
         UI._startKnockMapPlace();
       }
@@ -1619,7 +1648,7 @@ const UI = {
   },
 
   // ── Zone completion chat announcement ─────────────────────────────────────
-  _completedZones: new Set(),
+  _completedZones: new Set(JSON.parse(localStorage.getItem('ck_completed_zones') || '[]')),
   _chatOpen: false,
   _chatMessages: [],
   _chatLastSeen: 0,
@@ -1633,6 +1662,7 @@ const UI = {
       const contacted = turf.houses.filter(h => h.result && h.result !== 'skip').length;
       if (contacted === total && !this._completedZones.has(turf.letter)) {
         this._completedZones.add(turf.letter);
+        localStorage.setItem('ck_completed_zones', JSON.stringify([...this._completedZones]));
         const msg = `📣 Zone ${turf.letter} is complete — great work, ${_esc(turf.volunteer)}! (${total}/${total} houses)`;
         SheetsAPI.sendChat('System', 'system', msg).catch(() => {});
       }

@@ -134,20 +134,19 @@ const App = {
       // Preserve polygon_geojson from existing state — re-fetch every 4th refresh
       // to pick up newly created zones without hammering the API
       this._silentRefreshCount = (this._silentRefreshCount || 0) + 1;
+      let freshPolygons = null;
       if (this._silentRefreshCount % 4 === 0) {
         const freshPoly = await SheetsAPI.getPolygons().catch(() => null);
-        this._mergePolygons(freshPoly?.polygons);
-        data.turfs.forEach(t => {
-          const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
-          if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
-        });
-      } else {
-        data.turfs.forEach(t => {
-          const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
-          if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
-        });
+        freshPolygons = freshPoly?.polygons || null;
       }
+      // Preserve existing polygon data into incoming data before swapping state
+      data.turfs.forEach(t => {
+        const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
+        if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
+      });
       this.state.turfs = data.turfs;
+      // Now merge fresh polygons on top — after state is set so we don't overwrite with stale
+      if (freshPolygons) this._mergePolygons(freshPolygons);
       this.render();
     } catch(e) {}
   },

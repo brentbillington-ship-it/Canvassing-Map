@@ -10,6 +10,7 @@ const TurfDraw = (() => {
   let _editingLetter = null;
   let _editLayer     = null;
   let _pendingRing   = null;
+  let _lastEscTime   = 0;
 
   const _isMobile = () => window.innerWidth <= 680 || 'ontouchstart' in window;
 
@@ -29,13 +30,44 @@ const TurfDraw = (() => {
       edit: { featureGroup: _drawnLayers, remove: false }
     });
 
-    _map.on(L.Draw.Event.CREATED, e => _onNewPolygon(e.layer));
+    _map.on(L.Draw.Event.CREATED, e => {
+      if (_editingLetter) return; // ignore CREATED events during edit mode
+      _onNewPolygon(e.layer);
+    });
     _map.on(L.Draw.Event.EDITED,  e => {
       e.layers.eachLayer(layer => {
         const lid    = _drawnLayers.getLayerId(layer);
         const letter = _turfLetters[lid];
         if (letter) _onEditedPolygon(letter, layer);
       });
+    });
+
+    // Right-click cancels draw or edit
+    _map.on('contextmenu', e => {
+      L.DomEvent.preventDefault(e.originalEvent);
+      if (_editingLetter) { _cancelEditMode(); UI.toast('Edit cancelled'); }
+      else if (_active)   { _deactivateDraw(); UI.toast('Draw cancelled'); }
+    });
+
+    // ESC: first press removes last vertex during draw; second press cancels draw
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (_editingLetter) { _cancelEditMode(); UI.toast('Edit cancelled'); return; }
+      if (_active && _polygonHandler) {
+        const now = Date.now();
+        if (_lastEscTime && now - _lastEscTime < 1000) {
+          // Second ESC within 1s — cancel draw entirely
+          _deactivateDraw();
+          const btn = document.getElementById('draw-mode-btn');
+          if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+          UI.toast('Draw cancelled');
+        } else {
+          // First ESC — delete last vertex
+          try { _polygonHandler.deleteLastVertex(); } catch(err) {}
+          UI.toast('Last vertex removed — ESC again to cancel', 'info');
+        }
+        _lastEscTime = now;
+      }
     });
   }
 
@@ -189,7 +221,13 @@ const TurfDraw = (() => {
     }
     _cancelEditMode();
     _editingLetter = letter;
-    if (!_active) toggle();
+
+    // Disable any active polygon draw handler — edit mode is separate
+    if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} _polygonHandler = null; }
+    // Add draw control to map (needed for Leaflet.draw CSS/handles) but do NOT activate draw
+    if (!_isMobile()) {
+      try { _map.addControl(_drawControl); } catch(e) {}
+    }
 
     let foundLayer = null;
     Object.entries(_turfLetters).forEach(([lid, l]) => {
@@ -203,9 +241,9 @@ const TurfDraw = (() => {
       const handler = new L.EditToolbar.Edit(_map, { featureGroup: editFG });
       handler.enable();
       _editLayer._ckEditHandler = handler;
-    } catch(e) {}
+    } catch(e) { console.warn('Edit handler error:', e); }
 
-    UI.showEditBoundaryBanner(letter, () => _commitEdit(), () => _cancelEditMode());
+    UI.showEditBoundaryBanner(letter);
   }
 
   function _commitEdit() {
@@ -216,6 +254,7 @@ const TurfDraw = (() => {
     }
     _onEditedPolygon(_editingLetter, _editLayer);
     _editingLetter = null; _editLayer = null;
+    if (!_isMobile()) { try { _map.removeControl(_drawControl); } catch(e) {} }
     UI.hideEditBoundaryBanner();
   }
 
@@ -224,6 +263,7 @@ const TurfDraw = (() => {
       try { _editLayer._ckEditHandler.revertLayers(); _editLayer._ckEditHandler.disable(); } catch(e) {}
     }
     _editingLetter = null; _editLayer = null;
+    if (!_isMobile() && !_active) { try { _map.removeControl(_drawControl); } catch(e) {} }
     UI.hideEditBoundaryBanner();
   }
 
@@ -395,5 +435,6 @@ const TurfDraw = (() => {
   return {
     init, toggle, isActive, loadTurfs, removeTurfLayer,
     startEditBoundary, resortTurf, _onCommercialToggle, _cancelMobileRect,
+    _commitEdit, _cancelEditMode,
   };
 })();

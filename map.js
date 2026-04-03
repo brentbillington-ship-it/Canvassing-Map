@@ -39,7 +39,7 @@ const MapModule = {
     );
     const satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 19, opacity: 0.85, crossOrigin: true }
+      { attribution: '© Esri', maxZoom: 19, opacity: 0.65, crossOrigin: true }
     );
 
     this.map.createPane('labelsPane');
@@ -135,7 +135,7 @@ const MapModule = {
     const inViewport  = [];
     for (const f of PARCELS_GEOJSON.features) {
       const addr2 = (f.properties.addr2 || '').trim();
-      if (!addr2 || ParcelsUtil.isCommercialOrApt(addr2)) continue;
+      if (!addr2 || ParcelsUtil.isCommercialOrApt(addr2, f.properties)) continue;
       const c = ParcelsUtil.featureCentroid(f);
       if (!c || !bounds.contains([c.lat, c.lon])) continue;
       // Extract street name (everything after the leading number)
@@ -290,11 +290,11 @@ const MapModule = {
   },
 
   _makeMarker(house, turf, isOtherZone = false) {
-    const result    = house.result || '';
-    const resultDef = CONFIG.RESULTS.find(r => r.key === result);
-    const dotColor  = resultDef ? resultDef.color : '#6b7280';
+    const result       = house.result || '';
     const isDone       = !!result;
     const isDoorKnock  = (turf?.mode || 'hanger') === 'knock';
+    const resultDef    = CONFIG.RESULTS.find(r => r.key === result);
+    const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
 
     // Circle = hanger, diamond = knock
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
@@ -346,6 +346,12 @@ const MapModule = {
     }).join('');
 
     const safeNotes = _esc(house.notes || '');
+    // In admin mode, render existing note tokens as deletable chips
+    const existingChips = UI.isAdmin && house.notes
+      ? house.notes.split(',').map(s => s.trim()).filter(Boolean).map(c =>
+          `<span class="note-chip note-chip-deletable">${_esc(c)}<button class="note-chip-x" onclick="event.stopPropagation();MapModule._removeChip('${house.id}','${c.replace(/'/g,"\\'")}')">✕</button></span>`
+        ).join('')
+      : '';
     const notesHtml = `
       <div class="popup-notes-row">
         <input id="pnotes-${house.id}" class="popup-notes-input" type="text"
@@ -354,6 +360,7 @@ const MapModule = {
         <button class="popup-notes-save"
           onclick="MapModule._saveNotes('${house.id}',document.getElementById('pnotes-${house.id}').value)">Save</button>
       </div>
+      ${existingChips ? `<div class="popup-chips popup-chips-existing">${existingChips}</div>` : ''}
       <div class="popup-chips">
         ${['Kids in CISD 🏫','Khanh Supporter ❌','Interested ✅','🪧 Wants Sign','📋 Filled Form'].map(c =>
           `<span class="note-chip" onclick="MapModule._appendChip('${house.id}',this.textContent)">${c}</span>`
@@ -421,6 +428,22 @@ const MapModule = {
     if (!inp) return;
     inp.value = inp.value ? inp.value + ', ' + chip.trim() : chip.trim();
     inp.focus();
+    MapModule._saveNotes(houseId, inp.value);
+  },
+
+  _removeChip(houseId, chipText) {
+    const { house } = App._findHouse(houseId);
+    if (!house) return;
+    const tokens = (house.notes || '').split(',').map(s => s.trim()).filter(s => s && s !== chipText.trim());
+    const newNotes = tokens.join(', ');
+    house.notes = newNotes;
+    // Update input if popup still open
+    const inp = document.getElementById('pnotes-' + houseId);
+    if (inp) inp.value = newNotes;
+    App.saveNotes(houseId, newNotes);
+    // Re-open popup to refresh chip list
+    const cached = window._houseCache?.[houseId];
+    if (cached) MapModule._openHousePopup(cached.house, cached.turf, cached.color);
   },
 
   // -- Legend — desktop always-on, mobile info button ──────────────────────────
@@ -449,7 +472,7 @@ const MapModule = {
       `<div class="legend-row"><span class="legend-dot" style="background:#9ca3af"></span><span class="legend-label">Not visited</span></div>` +
       `<div class="legend-divider"></div>` +
       diamondRowHtml(group2) +
-      `<div class="legend-row"><span class="legend-dot legend-diamond" style="background:#9ca3af"></span><span class="legend-label">Not knocked</span></div>`;
+      `<div class="legend-row"><span class="legend-dot legend-diamond" style="background:#b3a8c8"></span><span class="legend-label">Not knocked</span></div>`;
 
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {

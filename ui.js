@@ -1068,10 +1068,17 @@ const UI = {
 
   // ── Multi-select ──────────────────────────────────────────────────────────
   _msStart(letter) {
-    this._multiSelectTurf = letter;
+    // Coerce to number to match turf.letter from Sheets
+    const key = isNaN(letter) ? letter : Number(letter);
+    this._multiSelectTurf = key;
     this._selectedHouseIds = new Set();
-    this._expandedTurfs.add(letter);
+    this._expandedTurfs.add(key);
     App.render();
+    // Scroll to zone card so user sees the active multi-select bar
+    setTimeout(() => {
+      const el = document.getElementById('turf-block-' + letter);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   },
 
   _msCancel() {
@@ -1239,6 +1246,7 @@ const UI = {
   },
 
   _toggleTurf(letter) {
+    const key   = isNaN(letter) ? letter : Number(letter);
     const el    = document.getElementById('houses-' + letter);
     const chev  = document.getElementById('chev-' + letter);
     const block = document.getElementById('turf-block-' + letter);
@@ -1247,7 +1255,7 @@ const UI = {
     el.style.display = open ? 'none' : 'block';
     if (chev)  chev.textContent = open ? '▸' : '▾';
     if (block) block.classList.toggle('turf-expanded', !open);
-    if (open) this._expandedTurfs.delete(letter); else this._expandedTurfs.add(letter);
+    if (open) this._expandedTurfs.delete(key); else this._expandedTurfs.add(key);
   },
 
   // ── Presence ─────────────────────────────────────────────────────────────────
@@ -1837,6 +1845,8 @@ const UI = {
       : '';
     const jumpBtn = `<button class="modal-cancel" style="margin-top:8px;width:100%" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>{const el=document.getElementById('turf-block-${letter}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid ${color}';setTimeout(()=>el.style.outline='',1500);}},100)">Jump to Zone in List</button>`;
 
+    const msBtn = `<button class="modal-cancel" style="margin-top:8px;width:100%;background:#e8f0fc;color:#2e6ec2;border-color:#2e6ec2;font-weight:700" onclick="document.getElementById('modal-overlay')?.remove();UI._msStart('${letter}')">☑ Edit Multiple</button>`;
+
     this._modal(`Zone ${letter}`, `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div style="width:36px;height:36px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0">${isKnock ? '✊' : letter}</div>
@@ -1850,6 +1860,7 @@ const UI = {
       </div>
       <div class="zsb-breakdown">${breakdown || '<div style="color:var(--text3);font-size:12px">No contacts recorded yet</div>'}</div>
       ${claimBtn}
+      ${msBtn}
       ${jumpBtn}
     `, null, null);
   },
@@ -1879,6 +1890,7 @@ const UI = {
         <button class="admin-btn" style="padding:8px;font-size:12px" onclick="document.getElementById('modal-overlay')?.remove();TurfDraw.resortTurf('${letter}',MapModule.getCurrentLatLon())">🔄 Re-sort Walk</button>
         <button class="admin-btn danger" style="padding:8px;font-size:12px;background:#fee2e2;border-color:#fca5a5;color:#c44848" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>UI.confirmDeleteTurf('${letter}'),50)">✕ Delete Zone</button>
       </div>
+      <button class="modal-cancel" style="width:100%;margin-top:6px;background:#e8f0fc;color:#2e6ec2;border-color:#2e6ec2;font-weight:700" onclick="document.getElementById('modal-overlay')?.remove();UI._msStart('${letter}')">☑ Edit Multiple</button>
       <button class="modal-cancel" style="width:100%;margin-top:6px" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>{const el=document.getElementById('turf-block-${letter}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid ${color}';setTimeout(()=>el.style.outline='',1500);}},100)">Jump to Zone in List</button>
     `, null, null);
   },

@@ -85,7 +85,10 @@ const App = {
   render() {
     const turfs = this._visibleTurfs();
     UI.updateStats(this.state.turfs);
+    const sidebar = document.getElementById('sidebar');
+    const scrollTop = sidebar ? sidebar.scrollTop : 0;
     UI.renderSidebar(turfs);
+    if (sidebar) sidebar.scrollTop = scrollTop;
     MapModule.renderAll(turfs);
     // Don't rebuild drawn layers or re-render polygons while an edit is in progress
     if (!TurfDraw.isEditing()) TurfDraw.loadTurfs(this.state.turfs);
@@ -137,7 +140,7 @@ const App = {
     try {
       const data = await SheetsAPI.getAll();
       if (data.error) return;
-      const hash = JSON.stringify(data.turfs.map(t => t.houses.map(h => h.result + h.result_by + h.notes)));
+      const hash = JSON.stringify(data.turfs.map(t => [t.volunteer, t.color, t.mode, t.houses.map(h => h.result + h.result_by + h.notes)]));
       if (hash === this._lastHash) return;
       this._lastHash   = hash;
       // Apply write lock — don't overwrite recently-set local results
@@ -223,7 +226,11 @@ const App = {
     // Lock this house for 10s to prevent silent refresh overwrite
     this._writeLock[houseId] = Date.now() + 10000;
     MapModule.updateHouseMarker(house, turf, idx);
+    // Preserve sidebar scroll position across re-render
+    const sidebar = document.getElementById('sidebar');
+    const scrollTop = sidebar ? sidebar.scrollTop : 0;
     UI.renderSidebar(this._visibleTurfs());
+    if (sidebar) sidebar.scrollTop = scrollTop;
     UI.updateStats(this.state.turfs);
     UI.updateNextDoor();
     UI.setSyncStatus('syncing');

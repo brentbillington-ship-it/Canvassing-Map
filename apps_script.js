@@ -301,7 +301,7 @@ function updateTurf(letter, fields) {
   const data  = sheet.getDataRange().getValues();
   const hdrs  = data[0];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === letter) {
+    if (String(data[i][0]) === String(letter)) {
       for (const [k, v] of Object.entries(fields)) { const c = hdrs.indexOf(k); if (c >= 0) sheet.getRange(i+1,c+1).setValue(v); }
       SpreadsheetApp.flush(); return { success: true };
     }
@@ -448,7 +448,7 @@ function claimZone(letter, volunteer, color) {
 function bulkImportHouses(letter, houses) {
   if (!letter || !houses || !houses.length) return { success: true, added: 0 };
   const housesSheet    = getSheet('houses');
-  const existingHouses = sheetToObjects(housesSheet).filter(h => h.turf === letter);
+  const existingHouses = sheetToObjects(housesSheet).filter(h => String(h.turf) === String(letter));
   const existingAddrs  = new Set(existingHouses.map(h => (h.address||'').toUpperCase().trim()));
   let maxOrder = existingHouses.reduce((m, h) => Math.max(m, parseInt(h.sort_order)||0), 0);
   let added = 0;
@@ -642,9 +642,9 @@ function backupZone(letter) {
   if (!letter) return { error: 'No letter provided' };
   const turfsData  = sheetToObjects(getSheet('turfs'));
   const housesData = sheetToObjects(getSheet('houses'));
-  const turf  = turfsData.find(t => t.letter === letter);
+  const turf  = turfsData.find(t => String(t.letter) === String(letter));
   if (!turf) return { error: 'Zone not found: ' + letter };
-  const houses = housesData.filter(h => h.turf === letter);
+  const houses = housesData.filter(h => String(h.turf) === String(letter));
   const resultCount = houses.filter(h => h.result && h.result !== '').length;
   const dataJson = JSON.stringify({ turf, houses });
   const sheet = getSheet('deleted_zones');

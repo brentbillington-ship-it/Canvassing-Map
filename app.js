@@ -110,8 +110,11 @@ const App = {
     setInterval(() => this._pollPresence(), 15000);
   },
 
+  _silentRefreshFailures: 0,
+
   async _silentRefresh() {
     if (document.getElementById('modal-overlay')) return;
+    if (!navigator.onLine || document.visibilityState === 'hidden') return;
     try {
       const data = await SheetsAPI.getAll();
       if (data.error) return;
@@ -120,6 +123,10 @@ const App = {
       this._lastHash   = hash;
       // Apply write lock — don't overwrite recently-set local results
       const now = Date.now();
+      // Prune expired write locks to prevent unbounded growth over long sessions
+      Object.keys(this._writeLock).forEach(id => {
+        if (this._writeLock[id] <= now) delete this._writeLock[id];
+      });
       data.turfs.forEach(turf => {
         turf.houses.forEach(house => {
           if (this._writeLock[house.id] && this._writeLock[house.id] > now) {
@@ -149,7 +156,13 @@ const App = {
       // Now merge fresh polygons on top — after state is set so we don't overwrite with stale
       if (freshPolygons) this._mergePolygons(freshPolygons);
       this.render();
-    } catch(e) {}
+    } catch(e) {
+      this._silentRefreshFailures = (this._silentRefreshFailures || 0) + 1;
+      console.warn('Silent refresh failed:', e);
+      if (this._silentRefreshFailures >= 3) UI.setOffline(true);
+      return;
+    }
+    this._silentRefreshFailures = 0;
   },
 
   async _heartbeat() { try { await SheetsAPI.heartbeat(UI.currentUser, UI.sessionId); } catch(e) {} },
@@ -400,33 +413,43 @@ const App = {
   // ── Update turf boundary (edit) ────────────────────────────────────────────
   async updateTurfBoundary({ letter, geojson, toKeep, toRemove, toAdd }) {
     UI.toast('Updating boundary…', 'info');
+    let succeeded = false;
     try {
-      // Save new boundary
+      // Save new boundary first — bail early with clear error if this fails
       const saveRes = await SheetsAPI.saveTurfPolygon(letter, geojson);
-      if (saveRes?.error) { UI.toast(`Boundary save failed: ${saveRes.error}`, 'error'); return; }
+      if (saveRes?.error) {
+        UI.toast(`Boundary save failed: ${saveRes.error}`, 'error');
+        console.error('saveTurfPolygon error:', saveRes.error);
+        return;
+      }
 
-      // Remove houses with no result
+      // Remove houses that fell outside the new boundary (only if no result)
       for (const h of toRemove) {
-        await SheetsAPI.removeHouse(h.id);
+        const res = await SheetsAPI.removeHouse(h.id);
+        if (res?.error) console.warn('removeHouse failed for', h.id, res.error);
       }
 
-      // Add new houses
+      // Add new houses that entered the boundary
       if (toAdd.length) {
-        const houses = toAdd.map(p => ({ address: p.address, owner: p.owner, lat: p.lat, lon: p.lon }));
-        const turf   = this.state.turfs.find(t => t.letter === letter);
-        await SheetsAPI.bulkImport([{
-          letter, color: turf?.color || '#2e6ec2',
+        const turf = this.state.turfs.find(t => String(t.letter) === String(letter));
+        const houses = toAdd.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
+        const res = await SheetsAPI.bulkImport([{
+          letter,
+          color: turf?.color || '#2e6ec2',
           volunteer: turf?.volunteer || '[UNASSIGNED]',
-          houses
+          houses,
         }]);
+        if (res?.error) console.warn('bulkImport partial error:', res.error);
       }
 
-      // Full reload so polygon + houses are consistent
-      await this.loadData();
+      succeeded = true;
       UI.toast(`Zone ${letter} boundary updated ✓`, 'success');
     } catch(e) {
-      UI.toast('Failed to update boundary', 'error');
+      UI.toast('Failed to update boundary — reloading to sync', 'error');
       console.error('updateTurfBoundary error:', e);
+    } finally {
+      // Always reload — keeps UI consistent with actual Sheets state whether or not we succeeded
+      await this.loadData();
     }
   },
 

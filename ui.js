@@ -1182,18 +1182,25 @@ const UI = {
     overlay.addEventListener('click', e => { if (e.target === overlay) doCancel(); });
     document.getElementById('modal-x-close')?.addEventListener('click', doCancel);
     document.getElementById('modal-cancel-close')?.addEventListener('click', doCancel);
-    if (onConfirm) document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('modal-confirm-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-      try {
-        const result = await onConfirm();
-        if (result !== false) overlay.remove();
-      } catch(e) {
-        UI.toast('Something went wrong — try again', 'error');
-      } finally {
-        if (btn) { btn.disabled = false; btn.textContent = btn._origLabel || 'Save'; }
-      }
-    });
+    if (onConfirm) {
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      if (confirmBtn) confirmBtn._origLabel = confirmLabel || 'Save';
+      confirmBtn?.addEventListener('click', async () => {
+        const btn = document.getElementById('modal-confirm-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+        try {
+          const result = await onConfirm();
+          if (result !== false) overlay.remove();
+        } catch(e) {
+          UI.toast('Something went wrong — try again', 'error');
+        } finally {
+          if (btn && document.body.contains(btn)) {
+            btn.disabled = false;
+            btn.textContent = btn._origLabel || confirmLabel || 'Save';
+          }
+        }
+      });
+    }
     setTimeout(() => overlay.querySelector('input')?.focus(), 50);
   },
 
@@ -1339,8 +1346,8 @@ const UI = {
       const selected = UI._selectedParcel;
       const zone     = document.getElementById('f-turf')?.value;
       if (!selected) { this.toast('Select a parcel from the results', 'error'); return false; }
-      if (!turf)     { this.toast('Select a zone', 'error'); return false; }
-      App.addHouse({ turf, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
+      if (!zone)     { this.toast('Select a zone', 'error'); return false; }
+      App.addHouse({ turf: zone, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
       UI._selectedParcel = null;
       return true;
     }, 'Add House');
@@ -1956,6 +1963,9 @@ const UI = {
 
   startChatPoll() {
     this._fetchChat();
-    this._chatPollTimer = setInterval(() => this._fetchChat(), 5000);
+    this._chatPollTimer = setInterval(() => {
+      if (!navigator.onLine || document.visibilityState === 'hidden') return;
+      this._fetchChat();
+    }, 5000);
   },
 };

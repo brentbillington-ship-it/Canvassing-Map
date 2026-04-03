@@ -820,6 +820,10 @@ body {
     box-shadow: 0 1px 5px rgba(0,0,0,0.5);
   }
 }
+/* Mobile: reduce aerial tile brightness to match desktop rendering */
+@media (max-width: 680px) {
+  .leaflet-tile-pane { filter: brightness(0.88) saturate(0.92); }
+}
 
 /* ─── Mobile chat ───────────────────────────────────────────────────────────── */
 #chat-panel {
@@ -928,7 +932,7 @@ body {
   .mobile-chat-btn { display: inline-flex !important; }
   .desktop-only { display: none !important; }
   .desktop-hide { display: inline-flex !important; }
-  .list-toggle-btn { display: inline-flex !important; }
+  .list-toggle-btn { display: none !important; }
   .sidebar-close-btn { display: flex !important; }
   .top3-bar { display: flex !important; }
   #admin-row2 { flex-wrap: wrap; }
@@ -1207,15 +1211,20 @@ body {
 .mobile-map-filter { display: none; }
 @media (max-width: 680px) {
   .mobile-map-filter {
-    display: flex; gap: 6px; position: absolute;
-    top: 60px; left: 8px; right: 8px; z-index: 1000;
-    pointer-events: auto; flex-wrap: wrap;
+    display: flex; gap: 5px; position: absolute;
+    top: 0; left: 0; right: 0; z-index: 1000;
+    pointer-events: auto; flex-wrap: nowrap;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.96);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   }
   .mobile-map-filter select {
-    flex: 1; min-width: 80px; font-size: 12px; padding: 5px 6px;
-    border: 1px solid var(--border); border-radius: 8px;
-    background: rgba(255,255,255,0.95); color: var(--text);
+    flex: 1; min-width: 0; font-size: 11px; padding: 4px 4px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--text);
     font-family: inherit; cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
+  /* Push Leaflet zoom controls below the filter bar */
+  .leaflet-top.leaflet-left { margin-top: 48px !important; margin-left: 8px; }
 }

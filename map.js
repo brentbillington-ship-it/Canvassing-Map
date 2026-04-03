@@ -97,12 +97,21 @@ const MapModule = {
     setTimeout(() => this.map.invalidateSize(), 100);
     this._tryInitialGPS();
 
-    // Rebuild address labels and cull markers on zoom and pan
-    this.map.on('zoomend moveend', () => {
+    // Split zoom and pan listeners — address labels only at zoom≥18, markers gated at zoom≥15
+    this.map.on('zoomend', () => {
+      this._updateZoomStyle();
       this._renderAddressLabels();
       this._refreshVisibleMarkers();
     });
-    this.map.on('zoomend', () => this._updateZoomStyle());
+    // Debounce moveend so rapid panning doesn't rebuild markers on every pixel
+    let _moveTimer = null;
+    this.map.on('moveend', () => {
+      clearTimeout(_moveTimer);
+      _moveTimer = setTimeout(() => {
+        this._renderAddressLabels();
+        this._refreshVisibleMarkers();
+      }, 150);
+    });
     this._updateZoomStyle();
 
     // Map-tap for knock placement (admin) and missing house report (non-admin)
@@ -131,7 +140,7 @@ const MapModule = {
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
 
-    const bounds = this.map.getBounds().pad(0.15);
+    const bounds = this.map.getBounds().pad(0.05);
 
     // Pass 1: collect all addr2 street names for parcels in viewport
     // A street name is "local" if 3+ parcels in the viewport share it
@@ -150,12 +159,22 @@ const MapModule = {
       inViewport.push({ f, addr2, street, c });
     }
 
+    // Build set of tracked house addresses to suppress duplicate labels
+    const trackedAddrs = new Set();
+    if (typeof App !== 'undefined' && App.state?.turfs) {
+      App.state.turfs.forEach(t => t.houses.forEach(h => {
+        trackedAddrs.add((h.address || '').toUpperCase().replace(/\s+/g, ' ').trim());
+      }));
+    }
+
     // Pass 2: render only parcels whose street has 3+ local occurrences
+    // Skip any parcel whose address matches a tracked house (avoid duplicate labels)
     const seen = new Set();
     for (const { f, addr2, street, c } of inViewport) {
       if ((streetCount[street] || 0) < 3) continue;
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
+      if (trackedAddrs.has(dedupeKey)) continue;  // suppress — house marker already shows number
       seen.add(dedupeKey);
       const num = addr2.match(/^(\d+)/)?.[1];
       if (!num || parseInt(num, 10) > 9999) continue;
@@ -250,7 +269,7 @@ const MapModule = {
     });
   },
 
-  _minMarkerZoom: 14,
+  _minMarkerZoom: 15,
   _allTurfsCache: [],  // store last rendered turfs for viewport refresh
 
   // ── Full render ────────────────────────────────────────────────────────────
@@ -260,9 +279,11 @@ const MapModule = {
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
     this._allTurfsCache = turfs;
-    turfs.forEach((turf, i) => {
+    turfs.forEach(turf => {
       this._renderTurfPolygon(turf, _turfColor(turf));
     });
+    // Apply zoom threshold before adding markers
+    this._updateZoomStyle();
     this._refreshVisibleMarkers();
     this._renderAddressLabels();
     this._renderLegend();
@@ -279,7 +300,7 @@ const MapModule = {
       return;
     }
 
-    const bounds = this.map.getBounds().pad(0.15);
+    const bounds = this.map.getBounds().pad(0.05);
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
 

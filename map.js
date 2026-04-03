@@ -213,38 +213,49 @@ const MapModule = {
     const z = this.map.getZoom();
     const belowThreshold = z < this._minMarkerZoom;
 
-    if (belowThreshold) {
-      // Update polygon fill only — markers are controlled exclusively by _refreshVisibleMarkers
-      this.turfPolygonGroup?.eachLayer(layer => {
-        if (layer.setStyle) layer.setStyle({ fillOpacity: 0.25 });
-      });
-      return;
-    }
-    // Ensure housePane is visible above threshold
-    const housePane = this.map.getPane('housePane');
-    if (housePane) housePane.style.display = '';
-
     // Interpolate size and opacity across zoom range 13-18
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
     const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
     const size    = Math.round(lerp(8, 26, t));
-    const opacity = lerp(0.65, 0.95, t).toFixed(2);  // was 0.25→0.92, now higher floor
+    const opacity = lerp(0.65, 0.95, t).toFixed(2);
     const anchor  = Math.round(size / 2);
-    const polyFill = lerp(0.28, 0.15, t).toFixed(2); // more fill when zoomed out
+    const polyFill = lerp(0.28, 0.15, t).toFixed(2);
+
+    // Update polygon fill opacity
+    this.turfPolygonGroup?.eachLayer(layer => {
+      if (layer.setStyle) layer.setStyle({ fillOpacity: belowThreshold ? 0.25 : parseFloat(polyFill) });
+    });
 
     const wrap = document.getElementById('map');
     if (wrap) {
       wrap.style.setProperty('--dot-size', size + 'px');
       wrap.style.setProperty('--dot-opacity', opacity);
-      // Hide zone badge when address chips are visible (zoom ≥ labelZoomMin)
       wrap.classList.toggle('hide-turf-labels', z >= this._labelZoomMin);
     }
 
-    // Update polygon fill opacity
-    this.turfPolygonGroup?.eachLayer(layer => {
-      if (layer.setStyle) layer.setStyle({ fillOpacity: parseFloat(polyFill) });
-    });
+    if (belowThreshold) {
+      // Below hanger threshold — only knock markers visible, still scale them
+      this.houseGroup?.eachLayer(marker => {
+        if (!marker._icon) return;
+        const icon = marker._icon.querySelector('.house-dot');
+        if (icon) {
+          icon.style.width  = size + 'px';
+          icon.style.height = size + 'px';
+        }
+        if (marker._icon) {
+          marker._icon.style.marginLeft = -anchor + 'px';
+          marker._icon.style.marginTop  = -anchor + 'px';
+          marker._icon.style.width      = size + 'px';
+          marker._icon.style.height     = size + 'px';
+        }
+      });
+      return;
+    }
+
+    // Ensure housePane is visible above threshold
+    const housePane = this.map.getPane('housePane');
+    if (housePane) housePane.style.display = '';
 
     // Update all marker icon sizes without full re-render
     this.houseGroup?.eachLayer(marker => {
@@ -374,8 +385,25 @@ const MapModule = {
     const isDone       = !!result;
     const isDoorKnock  = (turf?.mode || 'hanger') === 'knock';
     const resultDef    = CONFIG.RESULTS.find(r => r.key === result);
-    const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
+    const inMs         = UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter);
+    const isSelected   = inMs && UI._selectedHouseIds.has(house.id);
 
+    // Multi-select mode: selected = green ✓, unselected = dashed gray circle
+    if (inMs) {
+      const msCls = `house-dot ms-dot${isSelected ? ' ms-dot-selected' : ''}${isDoorKnock ? ' diamond' : ''}`;
+      return L.marker([house.lat, house.lon], {
+        icon: L.divIcon({
+          html: `<div class="${msCls}">${isSelected ? '✓' : ''}</div>`,
+          className: '',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        }),
+        pane: 'housePane',
+        zIndexOffset: isSelected ? 200 : 100,
+      });
+    }
+
+    const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
     // Circle = hanger, diamond = knock
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
     return L.marker([house.lat, house.lon], {

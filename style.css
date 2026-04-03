@@ -1286,6 +1286,10 @@ body {
 .ms-selected { outline: 2px solid #2e6ec2; outline-offset: 1px; background: rgba(46,110,194,0.07) !important; }
 .ms-num { border: 2px dashed #9ca3af; color: #fff; font-weight: 800; font-size: 13px; transition: background 0.15s, border-color 0.15s; }
 .ms-num-selected { border: 2px solid #2d9e5f; background: #2d9e5f !important; }
+
+/* Map marker multi-select states */
+.ms-dot { background: #d1d5db !important; border: 2px dashed #9ca3af !important; opacity: 0.9 !important; color: transparent; font-size: 0; }
+.ms-dot-selected { background: #2d9e5f !important; border: 2px solid #2d9e5f !important; opacity: 1 !important; color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .ms-result-grid { display: flex; flex-direction: column; gap: 5px; }
 .ms-result-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; background: var(--rc, var(--bg2)); cursor: pointer; font-size: 13px; color: var(--rcc, var(--text)); border: 1.5px solid transparent; }
 .ms-result-opt:has(input:checked) { border-color: var(--rcc, #2e6ec2); font-weight: 700; }

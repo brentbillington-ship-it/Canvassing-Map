@@ -2,6 +2,7 @@
 // Paste your Google Apps Script deployment URL below
 const CONFIG = {
   SHEETS_API_URL: 'https://script.google.com/macros/s/AKfycbzWPPXdD0Y2nv1wkLrt6pqLJVnBq_DMp7rLW83AZMiSWWyJyqqTJdKxoMe2x3JE816I/exec',
+  API_TOKEN: '8j9zZkuX23vRW80-BKoixdRBJQNdcvdGU9ts425VP14',
   ADMIN_PASSWORD: 'choochoo',
   APP_NAME: 'Chaka Door Canvass',
   CANDIDATE: 'Kevin Chaka',

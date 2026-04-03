@@ -21,18 +21,33 @@
  *  "deleted_zones"— timestamp | letter | volunteer | house_count | result_count | data_json
  */
 
+// ─── Security token — must match CONFIG.API_TOKEN in config.js ────────────────
+var API_TOKEN = '8j9zZkuX23vRW80-BKoixdRBJQNdcvdGU9ts425VP14';
+
+function _validateToken(data) {
+  if (!data || data._token !== API_TOKEN) {
+    throw new Error('Unauthorized');
+  }
+}
+
 function doGet(e) {
   try {
     if (e.parameter.payload) {
-      return handleAction(JSON.parse(decodeURIComponent(e.parameter.payload)));
+      const data = JSON.parse(decodeURIComponent(e.parameter.payload));
+      _validateToken(data);
+      return handleAction(data);
     }
-    return json(getAllData());
+    // Bare GET with no payload — reject (no unauthenticated access)
+    return json({ error: 'Unauthorized' });
   } catch (err) { return json({ error: err.toString() }); }
 }
 
 function doPost(e) {
-  try { return handleAction(JSON.parse(e.postData.contents)); }
-  catch (err) { return json({ error: err.toString() }); }
+  try {
+    const data = JSON.parse(e.postData.contents);
+    _validateToken(data);
+    return handleAction(data);
+  } catch (err) { return json({ error: err.toString() }); }
 }
 
 function handleAction(data) {

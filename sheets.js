@@ -2,7 +2,8 @@
 
 const SheetsAPI = {
   async _call(payload) {
-    const encoded = encodeURIComponent(JSON.stringify(payload));
+    const secured = { ...payload, _token: CONFIG.API_TOKEN };
+    const encoded = encodeURIComponent(JSON.stringify(secured));
     const url = CONFIG.SHEETS_API_URL + '?payload=' + encoded;
     const resp = await fetch(url, { mode: 'cors', cache: 'no-store' });
     return resp.json();
@@ -10,12 +11,13 @@ const SheetsAPI = {
 
   // POST variant — used for large payloads (zone creation with many houses)
   async _post(payload) {
+    const secured = { ...payload, _token: CONFIG.API_TOKEN };
     const resp = await fetch(CONFIG.SHEETS_API_URL, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-store',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(secured),
     });
     return resp.json();
   },

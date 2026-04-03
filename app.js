@@ -36,8 +36,7 @@ const App = {
   },
 
   async loadData() {
-    try {
-      // Fetch turfs+houses and polygons in parallel — polygons are large, kept separate
+    const _attempt = async () => {
       const [data, polyData] = await Promise.all([
         SheetsAPI.getAll(),
         SheetsAPI.getPolygons().catch(() => null)
@@ -46,12 +45,22 @@ const App = {
       this.state.turfs = data.turfs;
       this._mergePolygons(polyData?.polygons);
       this.render();
-      UI.toast('Data loaded ✓', 'success');
       UI.setOffline(false);
+    };
+    try {
+      await _attempt();
     } catch(e) {
-      console.error('Load failed:', e);
-      UI.toast('Failed to load — check SHEETS_API_URL in config.js', 'error');
-      UI.setOffline(true);
+      console.warn('Load failed, retrying in 2s…', e);
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        await _attempt();
+      } catch(e2) {
+        console.error('Load failed after retry:', e2);
+        UI.toast('Failed to load — retrying…', 'error');
+        UI.setOffline(true);
+        // Try one more time after 5s silently
+        setTimeout(() => this.loadData(), 5000);
+      }
     }
   },
 

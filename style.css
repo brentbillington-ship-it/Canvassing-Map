@@ -780,13 +780,14 @@ body {
   height: 180px;
   flex-shrink: 0;
 }
-.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; align-items: baseline; gap: 4px; }
+.sc-msg { font-size: 12px; line-height: 1.4; word-break: break-word; display: flex; flex-direction: column; gap: 1px; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.sc-msg:last-child { border-bottom: none; }
 .sc-mine { color: var(--text2); }
 .sc-theirs { color: var(--text); }
-.sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); flex-shrink: 0; min-width: 28px; }
+.sc-name { font-weight: 700; font-size: 11px; color: var(--header-bg); }
 .sc-mine .sc-name { color: var(--text3); }
-.sc-bubble { flex: 1; min-width: 0; }
-.sc-time { font-size: 10px; color: var(--text4); flex-shrink: 0; width: 52px; text-align: right; }
+.sc-bubble { font-size: 12px; color: var(--text); padding-left: 2px; }
+.sc-time { font-size: 10px; color: var(--text4); text-align: right; }
 .sc-input-row { display: flex; gap: 5px; padding: 6px 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .sc-input {
   flex: 1; padding: 5px 9px; border: 1.5px solid var(--border);

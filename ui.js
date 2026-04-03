@@ -921,7 +921,7 @@ const UI = {
       return String(a.letter).localeCompare(String(b.letter));
     });
     list.innerHTML = sorted.map((turf, i) => {
-      const color     = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
+      const color     = _turfColor(turf);
       const houses    = this._filterHouses(turf.houses);
       const total     = turf.houses.length;
       const contacted = turf.houses.filter(h => h.result && h.result !== 'skip').length;
@@ -1426,7 +1426,7 @@ const UI = {
     for (const turf of App.state.turfs) {
       const house = turf.houses.find(h => h.address.toUpperCase().trim() === p.address.toUpperCase().trim());
       if (house) {
-        const color = turf.color || CONFIG.TURF_COLORS[0];
+        const color = _turfColor(turf);
         setTimeout(() => MapModule._openHousePopup(house, turf, color), 400);
         return;
       }
@@ -1603,7 +1603,7 @@ const UI = {
     const contacted = turf.houses.filter(h => h.result && h.result !== 'skip').length;
     const pct       = total ? Math.round(contacted / total * 100) : 0;
     const isKnock   = (turf.mode || 'hanger') === 'knock';
-    const color     = turf.color || '#6b7280';
+    const color     = _turfColor(turf);
     const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
 
     // Result breakdown
@@ -1617,7 +1617,7 @@ const UI = {
     const claimBtn = !this.isAdmin && isUnassigned
       ? `<button class="modal-confirm" style="margin-top:12px;width:100%" onclick="App.claimZone('${letter}');document.getElementById('modal-overlay')?.remove()">Claim Zone ${letter}</button>`
       : '';
-    const jumpBtn = `<button class="modal-cancel" style="margin-top:8px;width:100%" onclick="document.getElementById('modal-overlay')?.remove();UI.setTurfFilter('${letter}');document.getElementById('turf-block-${letter}')?.scrollIntoView({behavior:'smooth'})">Jump to Zone in List</button>`;
+    const jumpBtn = `<button class="modal-cancel" style="margin-top:8px;width:100%" onclick="document.getElementById('modal-overlay')?.remove();setTimeout(()=>{const el=document.getElementById('turf-block-${letter}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid ${color}';setTimeout(()=>el.style.outline='',1500);}},100)">Jump to Zone in List</button>`;
 
     this._modal(`Zone ${letter}`, `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">

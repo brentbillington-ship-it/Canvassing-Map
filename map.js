@@ -104,10 +104,13 @@ const MapModule = {
     setTimeout(() => this.map.invalidateSize(), 100);
     this._tryInitialGPS();
 
-    // Rebuild address labels on zoom and pan
-    this.map.on('zoomend moveend', () => this._renderAddressLabels());
+    // Rebuild address labels and cull markers on zoom and pan
+    this.map.on('zoomend moveend', () => {
+      this._renderAddressLabels();
+      this._refreshVisibleMarkers();
+    });
     this.map.on('zoomend', () => this._updateZoomStyle());
-    this._updateZoomStyle(); // set initial
+    this._updateZoomStyle();
 
     // Map-tap for knock placement (admin) and missing house report (non-admin)
     this.map.on('click', e => {
@@ -198,9 +201,23 @@ const MapModule = {
     this._schoolLayer.addTo(this.map); // on by default
   },
 
-  // ── Zoom-based dot scaling ─────────────────────────────────────────────────
   _updateZoomStyle() {
     const z = this.map.getZoom();
+    const belowThreshold = z < this._minMarkerZoom;
+
+    // Show/hide house markers based on zoom threshold
+    const housePane = this.houseGroup?.getPane?.() || this.map.getPane('markerPane');
+    if (housePane) housePane.style.display = belowThreshold ? 'none' : '';
+
+    if (belowThreshold) {
+      // Still update polygon fill
+      const polyFill = '0.25';
+      this.turfPolygonGroup?.eachLayer(layer => {
+        if (layer.setStyle) layer.setStyle({ fillOpacity: parseFloat(polyFill) });
+      });
+      return;
+    }
+
     // Interpolate size and opacity across zoom range 13-18
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
@@ -240,21 +257,50 @@ const MapModule = {
     });
   },
 
+  _minMarkerZoom: 13,
+  _allTurfsCache: [],  // store last rendered turfs for viewport refresh
+
   // ── Full render ────────────────────────────────────────────────────────────
   renderAll(turfs) {
     this.turfPolygonGroup.clearLayers();
     this.turfLabelGroup.clearLayers();
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
+    this._allTurfsCache = turfs;
     turfs.forEach((turf, i) => {
-      const color = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
-      // Non-admins: fade dots for zones that don't match their mode
-      const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
-      this._renderTurfPolygon(turf, color);
-      turf.houses.forEach((house, idx) => this._renderHouse(house, turf, idx, color, isOtherZone));
+      this._renderTurfPolygon(turf, _turfColor(turf));
     });
+    this._refreshVisibleMarkers();
     this._renderAddressLabels();
     this._renderLegend();
+  },
+
+  // ── Refresh only markers in current viewport at current zoom ───────────────
+  _refreshVisibleMarkers() {
+    const zoom = this.map.getZoom();
+    const turfs = this._allTurfsCache;
+    if (!turfs) return;
+
+    // Below threshold — hide all markers
+    if (zoom < this._minMarkerZoom) {
+      this.houseGroup.clearLayers();
+      this.houseMarkers = {};
+      return;
+    }
+
+    const bounds = this.map.getBounds().pad(0.1);
+    this.houseGroup.clearLayers();
+    this.houseMarkers = {};
+
+    turfs.forEach((turf, i) => {
+      const color = _turfColor(turf);
+      const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
+      turf.houses.forEach((house, idx) => {
+        // Viewport cull — skip houses outside current bounds
+        if (!bounds.contains([house.lat, house.lon])) return;
+        this._renderHouse(house, turf, idx, color, isOtherZone);
+      });
+    });
   },
 
   // ── Turf polygon ──────────────────────────────────────────────────────────
@@ -325,7 +371,7 @@ const MapModule = {
   updateHouseMarker(house, turf, idx) {
     const old = this.houseMarkers[house.id];
     if (!old) return;
-    const color       = turf.color || CONFIG.TURF_COLORS[0];
+    const color       = _turfColor(turf);
     const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
     const updated     = this._makeMarker(house, turf, isOtherZone);
     updated.on('click', () => this._openHousePopup(house, turf, color));
@@ -635,6 +681,13 @@ const MapModule = {
     return { lat: ll.lat, lon: ll.lng };
   },
 };
+
+function _turfColor(turf) {
+  if (!turf.volunteer || turf.volunteer === '[UNASSIGNED]') return '#6b7280';
+  if ((turf.mode || 'hanger') === 'knock') return '#b3a8c8';
+  const userRec = (UI._users || []).find(u => u.name === turf.volunteer);
+  return userRec?.color || turf.color || '#6b7280';
+}
 
 function _esc(s) {
   return (String(s === null || s === undefined ? '' : s))

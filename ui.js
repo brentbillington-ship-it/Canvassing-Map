@@ -990,6 +990,7 @@ const UI = {
           onchange="event.stopPropagation();UI._inlineAssignVolunteer('${turf.letter}',this.value)">${opts}</select>`;
       })() : '';
 
+      const isKnock = (turf.mode || 'hanger') === 'knock';
       const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
       const isMyZone = !this.isAdmin && turf.volunteer === this.currentUser;
       const claimBtn = !this.isAdmin && isUnassigned && !isKnock
@@ -998,8 +999,6 @@ const UI = {
       const unclaimBtn = isMyZone && !isKnock
         ? `<button class="unclaim-zone-btn" onclick="event.stopPropagation();UI._confirmUnclaimZone('${turf.letter}')">Unclaim</button>`
         : '';
-
-      const isKnock = (turf.mode || 'hanger') === 'knock';
       return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
           <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${isKnock ? '#b3a8c8' : color}">${isKnock ? '<span style="display:inline-block;transform:rotate(-45deg);font-size:14px;line-height:1">✊</span>' : turf.letter}</div>

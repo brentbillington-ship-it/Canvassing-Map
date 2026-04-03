@@ -51,7 +51,7 @@ const App = {
       this.render();
       UI.setOffline(false);
     } catch(e) {
-      console.warn('Load failed, retrying once in 3s…', e);
+      // Silent retry after 3s — Apps Script cold starts are common
       await new Promise(r => setTimeout(r, 3000));
       try {
         const [data, polyData] = await Promise.all([
@@ -64,8 +64,8 @@ const App = {
         this.render();
         UI.setOffline(false);
       } catch(e2) {
+        // Still failing after retry — show offline state quietly, _silentRefresh will recover
         console.error('Load failed after retry:', e2);
-        UI.toast('Failed to load — will retry automatically', 'error');
         UI.setOffline(true);
       }
     } finally {

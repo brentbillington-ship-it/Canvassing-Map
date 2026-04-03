@@ -11,6 +11,7 @@ const MapModule = {
   _labelZoomMin: 18,
 
   init() {
+    console.log('%c Chaka Canvassing map.js v4.30d loaded — _minMarkerZoom=' + this._minMarkerZoom, 'background:#1c355e;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
     // Compute CISD bounds for maxBounds
     let cisdBounds = null;
     if (typeof CISD_BOUNDARY !== 'undefined') {
@@ -222,18 +223,16 @@ const MapModule = {
     const z = this.map.getZoom();
     const belowThreshold = z < this._minMarkerZoom;
 
-    // Show/hide house markers by toggling the dedicated housePane
-    const housePane = this.map.getPane('housePane');
-    if (housePane) housePane.style.display = belowThreshold ? 'none' : '';
-
     if (belowThreshold) {
-      // Still update polygon fill
-      const polyFill = '0.25';
+      // Update polygon fill only — markers are controlled exclusively by _refreshVisibleMarkers
       this.turfPolygonGroup?.eachLayer(layer => {
-        if (layer.setStyle) layer.setStyle({ fillOpacity: parseFloat(polyFill) });
+        if (layer.setStyle) layer.setStyle({ fillOpacity: 0.25 });
       });
       return;
     }
+    // Ensure housePane is visible above threshold
+    const housePane = this.map.getPane('housePane');
+    if (housePane) housePane.style.display = '';
 
     // Interpolate size and opacity across zoom range 13-18
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -258,8 +257,6 @@ const MapModule = {
     });
 
     // Update all marker icon sizes without full re-render
-    const hPaneEl = this.map.getPane('housePane');
-    if (hPaneEl) hPaneEl.style.display = '';
     this.houseGroup?.eachLayer(marker => {
       if (!marker._icon) return;
       const icon = marker._icon.querySelector('.house-dot');
@@ -302,14 +299,10 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
-    // Below threshold — hide pane and clear any lingering markers
+    // Below threshold — clear all markers and return. No markers added = none visible.
     if (zoom < this._minMarkerZoom) {
-      const hp = this.map.getPane('housePane');
-      if (hp) hp.style.display = 'none';
-      if (this.houseGroup.getLayers().length) {
-        this.houseGroup.clearLayers();
-        this.houseMarkers = {};
-      }
+      this.houseGroup.clearLayers();
+      this.houseMarkers = {};
       return;
     }
 

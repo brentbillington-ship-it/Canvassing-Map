@@ -31,10 +31,12 @@ def load_parcels_raw(path):
     """Return (prefix, geojson_str, suffix) from parcels.js."""
     with open(path, 'r', encoding='utf-8') as f:
         raw = f.read()
-    m = re.match(r'^((?:const|var|let)\s+\w+\s*=\s*)', raw)
+    # re.search (not re.match) so leading // comment lines don't break parsing
+    m = re.search(r'(?:const|var|let)\s+\w+\s*=\s*', raw)
     if not m:
         raise ValueError('Could not find JS variable declaration in parcels.js')
-    prefix = m.group(1)
+    # prefix includes any header comments + "const VARNAME = "
+    prefix = raw[:m.end()]
     rest = raw[m.end():]
     suffix = ''
     if rest.rstrip().endswith(';'):

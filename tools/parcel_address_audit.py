@@ -2,19 +2,25 @@
 """
 parcel_address_audit.py
 -----------------------
-Audits address quality in parcels.js and cross-references DCAD
-for corrected situs addresses using Playwright (real browser, bot-resistant).
+Audits address quality in parcels.js and cross-references DCAD for corrected
+situs addresses using two strategies:
+
+  1. Text address search (for MISMATCH parcels with a bad address)
+     -- Uses the DCAD ArcGIS REST API to search by address string
+  2. Spatial coordinate query (for BLANK parcels with no address)
+     -- Uses the DCAD ArcGIS REST API to identify parcel at centroid lat/lon
+
+No browser / Playwright required. Pure REST API calls.
 
 Usage:
     python parcel_address_audit.py [--skip-dcad] [--max-dcad N]
 
 Requirements:
-    pip install playwright beautifulsoup4
-    playwright install chromium
+    pip install requests
 
 Outputs:
-    tools/parcel_audit_results.csv    — full audit with status per parcel
-    tools/parcel_address_patch.json   — corrections for mismatched parcels
+    tools/parcel_audit_results.csv
+    tools/parcel_address_patch.json
 """
 
 import json
@@ -27,10 +33,10 @@ import sys
 import random
 
 try:
-    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
-    HAS_PLAYWRIGHT = True
+    import requests
+    HAS_REQUESTS = True
 except ImportError:
-    HAS_PLAYWRIGHT = False
+    HAS_REQUESTS = False
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -38,16 +44,25 @@ PARCELS_JS  = os.path.join(os.path.dirname(__file__), '..', 'parcels.js')
 RESULTS_CSV = os.path.join(os.path.dirname(__file__), 'parcel_audit_results.csv')
 PATCH_JSON  = os.path.join(os.path.dirname(__file__), 'parcel_address_patch.json')
 
-DCAD_SEARCH_URL = 'https://www.dcad.org/property-search/'
-SLEEP_MIN = 1.5
-SLEEP_MAX = 3.0
+SLEEP_MIN = 0.5
+SLEEP_MAX = 1.2
 
 VALID_ZIP_PREFIXES = ('750', '751', '752', '760', '761')
+
+# DCAD ArcGIS REST API endpoints
+# Layer 0 is the main parcel/account layer
+DCAD_REST_BASE    = 'https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer'
+DCAD_QUERY_URL    = f'{DCAD_REST_BASE}/0/query'   # spatial + attribute queries
+DCAD_FIND_URL     = f'{DCAD_REST_BASE}/find'       # text search across layers
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (compatible; ParcelAudit/1.0)',
+    'Referer': 'https://maps.dcad.org/prd/dpm/',
+}
 
 # ─── Load parcels.js ─────────────────────────────────────────────────────────
 
 def load_parcels_geojson(path):
-    """Strip JS comments and variable wrapper, return parsed GeoJSON dict."""
     with open(path, 'r', encoding='utf-8') as f:
         raw = f.read()
     raw = re.sub(r'//[^\n]*', '', raw)
@@ -89,128 +104,119 @@ def classify_address(addr2, props):
             return f'BAD_ZIP:{z}'
     return 'OK'
 
-# ─── Playwright DCAD scraper ─────────────────────────────────────────────────
+# ─── DCAD REST API queries ───────────────────────────────────────────────────
 
-class DCADScraper:
-    def __init__(self, headless=True):
-        self._pw = None
-        self._browser = None
-        self._page = None
-        self.headless = headless
+_session = None
 
-    def __enter__(self):
-        self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(
-            headless=self.headless,
-            args=['--disable-blink-features=AutomationControlled']
-        )
-        context = self._browser.new_context(
-            viewport={'width': 1280, 'height': 800},
-            user_agent=(
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/122.0.0.0 Safari/537.36'
-            ),
-            locale='en-US',
-        )
-        self._page = context.new_page()
-        # Mask webdriver flag
-        self._page.add_init_script(
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
-        print('  Browser launched. Loading DCAD search page...')
-        self._page.goto(DCAD_SEARCH_URL, wait_until='networkidle', timeout=30000)
-        time.sleep(2)
-        return self
+def get_session():
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        _session.headers.update(HEADERS)
+    return _session
 
-    def __exit__(self, *args):
-        if self._browser:
-            self._browser.close()
-        if self._pw:
-            self._pw.stop()
 
-    def query(self, address):
-        """
-        Search DCAD for address. Returns situs address string or None.
-        """
-        page = self._page
-        try:
-            # Find and clear the search input
-            # DCAD uses various input selectors — try common ones
-            search_sel = (
-                'input[name="sSearch"], '
-                'input[placeholder*="search" i], '
-                'input[placeholder*="address" i], '
-                'input[type="search"], '
-                '#sSearch, '
-                '.search-input input, '
-                'input[type="text"]'
-            )
-            search_box = page.locator(search_sel).first
-            search_box.wait_for(state='visible', timeout=8000)
-            search_box.triple_click()
-            search_box.fill(address)
+def query_by_coords(lat, lon):
+    """
+    Spatial identify: find the parcel at (lat, lon) and return its Site Address.
+    Uses ArcGIS REST identify-style spatial query with a point geometry.
+    """
+    # Convert WGS84 lat/lon to Web Mercator (EPSG:3857) for the API
+    import math
+    x = lon * 20037508.342 / 180.0
+    y = math.log(math.tan((90 + lat) * math.pi / 360.0)) / (math.pi / 180.0)
+    y = y * 20037508.342 / 180.0
 
-            # Small human-like pause
-            time.sleep(random.uniform(0.3, 0.7))
+    # Small buffer around point (5 meters in Web Mercator units)
+    buf = 5
+    params = {
+        'geometry':     json.dumps({'x': x, 'y': y}),
+        'geometryType': 'esriGeometryPoint',
+        'spatialRel':   'esriSpatialRelIntersects',
+        'inSR':         '102100',
+        'outFields':    'SITEADDRESS,ACCOUNT_NUM,OWNER_NAME',
+        'returnGeometry': 'false',
+        'f':            'json',
+        'where':        '1=1',
+        'distance':     buf,
+        'units':        'esriSRUnit_Meter',
+    }
+    try:
+        r = get_session().get(DCAD_QUERY_URL, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        features = data.get('features', [])
+        if features:
+            attrs = features[0].get('attributes', {})
+            # Try common field name variations
+            site = (attrs.get('SITEADDRESS') or
+                    attrs.get('SiteAddress') or
+                    attrs.get('SITE_ADDRESS') or
+                    attrs.get('PROP_ADDR') or '')
+            return site.strip() if site else None
+        return None
+    except Exception as e:
+        print(f'    Coord query error ({lat},{lon}): {e}', file=sys.stderr)
+        return None
 
-            # Submit — try Enter key first, then look for a button
-            search_box.press('Enter')
 
-            # Wait for results to load
-            try:
-                page.wait_for_load_state('networkidle', timeout=10000)
-            except PWTimeout:
-                pass
-            time.sleep(random.uniform(0.8, 1.5))
+def query_by_address(address):
+    """
+    Text search: find a parcel by address string, return its Site Address.
+    Uses ArcGIS REST find endpoint to search across layers.
+    """
+    params = {
+        'searchText':   address.strip(),
+        'layers':       '0',
+        'searchFields': 'SITEADDRESS,PROP_ADDR',
+        'contains':     'true',
+        'returnGeometry': 'false',
+        'f':            'json',
+    }
+    try:
+        r = get_session().get(DCAD_FIND_URL, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        results = data.get('results', [])
+        if results:
+            attrs = results[0].get('attributes', {})
+            site = (attrs.get('SITEADDRESS') or
+                    attrs.get('SiteAddress') or
+                    attrs.get('SITE_ADDRESS') or
+                    attrs.get('PROP_ADDR') or '')
+            return site.strip() if site else None
+        return None
+    except Exception as e:
+        print(f'    Address query error ({address!r}): {e}', file=sys.stderr)
+        return None
 
-            # Extract situs address from results
-            # DCAD results typically show property address in a table or card
-            html = page.content()
 
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
+def dcad_lookup(item):
+    """
+    Pick the right strategy based on what data we have:
+    - BLANK/ZERO: use coordinates
+    - MISMATCH/PO_BOX/BAD_ZIP: try address text first, fall back to coordinates
+    """
+    reason = item['reason']
+    lat    = item['centroid_lat']
+    lon    = item['centroid_lng']
+    addr   = item['current_address']
 
-            candidates = []
+    if reason in ('BLANK', 'ZERO') or not addr:
+        # No usable address — go straight to coordinate lookup
+        if lat and lon:
+            return query_by_coords(float(lat), float(lon))
+        return None
+    else:
+        # Have a bad address — try text search first
+        result = query_by_address(addr)
+        if result:
+            return result
+        # Fall back to coordinates
+        if lat and lon:
+            return query_by_coords(float(lat), float(lon))
+        return None
 
-            # Pattern 1: table cells starting with a number (street address)
-            for row in soup.select('table tbody tr'):
-                cells = row.find_all('td')
-                for cell in cells:
-                    text = cell.get_text(strip=True)
-                    if re.match(r'^\d+\s+\w', text) and len(text) < 80:
-                        candidates.append(text)
-                        break
-
-            # Pattern 2: elements with address-like classes
-            if not candidates:
-                for el in soup.find_all(
-                    class_=re.compile(r'address|situs|street|property-addr', re.I)
-                ):
-                    text = el.get_text(strip=True)
-                    if re.match(r'^\d+\s+\w', text) and len(text) < 80:
-                        candidates.append(text)
-
-            # Pattern 3: any text node that looks like a Coppell street address
-            if not candidates:
-                for el in soup.find_all(string=re.compile(
-                    r'^\d+\s+\w+.*(COPPELL|75019)', re.I
-                )):
-                    text = el.strip()
-                    if len(text) < 80:
-                        candidates.append(text)
-
-            return candidates[0] if candidates else None
-
-        except Exception as e:
-            print(f'    Query error for "{address}": {e}', file=sys.stderr)
-            # Try to recover by reloading search page
-            try:
-                page.goto(DCAD_SEARCH_URL, wait_until='networkidle', timeout=15000)
-                time.sleep(2)
-            except Exception:
-                pass
-            return None
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
@@ -220,22 +226,25 @@ def main():
                         help='Skip DCAD cross-reference')
     parser.add_argument('--max-dcad', type=int, default=100,
                         help='Max DCAD queries (default 100)')
-    parser.add_argument('--visible', action='store_true',
-                        help='Show browser window (non-headless, useful for debugging)')
     args = parser.parse_args()
 
-    if not HAS_PLAYWRIGHT and not args.skip_dcad:
-        print('ERROR: playwright not installed.')
-        print('  Run: pip install playwright && playwright install chromium')
+    if not HAS_REQUESTS and not args.skip_dcad:
+        print('ERROR: requests not installed. Run: pip install requests')
         sys.exit(1)
 
+    # First — discover what field names are actually in parcels.js
     print(f'Loading {PARCELS_JS}...')
-    geojson = load_parcels_geojson(PARCELS_JS)
+    geojson  = load_parcels_geojson(PARCELS_JS)
     features = geojson.get('features', [])
     print(f'  {len(features)} features loaded.')
 
+    # Sample first feature to show available property fields
+    if features:
+        sample_props = features[0].get('properties', {})
+        print(f'  Property fields found: {list(sample_props.keys())}')
+
     # Pass 1: classify all features
-    flagged = []
+    flagged  = []
     ok_count = 0
     for idx, feat in enumerate(features):
         props     = feat.get('properties', {})
@@ -245,8 +254,8 @@ def main():
                      props.get('OBJECTID') or str(idx))
         reason    = classify_address(addr2, props)
         centroid  = feature_centroid(feat)
-        lat = round(centroid[0], 6) if centroid else ''
-        lon = round(centroid[1], 6) if centroid else ''
+        lat = round(centroid[0], 7) if centroid else ''
+        lon = round(centroid[1], 7) if centroid else ''
 
         if reason == 'OK':
             ok_count += 1
@@ -260,52 +269,53 @@ def main():
                 'centroid_lat':       lat,
                 'centroid_lng':       lon,
                 'dcad_situs_address': '',
-                'status': 'MISSING' if not addr2 or addr2 == '0' else 'MISMATCH',
+                'status': 'MISSING' if not addr2 or addr2 in ('0', '') else 'MISMATCH',
             })
 
     print(f'  OK: {ok_count}  |  Flagged: {len(flagged)}')
+    blank_count    = sum(1 for f in flagged if f['reason'] in ('BLANK', 'ZERO'))
+    mismatch_count = len(flagged) - blank_count
+    print(f'  Blank/Zero: {blank_count}  |  Mismatch/Bad: {mismatch_count}')
 
-    # Pass 2: DCAD Playwright lookup
-    dcad_matched = dcad_not_found = dcad_queries = 0
+    # Pass 2: DCAD REST API lookup
+    dcad_found     = 0
+    dcad_not_found = 0
+    dcad_queries   = 0
 
     if not args.skip_dcad and flagged:
-        print(f'\nLaunching Playwright browser for DCAD queries (max {args.max_dcad})...')
-        headless = not args.visible
-        with DCADScraper(headless=headless) as scraper:
-            for item in flagged:
-                if dcad_queries >= args.max_dcad:
-                    print(f'  Reached max ({args.max_dcad}). Stopping DCAD queries.')
-                    break
+        print(f'\nQuerying DCAD REST API for up to {args.max_dcad} flagged parcels...')
+        print('  Strategy: coordinates for blanks, address text for mismatches')
 
-                # Use owner name as fallback query if address is blank
-                query = item['current_address'] or item['owner']
-                if not query:
-                    item['status'] = 'MISSING'
-                    continue
+        for item in flagged:
+            if dcad_queries >= args.max_dcad:
+                print(f'  Reached max ({args.max_dcad}). Stopping.')
+                break
 
-                print(f'  [{dcad_queries+1}/{min(args.max_dcad, len(flagged))}] '
-                      f'Querying: {query!r}')
-                situs = scraper.query(query)
-                dcad_queries += 1
+            strategy = ('coords' if item['reason'] in ('BLANK', 'ZERO')
+                        else 'address→coords')
+            print(f'  [{dcad_queries+1}/{min(args.max_dcad, len(flagged))}] '
+                  f'[{strategy}] {item["current_address"] or "(blank)"!r} '
+                  f'@ ({item["centroid_lat"]}, {item["centroid_lng"]})')
 
-                # Polite random sleep between queries
-                time.sleep(random.uniform(SLEEP_MIN, SLEEP_MAX))
+            situs = dcad_lookup(item)
+            dcad_queries += 1
+            time.sleep(random.uniform(SLEEP_MIN, SLEEP_MAX))
 
-                if situs:
-                    item['dcad_situs_address'] = situs
-                    if situs.upper() != item['current_address'].upper():
-                        item['status'] = 'MISMATCH'
-                        dcad_matched += 1
-                    else:
-                        item['status'] = 'OK'
-                        ok_count += 1
-                    print(f'    Found: {situs}')
+            if situs:
+                item['dcad_situs_address'] = situs
+                if situs.upper() != item['current_address'].upper():
+                    item['status'] = 'MISMATCH'
+                    dcad_found += 1
                 else:
-                    item['status'] = 'NOT_FOUND'
-                    dcad_not_found += 1
-                    print(f'    Not found.')
+                    item['status'] = 'OK'
+                    ok_count += 1
+                print(f'    ✓ {situs}')
+            else:
+                item['status'] = 'NOT_FOUND'
+                dcad_not_found += 1
+                print(f'    ✗ Not found')
 
-    # Write CSV
+    # Write CSV — all parcels
     all_rows = []
     for feat_idx, feat in enumerate(features):
         props     = feat.get('properties', {})
@@ -313,20 +323,28 @@ def main():
         parcel_id = (props.get('id') or props.get('GID') or
                      props.get('OBJECTID') or str(feat_idx))
         centroid  = feature_centroid(feat)
-        lat = round(centroid[0], 6) if centroid else ''
-        lon = round(centroid[1], 6) if centroid else ''
-        fi = next((f for f in flagged if f['feature_index'] == feat_idx), None)
+        lat = round(centroid[0], 7) if centroid else ''
+        lon = round(centroid[1], 7) if centroid else ''
+        fi  = next((f for f in flagged if f['feature_index'] == feat_idx), None)
         if fi:
             all_rows.append({
-                'feature_index': feat_idx, 'parcel_id': fi['parcel_id'],
-                'current_address': addr2, 'dcad_situs_address': fi['dcad_situs_address'],
-                'centroid_lat': lat, 'centroid_lng': lon, 'status': fi['status'],
+                'feature_index':      feat_idx,
+                'parcel_id':          fi['parcel_id'],
+                'current_address':    addr2,
+                'dcad_situs_address': fi['dcad_situs_address'],
+                'centroid_lat':       lat,
+                'centroid_lng':       lon,
+                'status':             fi['status'],
             })
         else:
             all_rows.append({
-                'feature_index': feat_idx, 'parcel_id': str(parcel_id),
-                'current_address': addr2, 'dcad_situs_address': '',
-                'centroid_lat': lat, 'centroid_lng': lon, 'status': 'OK',
+                'feature_index':      feat_idx,
+                'parcel_id':          str(parcel_id),
+                'current_address':    addr2,
+                'dcad_situs_address': '',
+                'centroid_lat':       lat,
+                'centroid_lng':       lon,
+                'status':             'OK',
             })
 
     with open(RESULTS_CSV, 'w', newline='', encoding='utf-8') as f:
@@ -338,7 +356,8 @@ def main():
     print(f'\nAudit CSV written: {RESULTS_CSV}')
 
     patches = [
-        {'feature_index': r['feature_index'], 'parcel_id': r['parcel_id'],
+        {'feature_index':     r['feature_index'],
+         'parcel_id':         r['parcel_id'],
          'corrected_address': r['dcad_situs_address']}
         for r in all_rows
         if r['status'] == 'MISMATCH' and r['dcad_situs_address']
@@ -353,10 +372,12 @@ Summary
   Total parcels  : {len(features)}
   OK             : {ok_count}
   Flagged        : {len(flagged)}
-  DCAD matched   : {dcad_matched}
-  Mismatches     : {len(patches)}
+    Blank/Zero   : {blank_count}
+    Mismatch/Bad : {mismatch_count}
+  DCAD found     : {dcad_found}
   Not found      : {dcad_not_found}
   DCAD queries   : {dcad_queries}
+  Patches ready  : {len(patches)}
 """)
 
 

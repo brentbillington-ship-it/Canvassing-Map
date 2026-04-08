@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test Harness</title>
+  <link rel="stylesheet" href="/node_modules/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="/node_modules/leaflet-draw/dist/leaflet.draw.css"/>
+  <!-- Inline only the CSS we need for testing (no @import fonts) -->
+  <style id="test-styles"></style>
+</head>
+<body>
+  <div id="offline-banner"></div>
+  <div id="header"></div>
+  <div id="sync-bar"></div>
+  <div class="container">
+    <div id="map-wrap"><div id="map"></div></div>
+    <div id="sidebar"></div>
+  </div>
+  <div id="toast-container"></div>
+  <div class="app-footer">Test <span id="app-version"></span></div>
+
+  <script src="/node_modules/leaflet/dist/leaflet.js"></script>
+  <script src="/node_modules/leaflet-draw/dist/leaflet.draw.js"></script>
+
+  <script>
+    // Minimal stubs
+    const CONFIG = {
+      API_BASE: '', ADMIN_PASSWORD: 'test123',
+      APP_NAME: 'Test App', CANDIDATE: 'Test', RACE: 'Test Race',
+      MAP_CENTER: [32.972, -96.978], MAP_ZOOM: 15,
+      TURF_COLORS: ['#e63946','#2e6ec2','#2d9e5f','#e88c30'],
+      RESULTS: [{ key: 'supporter', label: 'Supporter', icon: '👍', color: '#22c55e' }],
+      VOLUNTEER_COLORS: {},
+    };
+    const SheetsAPI = {
+      getAll: () => Promise.resolve({ turfs: [], users: [] }),
+      getPolygons: () => Promise.resolve(null),
+      createTurf: () => Promise.resolve(), updateTurf: () => Promise.resolve(),
+      heartbeat: () => Promise.resolve(), getPresence: () => Promise.resolve({ users: [] }),
+      setResult: () => Promise.resolve(), clearResult: () => Promise.resolve(),
+    };
+    const ParcelsUtil = {
+      parcelsInPolygon: () => ({ residential: [], excluded: [] }),
+      leafletRingCentroid: () => ({ lat: 32.97, lon: -96.98 }),
+      walkOrder: (arr) => arr,
+    };
+    const PARCELS = [];
+  </script>
+
+  <script src="/version.js"></script>
+  <script src="/map.js"></script>
+  <script src="/turf_draw.js"></script>
+  <script src="/ui.js"></script>
+  <script src="/app.js"></script>
+
+  <script>
+    // Load style.css but strip the @import line to avoid font loading delays
+    fetch('/style.css').then(r => r.text()).then(css => {
+      const stripped = css.replace(/@import\s+url\([^)]+\);?/g, '');
+      document.getElementById('test-styles').textContent = stripped;
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const vEl = document.getElementById('app-version');
+      if (vEl) vEl.textContent = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '';
+      try { UI.init(); } catch(e) { console.error('UI.init error:', e); }
+      window.__TEST_READY = true;
+    });
+  </script>
+</body>
+</html>

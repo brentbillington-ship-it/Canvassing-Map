@@ -93,8 +93,8 @@ const TurfDraw = (() => {
     _active = !_active;
     if (_active) {
       if (_isMobile()) {
-        // Mobile: show rectangle-tap UI instead of polygon draw
-        _startMobileRectMode();
+        // Mobile: freeform polygon draw with double-tap
+        _startMobilePolygonMode();
       } else {
         // Desktop: add toolbar and immediately activate polygon handler
         _map.addControl(_drawControl);
@@ -124,72 +124,167 @@ const TurfDraw = (() => {
     if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} _polygonHandler = null; }
     if (!_isMobile()) { try { _map.removeControl(_drawControl); } catch(e) {} }
     _cancelEditMode();
-    _removeMobileRectUI();
+    _removeMobilePolygonUI();
   }
 
-  // ── Mobile: two-tap rectangle mode ───────────────────────────────────────
-  let _rectCorner1 = null;
-  let _rectPreview = null;
-  let _mobileStep  = 0;
+  // ── Mobile: freeform polygon draw (double-tap to place vertices) ─────────
+  let _mobileVertices = [];
+  let _mobilePolyline = null;
+  let _mobilePolygonPreview = null;
+  let _mobileMarkers  = [];
+  let _lastTapTime    = 0;
+  let _lastTapPoint   = null;
 
-  function _startMobileRectMode() {
-    _mobileStep  = 0;
-    _rectCorner1 = null;
-    _showMobileRectBanner();
-    _map.on('click', _onMobileMapTap);
-    UI.toast('Tap first corner of your zone area', 'info');
+  function _startMobilePolygonMode() {
+    _mobileVertices = [];
+    _mobilePolyline = null;
+    _mobilePolygonPreview = null;
+    _mobileMarkers  = [];
+    _lastTapTime    = 0;
+    _lastTapPoint   = null;
+    _showMobilePolyBanner();
+    _map.getContainer().addEventListener('touchend', _onMobileTouchEnd);
+    UI.toast('Double-tap to place zone vertices', 'info');
   }
 
-  function _onMobileMapTap(e) {
-    if (_mobileStep === 0) {
-      _rectCorner1 = e.latlng;
-      _mobileStep  = 1;
-      // Show a small pin at corner 1
-      if (_rectPreview) { _rectPreview.remove(); }
-      _rectPreview = L.circleMarker(_rectCorner1, {
-        radius: 7, color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.8, weight: 2
-      }).addTo(_map);
-      UI.toast('Now tap the opposite corner', 'info');
-    } else if (_mobileStep === 1 && _rectCorner1) {
-      const corner2 = e.latlng;
-      if (_rectPreview) { _rectPreview.remove(); _rectPreview = null; }
-      _mobileStep = 0;
-      _map.off('click', _onMobileMapTap);
-      _removeMobileRectBanner();
+  function _onMobileTouchEnd(e) {
+    // Ignore multi-touch (pinch zoom still in progress)
+    if (e.touches.length > 0) return;
+    const now   = Date.now();
+    const touch = e.changedTouches[0];
+    const pt    = { x: touch.clientX, y: touch.clientY };
 
-      // Build rectangle layer from two corners
-      const bounds = L.latLngBounds(_rectCorner1, corner2);
-      const layer  = L.rectangle(bounds, {
-        color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2
-      });
-      _onNewPolygon(layer);
+    if (_lastTapTime && (now - _lastTapTime) < 350 && _lastTapPoint) {
+      const dx = pt.x - _lastTapPoint.x;
+      const dy = pt.y - _lastTapPoint.y;
+      if (Math.sqrt(dx * dx + dy * dy) < 40) {
+        // Double-tap detected — prevent map zoom and place vertex
+        e.preventDefault();
+        const rect = _map.getContainer().getBoundingClientRect();
+        const cp   = L.point(pt.x - rect.left, pt.y - rect.top);
+        const ll   = _map.containerPointToLatLng(cp);
+        _addMobileVertex(ll);
+        _lastTapTime  = 0;
+        _lastTapPoint = null;
+        return;
+      }
     }
+    _lastTapTime  = now;
+    _lastTapPoint = pt;
   }
 
-  function _removeMobileRectUI() {
-    _map.off('click', _onMobileMapTap);
-    if (_rectPreview) { _rectPreview.remove(); _rectPreview = null; }
-    _mobileStep  = 0;
-    _rectCorner1 = null;
-    _removeMobileRectBanner();
+  function _addMobileVertex(latlng) {
+    _mobileVertices.push(latlng);
+
+    // Vertex marker
+    const m = L.circleMarker(latlng, {
+      radius: 7, color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.8, weight: 2
+    }).addTo(_map);
+    _mobileMarkers.push(m);
+
+    // Polyline through vertices
+    if (_mobilePolyline) _mobilePolyline.remove();
+    _mobilePolyline = L.polyline(_mobileVertices, {
+      color: '#2e6ec2', weight: 2, dashArray: '6,4'
+    }).addTo(_map);
+
+    // Polygon preview when 3+ vertices
+    if (_mobilePolygonPreview) _mobilePolygonPreview.remove();
+    if (_mobileVertices.length >= 3) {
+      _mobilePolygonPreview = L.polygon(_mobileVertices, {
+        color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.10, weight: 1.5, dashArray: '4,4'
+      }).addTo(_map);
+      _showFinishZoneBtn();
+    }
+
+    _updateMobilePolyBanner();
   }
 
-  function _showMobileRectBanner() {
-    document.getElementById('mobile-rect-banner')?.remove();
+  function _undoMobileVertex() {
+    if (!_mobileVertices.length) return;
+    _mobileVertices.pop();
+    const m = _mobileMarkers.pop();
+    if (m) m.remove();
+
+    if (_mobilePolyline) { _mobilePolyline.remove(); _mobilePolyline = null; }
+    if (_mobilePolygonPreview) { _mobilePolygonPreview.remove(); _mobilePolygonPreview = null; }
+
+    if (_mobileVertices.length >= 1) {
+      _mobilePolyline = L.polyline(_mobileVertices, {
+        color: '#2e6ec2', weight: 2, dashArray: '6,4'
+      }).addTo(_map);
+    }
+    if (_mobileVertices.length >= 3) {
+      _mobilePolygonPreview = L.polygon(_mobileVertices, {
+        color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.10, weight: 1.5, dashArray: '4,4'
+      }).addTo(_map);
+      _showFinishZoneBtn();
+    } else {
+      _hideFinishZoneBtn();
+    }
+    _updateMobilePolyBanner();
+  }
+
+  function _finishMobilePolygon() {
+    if (_mobileVertices.length < 3) return;
+    const layer = L.polygon(_mobileVertices, {
+      color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2
+    });
+    _removeMobilePolygonUI();
+    _onNewPolygon(layer);
+  }
+
+  function _removeMobilePolygonUI() {
+    _map.getContainer().removeEventListener('touchend', _onMobileTouchEnd);
+    _mobileMarkers.forEach(m => m.remove());
+    _mobileMarkers = [];
+    if (_mobilePolyline) { _mobilePolyline.remove(); _mobilePolyline = null; }
+    if (_mobilePolygonPreview) { _mobilePolygonPreview.remove(); _mobilePolygonPreview = null; }
+    _mobileVertices = [];
+    _lastTapTime = 0;
+    _lastTapPoint = null;
+    _removeMobilePolyBanner();
+    _hideFinishZoneBtn();
+  }
+
+  function _showMobilePolyBanner() {
+    document.getElementById('mobile-poly-banner')?.remove();
     const b = document.createElement('div');
-    b.id        = 'mobile-rect-banner';
-    b.className = 'mobile-rect-banner';
-    b.innerHTML = `<span>📱 Tap two opposite corners to define zone area</span>
-      <button onclick="TurfDraw._cancelMobileRect()">✕ Cancel</button>`;
+    b.id        = 'mobile-poly-banner';
+    b.className = 'mobile-poly-banner';
+    b.innerHTML = `<span id="mpb-status">Double-tap to place vertices (0 placed)</span>
+      <div class="mpb-btns">
+        <button onclick="TurfDraw._undoMobileVertex()">↩ Undo</button>
+        <button onclick="TurfDraw._cancelMobilePolygon()">✕ Cancel</button>
+      </div>`;
     document.body.appendChild(b);
   }
 
-  function _removeMobileRectBanner() {
-    document.getElementById('mobile-rect-banner')?.remove();
+  function _updateMobilePolyBanner() {
+    const el = document.getElementById('mpb-status');
+    if (el) el.textContent = `Double-tap to place vertices (${_mobileVertices.length} placed)`;
   }
 
-  function _cancelMobileRect() {
-    _removeMobileRectUI();
+  function _removeMobilePolyBanner() {
+    document.getElementById('mobile-poly-banner')?.remove();
+  }
+
+  function _showFinishZoneBtn() {
+    if (document.getElementById('finish-zone-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'finish-zone-btn';
+    btn.className = 'finish-zone-btn';
+    btn.textContent = 'Finish Zone';
+    btn.onclick = () => TurfDraw._finishMobilePolygon();
+    document.body.appendChild(btn);
+  }
+
+  function _hideFinishZoneBtn() {
+    document.getElementById('finish-zone-btn')?.remove();
+  }
+
+  function _cancelMobilePolygon() {
+    _removeMobilePolygonUI();
     _active = false;
     const btn = document.getElementById('draw-mode-btn');
     if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
@@ -498,7 +593,8 @@ const TurfDraw = (() => {
 
   return {
     init, toggle, isActive, isEditing, loadTurfs, removeTurfLayer,
-    startEditBoundary, resortTurf, _onCommercialToggle, _cancelMobileRect,
+    startEditBoundary, resortTurf, _onCommercialToggle,
+    _cancelMobilePolygon, _undoMobileVertex, _finishMobilePolygon,
     _commitEdit, _cancelEditMode, _undoLastVertex, _cancelDraw,
   };
 })();

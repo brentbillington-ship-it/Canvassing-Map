@@ -611,16 +611,33 @@ body {
 }
 @media (max-width: 680px) { .app-footer { bottom: 2px; left: 6px; font-size: 9px; } }
 
-/* ─── Mobile rectangle draw banner ─────────────────────────────────────────── */
-.mobile-rect-banner {
-  position: fixed; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
+/* ─── Mobile polygon draw banner ───────────────────────────────────────────── */
+.mobile-poly-banner {
+  position: fixed; top: var(--mobile-header-h, 90px); left: 0; right: 0;
   z-index: 9001; background: #1a4db5; color: #fff;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 16px 20px; border-radius: 12px;
-  font-size: .9rem; font-weight: 500; box-shadow: 0 4px 20px rgba(0,0,0,.4);
-  text-align: center; max-width: 280px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 14px;
+  font-size: .82rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,.3);
 }
-.mobile-rect-banner button { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5); color: #fff; padding: 6px 18px; border-radius: 6px; cursor: pointer; font-size: .85rem; }
+.mobile-poly-banner .mpb-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.mobile-poly-banner button {
+  background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.5);
+  color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  font-size: .8rem; font-weight: 600;
+}
+.mobile-poly-banner button:active { background: rgba(255,255,255,.35); }
+/* ─── Finish Zone FAB ──────────────────────────────────────────────────────── */
+.finish-zone-btn {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 9002; background: #2d9e5f; color: #fff;
+  border: none; border-radius: 28px; padding: 14px 32px;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  animation: finish-zone-pop 0.25s ease-out;
+  font-family: inherit; letter-spacing: 0.3px;
+}
+.finish-zone-btn:active { transform: translateX(-50%) scale(0.95); }
+@keyframes finish-zone-pop { from { transform: translateX(-50%) scale(0.7); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
 /* ─── Turf draw populate modal — auto-letter display ───────────────────────── */
 .pop-letter-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; }
@@ -1030,6 +1047,11 @@ body {
     gap: 4px;
     padding: 4px 8px;
     overflow: visible;
+  }
+  .row2-right {
+    width: 100%;
+    margin-left: 0;
+    flex-shrink: 1;
   }
   #admin-row2 {
     flex-wrap: wrap;

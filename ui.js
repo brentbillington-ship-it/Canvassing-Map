@@ -181,6 +181,14 @@ const UI = {
     // Re-measure after fonts/content load
     window.addEventListener('load', set, { once: true });
     window.addEventListener('resize', set, { passive: true });
+    // Re-measure whenever header size changes (stats load, admin toggle, etc.)
+    if (!this._headerObserver) {
+      const hdr = document.getElementById('header');
+      if (hdr && typeof ResizeObserver !== 'undefined') {
+        this._headerObserver = new ResizeObserver(set);
+        this._headerObserver.observe(hdr);
+      }
+    }
   },
 
   // -- Login modal (email-based accounts) ------------------------------------

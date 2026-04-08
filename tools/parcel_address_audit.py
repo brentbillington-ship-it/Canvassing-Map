@@ -164,8 +164,10 @@ def query_by_coords(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FI
       where        = ''     (spatial filter only, no attribute filter)
       outFields    = SITEADDRESS,PARCELID,LOWPARCELID
     """
-    # ±0.0001 degrees (~11m) converted to Web Mercator for the envelope
-    PAD_DEG = 0.0001
+    # ±0.001 degrees (~111m) converted to Web Mercator for the envelope.
+    # Using 0.001 instead of 0.0001 ensures the envelope reliably intersects the
+    # parcel polygon even for centroid estimates that land near a parcel edge.
+    PAD_DEG = 0.001
     x_min, y_min = wgs84_to_webmercator(lat - PAD_DEG, lon - PAD_DEG)
     x_max, y_max = wgs84_to_webmercator(lat + PAD_DEG, lon + PAD_DEG)
 
@@ -251,58 +253,113 @@ def dcad_lookup(item, layer_id, addr_field):
 # ---------------------------------------------------------------------------
 
 def probe_dcad():
+    """
+    Probe the DCAD API without relying on layer metadata field lists.
+
+    The ArcGIS service metadata (?f=json) only returns ~10 fields, but the layer
+    actually has 20+ fields and SITEADDRESS is field #15.  Checking metadata
+    causes the probe to conclude the field doesn't exist and skip the layer.
+
+    Fix: skip metadata field checking entirely — query directly with outFields=*
+    and inspect the actual response to discover available fields.
+    """
     print(f'\n=== Probing DCAD ArcGIS REST API ===')
-    print(f'  Service: {DCAD_BASE}')
-    print(f'  Test point: lat={TEST_LAT}, lon={TEST_LON}')
+    print(f'  Endpoint: {DCAD_BASE}')
+    print(f'  Test point : lat={TEST_LAT}, lon={TEST_LON}')
     print(f'  Test address: {TEST_ADDR}\n')
 
     if not HAS_REQUESTS:
         print('  ERROR: pip install requests')
         return None, None
 
+    # Step 1: list layers from service info (informational only — don't gate on fields)
     try:
         r = _get_session().get(f'{DCAD_BASE}?f=json', timeout=DCAD_TIMEOUT)
         r.raise_for_status()
-        svc = r.json()
-        layers = svc.get('layers', [])
-        if layers:
-            print(f'  {len(layers)} layers:')
-            for l in layers:
-                print(f'    [{l["id"]}] {l.get("name", "?")}')
-            candidate_ids = [l['id'] for l in layers]
+        svc_layers = r.json().get('layers', [])
+        if svc_layers:
+            print(f'  Service layers: {[(l["id"], l.get("name","?")) for l in svc_layers]}')
+            candidate_ids = [l['id'] for l in svc_layers]
         else:
             candidate_ids = CANDIDATE_LAYERS
     except Exception as e:
-        print(f'  Could not get service info: {e}')
+        print(f'  Service info unavailable ({e}) — trying candidate IDs {CANDIDATE_LAYERS}')
         candidate_ids = CANDIDATE_LAYERS
 
     print()
+
+    # Step 2: for each layer, fire a direct envelope query with outFields=*
+    # This bypasses the truncated metadata field list entirely.
+    PAD_DEG = 0.001
+    x_min, y_min = wgs84_to_webmercator(TEST_LAT - PAD_DEG, TEST_LON - PAD_DEG)
+    x_max, y_max = wgs84_to_webmercator(TEST_LAT + PAD_DEG, TEST_LON + PAD_DEG)
+    envelope = json.dumps({
+        'xmin': x_min, 'ymin': y_min, 'xmax': x_max, 'ymax': y_max,
+        'spatialReference': {'wkid': 102100},
+    })
+
     for lid in candidate_ids:
+        print(f'  Testing layer {lid}...')
         try:
-            r = _get_session().get(f'{DCAD_BASE}/{lid}?f=json', timeout=DCAD_TIMEOUT)
+            r = _get_session().get(f'{DCAD_BASE}/{lid}/query', params={
+                'geometry':       envelope,
+                'geometryType':   'esriGeometryEnvelope',
+                'inSR':           '102100',
+                'spatialRel':     'esriSpatialRelIntersects',
+                'where':          '',
+                'outFields':      '*',
+                'returnGeometry': 'false',
+                'resultRecordCount': '1',
+                'f':              'json',
+            }, timeout=DCAD_TIMEOUT)
             r.raise_for_status()
-            lyr = r.json()
-            if 'error' in lyr:
-                continue
-            fields = [f['name'].upper() for f in lyr.get('fields', [])]
-            print(f'  Layer {lid} ({lyr.get("name","?")}): {fields[:10]}')
+            data = r.json()
         except Exception as e:
-            print(f'  Layer {lid}: {e}')
+            print(f'    Request failed: {e}')
             continue
 
-        field = next((c for c in CANDIDATE_ADDR_FIELDS if c in fields), None)
-        if not field:
-            print(f'    No address field found')
+        if 'error' in data:
+            print(f'    API error: {data["error"]}')
             continue
 
-        sp = query_by_coords(TEST_LAT, TEST_LON, lid, field)
-        tx = query_by_address(TEST_ADDR, lid, field)
-        print(f'    Field={field}  spatial(envelope)={sp!r}  text={tx!r}')
+        features = data.get('features', [])
+        if not features:
+            print(f'    No features returned (wrong layer or envelope too small?)')
+            continue
 
-        if sp or tx:
-            print(f'\n  Use: --layer-id {lid} --addr-field {field}\n')
-            return lid, field
-        print()
+        # Found features — discover which address field is present
+        attrs = features[0].get('attributes', {})
+        all_fields = list(attrs.keys())
+        print(f'    Got {len(features)} feature(s). Fields: {all_fields}')
+
+        # Pick best address field from the actual response
+        found_field = None
+        for candidate in CANDIDATE_ADDR_FIELDS:
+            if candidate in attrs or candidate.upper() in attrs:
+                found_field = candidate if candidate in attrs else candidate.upper()
+                break
+
+        if not found_field:
+            # Fall back: take first field whose value looks like a street address
+            for k, v in attrs.items():
+                if v and isinstance(v, str) and re.match(r'^\d+\s+\w', v.strip()):
+                    found_field = k
+                    print(f'    Auto-detected address field: {k!r} = {v!r}')
+                    break
+
+        if not found_field:
+            print(f'    No address field recognisable in attributes — skipping')
+            continue
+
+        addr_value = attrs.get(found_field, '')
+        print(f'    ✓ Layer {lid}  field={found_field!r}  value={addr_value!r}')
+
+        # Also test text query
+        tx = query_by_address(TEST_ADDR, lid, found_field)
+        print(f'    Text query ("{TEST_ADDR}"): {tx!r}')
+
+        print(f'\n  CONFIRMED: --layer-id {lid} --addr-field {found_field}\n')
+        return lid, found_field
 
     print('  No working layer found.')
     print('  Check tools/dcad_intercept_results.json for the confirmed endpoint.')

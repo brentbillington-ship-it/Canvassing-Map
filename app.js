@@ -16,6 +16,7 @@ const App = {
     await this.loadData();
     this._showLoadingOverlay(false);
     this._startTimers();
+    this._loadZoneQueue();   // restore any pending zone writes that survived a tab close/refresh
     this._flushQueue();
     UI.startChatPoll();
     window.addEventListener('online',  () => { UI.setOffline(false); this._flushQueue(); });
@@ -341,36 +342,81 @@ const App = {
   _queueRunning: false,
   _pendingPolygons: {}, // letter → Leaflet layer
 
+  // Persist zone queue to localStorage so in-progress saves survive a tab close or refresh
+  _saveZoneQueue() {
+    try {
+      const toSave = this._createQueue.map(j => ({
+        letter: j.letter, color: j.color, volunteer: j.volunteer,
+        geojson: j.geojson, houses: j.houses,
+      }));
+      localStorage.setItem('ck_zone_queue', JSON.stringify(toSave));
+    } catch(e) {}
+  },
+
+  _loadZoneQueue() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ck_zone_queue') || '[]');
+      if (!saved.length) return;
+      saved.forEach(job => {
+        // Recreate the dashed-black pending polygon from saved geojson
+        const pending = L.geoJSON(
+          { type: 'Feature', geometry: job.geojson, properties: {} },
+          { style: { color: '#000', fillColor: '#000', fillOpacity: 0, weight: 2.5, dashArray: '8,4', opacity: 1 } }
+        ).addTo(MapModule.map);
+        this._pendingPolygons[job.letter] = pending;
+        this._createQueue.push(job);
+      });
+      this._updateQueueBanner();
+      UI.toast(`Resuming ${saved.length} pending zone${saved.length > 1 ? 's' : ''}…`, 'info', 3000);
+      this._runCreateQueue();
+    } catch(e) {
+      localStorage.removeItem('ck_zone_queue');
+    }
+  },
+
   createTurfFromDraw({ letter, color, volunteer, geojson, parcels, pendingLayer }) {
-    // Show a shaded "pending" polygon immediately so user can see where it is
+    // Convert parcels to serializable houses format immediately (no Leaflet objects)
+    const houses = (parcels || []).map(p => ({
+      address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon,
+    }));
+    // Show dashed-black "pending" outline — no fill so it's clearly distinguishable from saved zones
     if (pendingLayer) {
       const pending = L.geoJSON(
         { type: 'Feature', geometry: geojson, properties: {} },
-        { style: { color: '#6b7280', fillColor: '#6b7280', fillOpacity: 0.18, weight: 2, dashArray: '6,4', opacity: 0.6 } }
+        { style: { color: '#000', fillColor: '#000', fillOpacity: 0, weight: 2.5, dashArray: '8,4', opacity: 1 } }
       ).addTo(MapModule.map);
       this._pendingPolygons[letter] = pending;
     }
     UI.toast(`Zone ${letter} queued — drawing next zone now`, 'info', 2500);
-    this._createQueue.push({ letter, color, volunteer, geojson, parcels });
+    this._createQueue.push({ letter, color, volunteer, geojson, houses });
+    this._saveZoneQueue();
     this._updateQueueBanner();
     if (!this._queueRunning) this._runCreateQueue();
   },
 
   _updateQueueBanner() {
-    let banner = document.getElementById('zone-queue-banner');
-    const total = this._createQueue.length;
+    const total   = this._createQueue.length;
     const running = this._queueRunning;
-    if (!total && !running) { banner?.remove(); return; }
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'zone-queue-banner';
-      document.body.appendChild(banner);
+    // Bottom banner
+    let banner = document.getElementById('zone-queue-banner');
+    if (!total && !running) {
+      banner?.remove();
+    } else {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'zone-queue-banner';
+        document.body.appendChild(banner);
+      }
+      const current = this._createQueue[0];
+      banner.className = 'zone-queue-banner';
+      banner.innerHTML = total > 1
+        ? `⏳ Creating Zone ${current?.letter}… <span class="zqb-count">${total} zones in queue</span>`
+        : `⏳ Creating Zone ${current?.letter}…`;
     }
-    const current = this._createQueue[0];
-    banner.className = 'zone-queue-banner';
-    banner.innerHTML = total > 1
-      ? `⏳ Creating Zone ${current?.letter}… <span class="zqb-count">${total} zones in queue</span>`
-      : `⏳ Creating Zone ${current?.letter}…`;
+    // Sidebar indicator
+    if (typeof UI !== 'undefined' && UI._updatePendingZonesBar) {
+      UI._updatePendingZonesBar(total + (running ? 1 : 0));
+    }
   },
 
   async _runCreateQueue() {
@@ -379,10 +425,9 @@ const App = {
     this._updateQueueBanner();
     while (this._createQueue.length) {
       const job = this._createQueue[0];
-      let { letter, color, volunteer, geojson, parcels } = job;
+      let { letter, color, volunteer, geojson, houses } = job;
       this._updateQueueBanner();
       try {
-        const houses = parcels.map(p => ({ address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon }));
         let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
 
         // Collision — another admin grabbed this number
@@ -398,6 +443,7 @@ const App = {
           );
           if (!retry) {
             this._createQueue.shift();
+            this._saveZoneQueue();
             this._updateQueueBanner();
             continue;
           }
@@ -426,9 +472,11 @@ const App = {
         }
       }
       this._createQueue.shift();
+      this._saveZoneQueue();
       this._updateQueueBanner();
     }
     this._queueRunning = false;
+    this._saveZoneQueue();  // clear persisted queue now that everything is done
     this._updateQueueBanner();
   },
 

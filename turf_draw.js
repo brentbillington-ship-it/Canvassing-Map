@@ -332,7 +332,7 @@ const TurfDraw = (() => {
         }
         L.geoJSON(gjInput).eachLayer(gjLayer => {
           const poly = L.polygon(gjLayer.getLatLngs(), {
-            color, fillColor: color, fillOpacity: 0.12, weight: 2.5, dashArray: '5,4', opacity: 0.8
+            color, fillColor: color, fillOpacity: 0.12, weight: 2.5, dashArray: null, opacity: 1.0
           });
           _drawnLayers.addLayer(poly);
           _turfLetters[_drawnLayers.getLayerId(poly)] = turf.letter;

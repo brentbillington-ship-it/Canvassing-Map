@@ -793,6 +793,21 @@ const UI = {
     document.body.appendChild(pill);
   },
 
+  // ── Pending zone saves indicator (sidebar) ─────────────────────────────────
+  _updatePendingZonesBar(count) {
+    let bar = document.getElementById('zone-pending-bar');
+    if (!count) { bar?.remove(); return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'zone-pending-bar';
+      // Insert just before the turf-list element, inside the sidebar
+      const list = document.getElementById('turf-list');
+      list ? list.parentNode.insertBefore(bar, list) : document.getElementById('sidebar')?.appendChild(bar);
+    }
+    bar.className = 'zone-pending-bar';
+    bar.innerHTML = `<span class="zpb-dot"></span>⏳ ${count} zone${count > 1 ? 's' : ''} saving…`;
+  },
+
   // ── Edit boundary banner ────────────────────────────────────────────────────
   showEditBoundaryBanner(letter) {
     document.getElementById('edit-boundary-banner')?.remove();

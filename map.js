@@ -328,16 +328,20 @@ const MapModule = {
     if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
       geojson = { type: 'Feature', geometry: geojson, properties: {} };
     }
+    // Unassigned zones: solid black border and black label. Assigned: zone color, fully opaque.
+    const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
+    const borderColor  = isUnassigned ? '#000000' : color;
+    const labelBg      = isUnassigned ? '#000000' : color;
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color, fillColor: '#000000', fillOpacity: 0.18, weight: 3, opacity: 1.0, dashArray: null }
+        style: { color: borderColor, fillColor: '#000000', fillOpacity: 0.14, weight: 2.5, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
       // Zone label in turfLabelPane (z645) — above dots (z600), below address chips (z660)
       const marker = L.marker(bounds.getCenter(), {
         icon: L.divIcon({
-          html: `<div class="turf-label" style="background:${color}">${turf.letter}</div>`,
+          html: `<div class="turf-label" style="background:${labelBg}">${turf.letter}</div>`,
           className: '',
           iconSize: [40, 40],
           iconAnchor: [20, 20],

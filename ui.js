@@ -776,7 +776,21 @@ const UI = {
   toggleDrawMode() {
     const on  = TurfDraw.toggle();
     const btn = document.getElementById('draw-mode-btn');
-    if (btn) { btn.textContent = on ? '✏️ Exit Draw' : '✏️ Draw Zone'; btn.classList.toggle('active-admin-btn', on); }
+    if (btn) {
+      btn.textContent = on ? '✏️ Exit Draw' : '✏️ Draw Zone';
+      btn.classList.toggle('active-admin-btn', on);
+    }
+    this._setDrawModeBanner(on);
+  },
+
+  _setDrawModeBanner(on) {
+    document.getElementById('draw-mode-banner')?.remove();
+    if (!on) return;
+    const pill = document.createElement('div');
+    pill.id = 'draw-mode-banner';
+    pill.className = 'draw-mode-banner';
+    pill.textContent = '✏️ Drawing Zone — click to place points';
+    document.body.appendChild(pill);
   },
 
   // ── Edit boundary banner ────────────────────────────────────────────────────
@@ -930,17 +944,14 @@ const UI = {
 
     const list = document.getElementById('turf-list');
     if (!list) return;
-    // Apply view mode filter (All / Hangers / Knocks)
-    const modeApplied = this.viewMode
-      ? turfs.filter(t => (t.mode || 'hanger') === this.viewMode)
-      : turfs;
-    // Apply volunteer filter
+    // turfs arg already has viewMode applied by _visibleTurfs(); don't re-apply here.
+    // Apply volunteer / zone filter on top of what was passed in.
     const filtered = this.volunteerFilter
-      ? modeApplied.filter(t => {
+      ? turfs.filter(t => {
           if (this.volunteerFilter === '[UNASSIGNED]') return !t.volunteer || t.volunteer === '[UNASSIGNED]';
           return t.volunteer === this.volunteerFilter;
         })
-      : (this.turfFilter ? modeApplied.filter(t => String(t.letter) === String(this.turfFilter)) : modeApplied);
+      : (this.turfFilter ? turfs.filter(t => String(t.letter) === String(this.turfFilter)) : turfs);
 
     if (!filtered.length) {
       list.innerHTML = `<div class="sb-empty">${this.isAdmin ? 'No zones yet. Use <strong>✏️ Draw Zone</strong> to create one.' : 'No data loaded.'}</div>`;
@@ -1212,12 +1223,18 @@ const UI = {
     const numContent = inMs ? (isSelected ? '✓' : '') : streetNum;
     const numClass = `house-num${inMs ? ' ms-num' : ''}${isSelected ? ' ms-num-selected' : ''}`;
 
-    return `<div class="house-card${result ? ' house-done' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${inMs ? ' ms-mode' : ''}${isSelected ? ' ms-selected' : ''}" id="hcard-${house.id}"
+    const isComplex = house.house_type === 'apartment_complex';
+    const complexBadge = isComplex
+      ? `<span class="complex-badge">🏢${house.unit_count ? ' ' + house.unit_count + ' units' : ''}</span>`
+      : '';
+
+    return `<div class="house-card${result ? ' house-done' : ''}${isComplex ? ' complex-house' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${inMs ? ' ms-mode' : ''}${isSelected ? ' ms-selected' : ''}" id="hcard-${house.id}"
       onclick="UI._cardClick('${house.id}')">
-      <div class="${numClass}" style="background:${numBg}">${numContent}</div>
+      <div class="${numClass}" style="background:${numBg}">${isComplex ? '🏢' : numContent}</div>
       <div class="house-body">
         <div class="house-addr">${_esc(house.address)}</div>
-        ${house.owner ? `<div class="house-name">${_esc(house.owner)}</div>` : ''}
+        ${house.owner && !isComplex ? `<div class="house-name">${_esc(house.owner)}</div>` : ''}
+        ${complexBadge}
         ${house.notes ? `<div class="house-notes">${_esc(house.notes)}</div>` : ''}
         ${scriptHtml}
         <div class="house-footer">${badgeHtml}${attribution}</div>
@@ -1336,13 +1353,13 @@ const UI = {
     this._modal('Map Legend', `<div class="map-legend" style="box-shadow:none;padding:0">${content}</div>`, null, null);
   },
 
-  toast(msg, type = 'info') {
+  toast(msg, type = 'info', duration = 2800) {
     const t = document.createElement('div');
     t.className   = `toast toast-${type}`;
     t.textContent = msg;
     document.getElementById('toast-container')?.appendChild(t);
     requestAnimationFrame(() => t.classList.add('toast-show'));
-    setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 2800);
+    setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, duration);
   },
 
   toastUndo(msg, onUndo) {
@@ -1539,16 +1556,54 @@ const UI = {
     this._modal('Add House from Parcels', `
       <label class="f-label">Zone</label>
       <select id="f-turf" class="f-input">${turfOpts}</select>
-      <label class="f-label">Search address or owner</label>
-      <input id="parcel-search" class="f-input" type="text" placeholder="e.g. 745 Canongate or SMITH"
-        oninput="UI._updateParcelResults()" autocomplete="off"/>
-      <div id="parcel-results" class="parcel-results"></div>
-      <div id="parcel-selected" class="parcel-selected" style="display:none"></div>
+
+      <div class="complex-toggle-row" style="margin:10px 0 8px">
+        <label class="hide-done-toggle">
+          <input type="checkbox" id="f-is-complex" onchange="UI._toggleComplexFields()"/>
+          Apartment Complex
+        </label>
+      </div>
+
+      <div id="complex-fields" style="display:none">
+        <label class="f-label">Complex Name</label>
+        <input id="f-complex-name" class="f-input" type="text" placeholder="e.g. Townlake of Coppell" autocomplete="off"/>
+        <label class="f-label" style="margin-top:8px">Unit Count</label>
+        <input id="f-unit-count" class="f-input" type="number" min="1" placeholder="e.g. 398"/>
+        <label class="f-label" style="margin-top:8px">Address</label>
+        <input id="f-complex-addr" class="f-input" type="text" placeholder="e.g. 215 N Moore Rd" autocomplete="off"/>
+        <div class="f-hint">Click on the map after closing to place the marker, or enter coordinates below.</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <input id="f-complex-lat" class="f-input" type="number" step="0.000001" placeholder="Lat"/>
+          <input id="f-complex-lon" class="f-input" type="number" step="0.000001" placeholder="Lon"/>
+        </div>
+      </div>
+
+      <div id="standard-fields">
+        <label class="f-label">Search address or owner</label>
+        <input id="parcel-search" class="f-input" type="text" placeholder="e.g. 745 Canongate or SMITH"
+          oninput="UI._updateParcelResults()" autocomplete="off"/>
+        <div id="parcel-results" class="parcel-results"></div>
+        <div id="parcel-selected" class="parcel-selected" style="display:none"></div>
+      </div>
     `, () => {
+      const zone = document.getElementById('f-turf')?.value;
+      if (!zone) { this.toast('Select a zone', 'error'); return false; }
+
+      const isComplex = document.getElementById('f-is-complex')?.checked;
+      if (isComplex) {
+        const name     = (document.getElementById('f-complex-name')?.value || '').trim();
+        const unitCount = parseInt(document.getElementById('f-unit-count')?.value || '', 10) || null;
+        const addr     = (document.getElementById('f-complex-addr')?.value || '').trim() || name;
+        const lat      = parseFloat(document.getElementById('f-complex-lat')?.value || '');
+        const lon      = parseFloat(document.getElementById('f-complex-lon')?.value || '');
+        if (!addr) { this.toast('Enter a complex name or address', 'error'); return false; }
+        if (isNaN(lat) || isNaN(lon)) { this.toast('Enter coordinates for the complex (or place on map)', 'error'); return false; }
+        App.addHouse({ turf: zone, address: addr, owner: name, lat, lon, house_type: 'apartment_complex', unit_count: unitCount });
+        return true;
+      }
+
       const selected = UI._selectedParcel;
-      const zone     = document.getElementById('f-turf')?.value;
       if (!selected) { this.toast('Select a parcel from the results', 'error'); return false; }
-      if (!zone)     { this.toast('Select a zone', 'error'); return false; }
       App.addHouse({ turf: zone, address: selected.address, owner: selected.owner, lat: selected.lat, lon: selected.lon });
       UI._selectedParcel = null;
       return true;
@@ -1556,6 +1611,14 @@ const UI = {
 
     UI._selectedParcel = null;
     setTimeout(() => document.getElementById('parcel-search')?.focus(), 80);
+  },
+
+  _toggleComplexFields() {
+    const on = document.getElementById('f-is-complex')?.checked;
+    document.getElementById('complex-fields').style.display = on ? '' : 'none';
+    document.getElementById('standard-fields').style.display = on ? 'none' : '';
+    if (on) setTimeout(() => document.getElementById('f-complex-name')?.focus(), 50);
+    else     setTimeout(() => document.getElementById('parcel-search')?.focus(), 50);
   },
 
   _selectedParcel: null,

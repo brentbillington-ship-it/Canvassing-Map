@@ -20,13 +20,20 @@ const CONFIG = {
 
   // Contact result definitions — drives markers, buttons, legend, and stats
   // Group 1: hanger workflow. Group 2: door knock workflow (divided in legend)
+  // Group 3: apartment complex office visit results
   RESULTS: [
-    { key: 'hanger',   label: 'Hanger Left', short: 'HG', icon: '📬', color: '#2d9e5f', bg: '#e6f7ee' },
-    { key: 'skip',     label: 'Skip',         short: 'SK', icon: '⤭',  color: '#1f2937', bg: '#f0f1f3' },
-    { key: 'knocked',  label: 'Knocked',      short: 'KN', icon: '✊', color: '#2e6ec2', bg: '#e8f0fc' },
-    { key: 'not_home', label: 'Not Home',     short: 'NH', icon: '🚪', color: '#c9831a', bg: '#fdf3e3' },
-    { key: 'refused',  label: 'Refused',      short: 'RF', icon: '⛔', color: '#c44848', bg: '#fde8e8' },
+    { key: 'hanger',          label: 'Hanger Left',        short: 'HG', icon: '📬', color: '#2d9e5f', bg: '#e6f7ee' },
+    { key: 'skip',            label: 'Skip',               short: 'SK', icon: '⤭',  color: '#1f2937', bg: '#f0f1f3' },
+    { key: 'knocked',         label: 'Knocked',            short: 'KN', icon: '✊', color: '#2e6ec2', bg: '#e8f0fc' },
+    { key: 'not_home',        label: 'Not Home',           short: 'NH', icon: '🚪', color: '#c9831a', bg: '#fdf3e3' },
+    { key: 'refused',         label: 'Refused',            short: 'RF', icon: '⛔', color: '#c44848', bg: '#fde8e8' },
+    { key: 'left_materials',  label: 'Left at Office',     short: 'LM', icon: '📋', color: '#7c4dcc', bg: '#f3eeff' },
+    { key: 'spoke_manager',   label: 'Spoke to Manager',   short: 'SM', icon: '🤝', color: '#1a9e9e', bg: '#e6f7f7' },
+    { key: 'no_answer_office',label: 'No Answer — Office', short: 'NA', icon: '🏢', color: '#c9831a', bg: '#fdf3e3' },
   ],
+
+  // Apartment complex result keys — shown instead of standard buttons for complex markers
+  COMPLEX_RESULTS: ['left_materials', 'spoke_manager', 'no_answer_office', 'skip'],
 
   // Legend grouping: keys before divider = group 1, after = group 2
   LEGEND_DIVIDER_AFTER: 'skip',

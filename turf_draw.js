@@ -19,11 +19,23 @@ const TurfDraw = (() => {
     _drawnLayers = new L.FeatureGroup().addTo(_map);
 
     // Draw control — only used on desktop for the polygon tool
+    // Bright yellow stroke so the in-progress polygon reads clearly against satellite imagery
     _drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
-        polygon:      { allowIntersection: false, showArea: false,
-                        shapeOptions: { color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2 } },
+        polygon: {
+          allowIntersection: false,
+          showArea: false,
+          shapeOptions: {
+            color:       '#FFE600',
+            fillColor:   '#FFE600',
+            fillOpacity: 0.22,
+            weight:      3.5,
+            opacity:     1.0,
+          },
+          // Guide line from last vertex to cursor
+          guideLayers: [],
+        },
         rectangle:    false,
         polyline:     false, circle: false, circlemarker: false, marker: false,
       },
@@ -55,6 +67,7 @@ const TurfDraw = (() => {
           const btn = document.getElementById('draw-mode-btn');
           if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
           _hideDrawToolbar();
+          document.getElementById('draw-mode-banner')?.remove();
           UI.toast('Draw cancelled');
         } else {
           try { _polygonHandler.deleteLastVertex(); } catch(err) {}
@@ -77,6 +90,7 @@ const TurfDraw = (() => {
           const btn = document.getElementById('draw-mode-btn');
           if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
           _hideDrawToolbar();
+          document.getElementById('draw-mode-banner')?.remove();
           UI.toast('Draw cancelled');
         } else {
           // First ESC — delete last vertex
@@ -173,26 +187,33 @@ const TurfDraw = (() => {
     _lastTapPoint = pt;
   }
 
+  // Draw colors — bright yellow so in-progress polygon reads on satellite imagery
+  const DRAW_COLOR      = '#FFE600';
+  const DRAW_FILL       = '#FFE600';
+  const DRAW_FILL_OPACITY = 0.22;
+  const DRAW_WEIGHT     = 3.5;
+
   function _addMobileVertex(latlng) {
     _mobileVertices.push(latlng);
 
-    // Vertex marker
+    // Vertex marker — large, high-contrast yellow dot with dark outline
     const m = L.circleMarker(latlng, {
-      radius: 7, color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.8, weight: 2
+      radius: 9, color: '#1a1a1a', fillColor: DRAW_COLOR, fillOpacity: 1.0, weight: 2
     }).addTo(_map);
     _mobileMarkers.push(m);
 
     // Polyline through vertices
     if (_mobilePolyline) _mobilePolyline.remove();
     _mobilePolyline = L.polyline(_mobileVertices, {
-      color: '#2e6ec2', weight: 2, dashArray: '6,4'
+      color: DRAW_COLOR, weight: DRAW_WEIGHT,
     }).addTo(_map);
 
     // Polygon preview when 3+ vertices
     if (_mobilePolygonPreview) _mobilePolygonPreview.remove();
     if (_mobileVertices.length >= 3) {
       _mobilePolygonPreview = L.polygon(_mobileVertices, {
-        color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.10, weight: 1.5, dashArray: '4,4'
+        color: DRAW_COLOR, fillColor: DRAW_FILL,
+        fillOpacity: DRAW_FILL_OPACITY, weight: DRAW_WEIGHT,
       }).addTo(_map);
       _showFinishZoneBtn();
     }
@@ -211,12 +232,13 @@ const TurfDraw = (() => {
 
     if (_mobileVertices.length >= 1) {
       _mobilePolyline = L.polyline(_mobileVertices, {
-        color: '#2e6ec2', weight: 2, dashArray: '6,4'
+        color: DRAW_COLOR, weight: DRAW_WEIGHT,
       }).addTo(_map);
     }
     if (_mobileVertices.length >= 3) {
       _mobilePolygonPreview = L.polygon(_mobileVertices, {
-        color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.10, weight: 1.5, dashArray: '4,4'
+        color: DRAW_COLOR, fillColor: DRAW_FILL,
+        fillOpacity: DRAW_FILL_OPACITY, weight: DRAW_WEIGHT,
       }).addTo(_map);
       _showFinishZoneBtn();
     } else {
@@ -228,7 +250,8 @@ const TurfDraw = (() => {
   function _finishMobilePolygon() {
     if (_mobileVertices.length < 3) return;
     const layer = L.polygon(_mobileVertices, {
-      color: '#2e6ec2', fillColor: '#2e6ec2', fillOpacity: 0.15, weight: 2
+      color: DRAW_COLOR, fillColor: DRAW_FILL,
+      fillOpacity: DRAW_FILL_OPACITY, weight: DRAW_WEIGHT,
     });
     _removeMobilePolygonUI();
     _onNewPolygon(layer);
@@ -288,6 +311,7 @@ const TurfDraw = (() => {
     _active = false;
     const btn = document.getElementById('draw-mode-btn');
     if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+    document.getElementById('draw-mode-banner')?.remove();
     UI.toast('Draw cancelled');
   }
 
@@ -384,7 +408,11 @@ const TurfDraw = (() => {
 
   // ── New polygon drawn ─────────────────────────────────────────────────────
   function _onNewPolygon(layer) {
-    const ring = _getOuterRing(layer);
+    // Snap vertices to nearby parcel boundaries before computing contained parcels.
+    // Do not snap in a way that pulls zone boundaries into unintended parcels —
+    // snapping only moves existing vertices, never adds new ones.
+    const rawRing = _getOuterRing(layer);
+    const ring    = _snapRingToParcelVertices(rawRing);
     _pendingRing = ring;
     const { residential, excluded } = ParcelsUtil.parcelsInPolygon(ring, false);
     const centroid = ParcelsUtil.leafletRingCentroid(ring);
@@ -397,9 +425,17 @@ const TurfDraw = (() => {
 
   // Re-arm polygon draw so user can immediately draw another zone
   function _rearmDraw() {
-    if (!_active || _editingLetter || _isMobile()) return;
+    if (!_active || _editingLetter) return;
+    if (_isMobile()) {
+      // On mobile, restart touch-based vertex mode so the next zone can be drawn immediately
+      _startMobilePolygonMode();
+      return;
+    }
     _activatePolygonDraw();
     _showDrawToolbar();
+    // Disable undo button until first vertex is placed (fresh state)
+    const undoBtn = document.querySelector('.dt-undo');
+    if (undoBtn) undoBtn.disabled = true;
     UI.toast('Draw mode ready — click to start next zone', 'info', 2000);
   }
 
@@ -447,11 +483,18 @@ const TurfDraw = (() => {
             rt.polygon_geojson = existing.polygon_geojson; // preserve — not in getAll anymore
           }
         });
-        App.state.turfs = res.turfs;
+        App.state.turfs = App._dedupTurfs(res.turfs);
       }
     } catch(e) {
       liveLetters = new Set(App.state.turfs.map(t => String(t.letter)));
     }
+    // Also exclude zone numbers already reserved in this session's queue or pending polygons.
+    // This prevents "Zone X already taken" collisions when a single user queues multiple zones
+    // in rapid succession before any of them have been written to the Sheet.
+    const queuedLetters = App._createQueue.map(j => String(j.letter));
+    const pendingLetters = Object.keys(App._pendingPolygons);
+    queuedLetters.forEach(l => liveLetters.add(l));
+    pendingLetters.forEach(l => liveLetters.add(l));
     let nextLetter = _nextAvailableLetter(liveLetters);
     if (!nextLetter) { UI.toast('No zone numbers available', 'error'); return; }
 
@@ -559,6 +602,75 @@ const TurfDraw = (() => {
 
   function isEditing() { return !!_editingLetter; }
 
+  // ── Parcel vertex snapping ────────────────────────────────────────────────
+  // Configurable threshold (meters). Vertices closer than this to a parcel
+  // vertex will snap to that parcel vertex.
+  const SNAP_THRESHOLD_M = 10;
+
+  // Lazy-built grid index: cell_deg bucket → [{lat,lon}] parcel vertices
+  let _parcelGrid = null;
+  const _GRID_CELL = 0.001; // ~110m grid cells
+
+  function _buildParcelGrid() {
+    if (_parcelGrid) return _parcelGrid;
+    if (typeof PARCELS_GEOJSON === 'undefined') { _parcelGrid = {}; return _parcelGrid; }
+    const grid = {};
+    const cell = _GRID_CELL;
+    for (const feat of PARCELS_GEOJSON.features) {
+      const g = feat.geometry;
+      const rings = g.type === 'Polygon'      ? g.coordinates
+                  : g.type === 'MultiPolygon' ? g.coordinates.flatMap(p => p)
+                  : [];
+      for (const ring of rings) {
+        for (const [lon, lat] of ring) {
+          const key = `${Math.floor(lat / cell)},${Math.floor(lon / cell)}`;
+          if (!grid[key]) grid[key] = [];
+          grid[key].push({ lat, lon });
+        }
+      }
+    }
+    _parcelGrid = grid;
+    return _parcelGrid;
+  }
+
+  function _distM(lat1, lon1, lat2, lon2) {
+    const dlat = (lat2 - lat1) * 111320;
+    const dlon = (lon2 - lon1) * 111320 * Math.cos((lat1 + lat2) * Math.PI / 360);
+    return Math.sqrt(dlat * dlat + dlon * dlon);
+  }
+
+  // Return nearest parcel vertex within SNAP_THRESHOLD_M, or null
+  function _nearestParcelVertex(lat, lon) {
+    const grid  = _buildParcelGrid();
+    const cell  = _GRID_CELL;
+    const radCells = Math.ceil(SNAP_THRESHOLD_M / (111320 * cell)) + 1;
+    const rBase = Math.floor(lat / cell);
+    const cBase = Math.floor(lon / cell);
+    let best = null, bestDist = SNAP_THRESHOLD_M + 1;
+    for (let dr = -radCells; dr <= radCells; dr++) {
+      for (let dc = -radCells; dc <= radCells; dc++) {
+        const key = `${rBase + dr},${cBase + dc}`;
+        for (const v of (grid[key] || [])) {
+          const d = _distM(lat, lon, v.lat, v.lon);
+          if (d < bestDist) { bestDist = d; best = v; }
+        }
+      }
+    }
+    return best;
+  }
+
+  // Snap a drawn ring (array of Leaflet LatLngs) to nearest parcel vertices.
+  // Returns a new array of Leaflet LatLngs.
+  function _snapRingToParcelVertices(ring) {
+    return ring.map(ll => {
+      const lat = ll.lat ?? ll[0];
+      const lon = ll.lng ?? ll[1];
+      const snap = _nearestParcelVertex(lat, lon);
+      if (snap) return L.latLng(snap.lat, snap.lon);
+      return ll;
+    });
+  }
+
   // ── Floating draw toolbar ──────────────────────────────────────────────────
   function _showDrawToolbar() {
     _hideDrawToolbar();
@@ -567,9 +679,14 @@ const TurfDraw = (() => {
     bar.className = 'draw-toolbar';
     bar.innerHTML = `
       <span class="dt-hint">Click to place points · Double-click to finish</span>
-      <button class="dt-btn dt-undo" onclick="TurfDraw._undoLastVertex()">↩ Undo Last Point</button>
+      <button class="dt-btn dt-undo" onclick="TurfDraw._undoLastVertex()" disabled>↩ Undo Last Point</button>
       <button class="dt-btn dt-cancel" onclick="TurfDraw._cancelDraw()">✕ Cancel</button>`;
     document.body.appendChild(bar);
+    // Enable undo button when the first vertex is placed
+    _map.once('draw:drawvertex', () => {
+      const btn = document.querySelector('.dt-undo');
+      if (btn) btn.disabled = false;
+    });
   }
 
   function _hideDrawToolbar() {
@@ -588,6 +705,7 @@ const TurfDraw = (() => {
     _hideDrawToolbar();
     const btn = document.getElementById('draw-mode-btn');
     if (btn) { btn.textContent = '✏️ Draw Zone'; btn.classList.remove('active-admin-btn'); }
+    document.getElementById('draw-mode-banner')?.remove();
     UI.toast('Draw cancelled');
   }
 

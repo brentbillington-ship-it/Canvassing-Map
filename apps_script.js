@@ -100,7 +100,7 @@ function getSheet(name) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order']);
+    if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order','house_type','unit_count']);
     else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','created_date']);
     else if (name === 'presence') sheet.appendRow(['session_id','name','last_seen']);
     else if (name === 'logins')   sheet.appendRow(['timestamp','name','mode','session_id']);
@@ -127,7 +127,11 @@ function sheetToObjects(sheet) {
 
 function getAllData() {
   const housesData = sheetToObjects(getSheet('houses'));
-  const turfsData  = sheetToObjects(getSheet('turfs'));
+  const turfsRaw   = sheetToObjects(getSheet('turfs'));
+  // Dedup turfs by letter — last write wins (handles accidental duplicate Sheet rows)
+  const turfsByLetter = {};
+  turfsRaw.forEach(t => { if (t.letter != null) turfsByLetter[String(t.letter)] = t; });
+  const turfsData = Object.values(turfsByLetter);
   const turfs = turfsData.map(t => ({
     letter:    t.letter,
     color:     t.color || '',
@@ -142,7 +146,9 @@ function getAllData() {
         lat: parseFloat(h.lat), lon: parseFloat(h.lon),
         notes: h.notes || '', result: h.result || '',
         result_date: h.result_date || '', result_by: h.result_by || '',
-        sort_order: parseInt(h.sort_order) || 0
+        sort_order: parseInt(h.sort_order) || 0,
+        house_type: h.house_type || '',
+        unit_count: h.unit_count ? parseInt(h.unit_count) : null
       }))
   }));
   return { turfs, timestamp: new Date().toISOString() };
@@ -172,7 +178,8 @@ function addHouse(house) {
     .reduce((max, h) => Math.max(max, parseInt(h.sort_order) || 0), 0);
   const id = uid();
   sheet.appendRow([id, house.turf||'A', house.owner||'', house.address||'',
-    house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder + 1]);
+    house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder + 1,
+    house.house_type||'', house.unit_count||'']);
   SpreadsheetApp.flush();
   return { success: true, id };
 }
@@ -406,7 +413,8 @@ function createZone(letter, color, volunteer, geojson, houses) {
       order++;
       housesSheet.appendRow([
         uid(), letter, house.owner || '', house.address || '',
-        house.lat || 0, house.lon || 0, '', '', '', '', order
+        house.lat || 0, house.lon || 0, '', '', '', '', order,
+        house.house_type || '', house.unit_count || ''
       ]);
     });
 
@@ -566,9 +574,10 @@ function getChat(since) {
 
 function getLeaderboard() {
   const houses = sheetToObjects(getSheet('houses'));
-  // Today in CT
-  const ctNow    = new Date(Date.now() + (-6 * 60 * 60000));
-  const todayStr = ctNow.toISOString().slice(0, 10);
+  // Today in CT — use proper timezone offset via toLocaleDateString for DST correctness
+  const todayStr = new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2');
   const allTime = {}, today = {};
 
   houses.forEach(h => {

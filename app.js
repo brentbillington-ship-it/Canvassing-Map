@@ -37,6 +37,15 @@ const App = {
 
   _loadInProgress: false,
 
+  // Dedup turfs by zone letter — keeps the last occurrence (most recent write wins).
+  // Prevents duplicate Sheet rows for the same zone number from doubling up in the UI.
+  _dedupTurfs(turfs) {
+    const seen = {};
+    // Iterate in order so later entries (newer writes) overwrite earlier ones
+    turfs.forEach(t => { seen[String(t.letter)] = t; });
+    return Object.values(seen);
+  },
+
   async loadData() {
     if (this._loadInProgress) return;
     this._loadInProgress = true;
@@ -46,7 +55,7 @@ const App = {
         SheetsAPI.getPolygons().catch(() => null)
       ]);
       if (data.error) throw new Error(data.error);
-      this.state.turfs = data.turfs;
+      this.state.turfs = this._dedupTurfs(data.turfs);
       this._mergePolygons(polyData?.polygons);
       this.render();
       UI.setOffline(false);
@@ -59,7 +68,7 @@ const App = {
           SheetsAPI.getPolygons().catch(() => null)
         ]);
         if (data.error) throw new Error(data.error);
-        this.state.turfs = data.turfs;
+        this.state.turfs = this._dedupTurfs(data.turfs);
         this._mergePolygons(polyData?.polygons);
         this.render();
         UI.setOffline(false);
@@ -174,7 +183,7 @@ const App = {
         const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
         if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
       });
-      this.state.turfs = data.turfs;
+      this.state.turfs = this._dedupTurfs(data.turfs);
       // Now merge fresh polygons on top — after state is set so we don't overwrite with stale
       if (freshPolygons) this._mergePolygons(freshPolygons);
       this.render();
@@ -287,14 +296,25 @@ const App = {
   },
 
   async deleteTurf(letter) {
+    // Immediately remove all graphics — zone polygon, label, and house markers vanish at once.
+    // The Sheet deletion runs in the background; UI is already clean.
+    const removed = this.state.turfs.find(t => String(t.letter) === String(letter));
+    this.state.turfs = this.state.turfs.filter(t => String(t.letter) !== String(letter));
+    TurfDraw.removeTurfLayer(letter);
+    this.render();
+    UI.toast(`Zone ${letter} deleted`);
+
     try {
       const res = await SheetsAPI.deleteTurf(letter);
-      if (res.error) { UI.toast(res.error, 'error'); return; }
-      this.state.turfs = this.state.turfs.filter(t => t.letter !== letter);
-      TurfDraw.removeTurfLayer(letter);
-      this.render();
-      UI.toast(`Zone ${letter} deleted`);
-    } catch(e) { UI.toast('Failed to delete zone', 'error'); }
+      if (res.error) {
+        // Sheet deletion failed — restore state so UI reflects reality
+        UI.toast(`Zone ${letter} could not be fully deleted — reloading`, 'error');
+        await this.loadData();
+      }
+    } catch(e) {
+      UI.toast('Delete failed — reloading to sync', 'error');
+      await this.loadData();
+    }
   },
 
   async saveTurfPolygon(letter, geojson) {

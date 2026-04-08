@@ -347,6 +347,8 @@ const MapModule = {
       });
       marker.on('click', e => {
         L.DomEvent.stopPropagation(e);
+        // Suppress zone popups while drawing — clicks belong to the polygon tool
+        if (TurfDraw.isActive()) return;
         if (UI.isAdmin) {
           UI.showZoneAdminPopup(turf.letter);
         } else {
@@ -362,6 +364,8 @@ const MapModule = {
   _renderHouse(house, turf, idx, color, isOtherZone) {
     const marker = this._makeMarker(house, turf, isOtherZone);
     marker.on('click', () => {
+      // Suppress all popups while a zone is being drawn — clicks belong to the polygon tool
+      if (TurfDraw.isActive()) return;
       // In multi-select mode: toggle selection instead of opening popup
       if (UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter)) {
         if (UI._selectedHouseIds.has(house.id)) {
@@ -384,9 +388,26 @@ const MapModule = {
     const result       = house.result || '';
     const isDone       = !!result;
     const isDoorKnock  = (turf?.mode || 'hanger') === 'knock';
+    const isComplex    = house.house_type === 'apartment_complex';
     const resultDef    = CONFIG.RESULTS.find(r => r.key === result);
     const inMs         = UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter);
     const isSelected   = inMs && UI._selectedHouseIds.has(house.id);
+
+    // Apartment complex — building icon marker, always visible at lower zoom
+    if (isComplex) {
+      const dotColor = resultDef ? resultDef.color : '#7c4dcc';
+      const cls = `house-dot complex-marker${isDone ? ' done' : ''}${isOtherZone ? ' other-zone' : ''}`;
+      return L.marker([house.lat, house.lon], {
+        icon: L.divIcon({
+          html: `<div class="${cls}" style="--dc:${dotColor}" title="${_esc(house.address)}">🏢</div>`,
+          className: '',
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+        }),
+        pane: 'housePane',
+        zIndexOffset: isOtherZone ? -100 : 150,
+      });
+    }
 
     // Multi-select mode: selected = green ✓, unselected = dashed gray circle
     if (inMs) {
@@ -440,10 +461,13 @@ const MapModule = {
 
     const isHanger = (turf.mode || 'hanger') === 'hanger';
     const isDoorKnock = !isHanger;
-    // Hanger zones: hanger + skip. Knock zones: knocked + not_home + refused only
-    const visibleResults = isHanger
-      ? CONFIG.RESULTS.filter(r => r.key === 'hanger' || r.key === 'skip')
-      : CONFIG.RESULTS.filter(r => r.key === 'knocked' || r.key === 'not_home' || r.key === 'refused');
+    const isComplex = house.house_type === 'apartment_complex';
+    // Hanger: hanger + skip. Knock: knocked + not_home + refused. Complex: office visit results
+    const visibleResults = isComplex
+      ? CONFIG.RESULTS.filter(r => CONFIG.COMPLEX_RESULTS.includes(r.key))
+      : isHanger
+        ? CONFIG.RESULTS.filter(r => r.key === 'hanger' || r.key === 'skip')
+        : CONFIG.RESULTS.filter(r => r.key === 'knocked' || r.key === 'not_home' || r.key === 'refused');
     const btnRows = visibleResults.map(r => {
       const active = r.key === result;
       return `<button class="popup-result-btn${active ? ' active' : ''}" style="--rc:${r.color};--rbg:${r.bg}"
@@ -498,9 +522,11 @@ const MapModule = {
       ? `<button class="popup-delete-btn" onclick="MapModule._confirmDeleteMarker('${house.id}')">🗑 Remove marker</button>`
       : '';
 
-    const modeBadge = (turf.mode || 'hanger') === 'knock'
-      ? `<span class="mode-badge knock">Knock</span>`
-      : `<span class="mode-badge hanger">Hanger</span>`;
+    const modeBadge = isComplex
+      ? `<span class="mode-badge complex">🏢 Complex${house.unit_count ? ' · ' + house.unit_count + ' units' : ''}</span>`
+      : (turf.mode || 'hanger') === 'knock'
+        ? `<span class="mode-badge knock">Knock</span>`
+        : `<span class="mode-badge hanger">Hanger</span>`;
 
     const gridCols = visibleResults.length <= 2 ? 2 : 3;
     const html = `

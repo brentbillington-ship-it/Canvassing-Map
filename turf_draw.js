@@ -324,7 +324,8 @@ const TurfDraw = (() => {
       let geojson = turf.polygon_geojson;
       if (typeof geojson === 'string') { try { geojson = JSON.parse(geojson); } catch(e) { return; } }
       try {
-        const color = turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length];
+        const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
+        const color = isUnassigned ? '#000000' : (turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length]);
         // Wrap bare Geometry in Feature so L.geoJSON can parse it
         let gjInput = geojson;
         if (gjInput.type === 'Polygon' || gjInput.type === 'MultiPolygon') {

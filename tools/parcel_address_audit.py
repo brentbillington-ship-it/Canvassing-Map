@@ -149,32 +149,97 @@ def _extract_addr(attrs, addr_field):
     return None
 
 
-def query_by_coords(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
-    """Spatial query: Web Mercator point -> situs address."""
+def query_by_identify(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
+    """
+    ArcGIS identify endpoint — this is what Leaflet/ArcGIS map viewers actually
+    use when you click a parcel. Requires mapExtent + imageDisplay, not just a point.
+    """
     x, y = wgs84_to_webmercator(lat, lon)
+    pad = 200  # ~200m buffer in Web Mercator to build a fake map extent
     params = {
-        'geometry':       json.dumps({'x': x, 'y': y}),
-        'geometryType':   'esriGeometryPoint',
-        'spatialRel':     'esriSpatialRelIntersects',
-        'inSR':           '102100',
-        'outFields':      f'{addr_field},ACCOUNT_NUM,OWNER_NAME',
-        'returnGeometry': 'false',
-        'where':          '1=1',
-        'distance':       5,
-        'units':          'esriSRUnit_Meter',
-        'f':              'json',
+        'geometry':      json.dumps({'x': x, 'y': y}),
+        'geometryType':  'esriGeometryPoint',
+        'sr':            '102100',
+        'layers':        f'top:{layer_id}',   # top-most result in layer N
+        'tolerance':     3,                   # pixel tolerance
+        'mapExtent':     f'{x-pad},{y-pad},{x+pad},{y+pad}',
+        'imageDisplay':  '800,600,96',
+        'returnGeometry':'false',
+        'f':             'json',
     }
     try:
-        r = _get_session().get(f'{DCAD_BASE}/{layer_id}/query', params=params, timeout=DCAD_TIMEOUT)
+        r = _get_session().get(f'{DCAD_BASE}/identify', params=params, timeout=DCAD_TIMEOUT)
         r.raise_for_status()
         data = r.json()
         if 'error' in data:
             return None
-        features = data.get('features', [])
-        return _extract_addr(features[0]['attributes'], addr_field) if features else None
+        results = data.get('results', [])
+        if results:
+            attrs = results[0].get('attributes', {})
+            return _extract_addr(attrs, addr_field)
+        return None
+    except Exception as e:
+        print(f'    Identify error ({lat:.5f},{lon:.5f}): {e}', file=sys.stderr)
+        return None
+
+
+def query_by_coords(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
+    """
+    Spatial query: tries three parameter variants in order:
+    1. Web Mercator with distance buffer (most common for DCAD)
+    2. Identify endpoint (what the map UI actually uses on click)
+    3. WGS84 inSR=4326 fallback
+    """
+    x, y = wgs84_to_webmercator(lat, lon)
+
+    # Variant 1: Web Mercator /query with distance buffer (no conflicting where=1=1)
+    try:
+        r = _get_session().get(f'{DCAD_BASE}/{layer_id}/query', params={
+            'geometry':       json.dumps({'x': x, 'y': y}),
+            'geometryType':   'esriGeometryPoint',
+            'spatialRel':     'esriSpatialRelIntersects',
+            'inSR':           '102100',
+            'outFields':      f'{addr_field},ACCOUNT_NUM,OWNER_NAME',
+            'returnGeometry': 'false',
+            'distance':       10,
+            'units':          'esriSRUnit_Meter',
+            'f':              'json',
+        }, timeout=DCAD_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+        if 'error' not in data:
+            features = data.get('features', [])
+            if features:
+                return _extract_addr(features[0]['attributes'], addr_field)
+    except Exception:
+        pass
+
+    # Variant 2: identify endpoint (map-click simulation)
+    result = query_by_identify(lat, lon, layer_id, addr_field)
+    if result:
+        return result
+
+    # Variant 3: WGS84 lon,lat string form
+    try:
+        r = _get_session().get(f'{DCAD_BASE}/{layer_id}/query', params={
+            'geometry':       f'{lon},{lat}',
+            'geometryType':   'esriGeometryPoint',
+            'inSR':           '4326',
+            'spatialRel':     'esriSpatialRelIntersects',
+            'outFields':      f'{addr_field},ACCOUNT_NUM,OWNER_NAME',
+            'returnGeometry': 'false',
+            'f':              'json',
+        }, timeout=DCAD_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+        if 'error' not in data:
+            features = data.get('features', [])
+            if features:
+                return _extract_addr(features[0]['attributes'], addr_field)
     except Exception as e:
         print(f'    Coord query error ({lat:.5f},{lon:.5f}): {e}', file=sys.stderr)
-        return None
+
+    return None
 
 
 def query_by_address(address, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
@@ -273,16 +338,29 @@ def probe_dcad():
             print(f'    No address field found')
             continue
 
-        sp = query_by_coords(TEST_LAT, TEST_LON, lid, field)
-        tx = query_by_address(TEST_ADDR, lid, field)
-        print(f'    Field={field}  spatial={sp!r}  text={tx!r}')
+        # Test all three approaches so probe output shows exactly which one works
+        ident = query_by_identify(TEST_LAT, TEST_LON, lid, field)
+        sp    = query_by_coords(TEST_LAT, TEST_LON, lid, field)
+        tx    = query_by_address(TEST_ADDR, lid, field)
+        print(f'    Field={field}  identify={ident!r}  spatial={sp!r}  text={tx!r}')
 
-        if sp or tx:
+        if ident or sp or tx:
             print(f'\n  Use: --layer-id {lid} --addr-field {field}\n')
             return lid, field
         print()
 
-    print('  No working layer found. Use DevTools on maps.dcad.org/prd/dpm/ to capture the real API call.')
+    # Also try the identify endpoint stand-alone (no layer loop needed)
+    print('  Trying identify endpoint directly for all layers...')
+    ident = query_by_identify(TEST_LAT, TEST_LON, DEFAULT_LAYER, DEFAULT_ADDR_FIELD)
+    print(f'  identify(layer={DEFAULT_LAYER}, field={DEFAULT_ADDR_FIELD}): {ident!r}')
+    if ident:
+        print(f'\n  Use: --layer-id {DEFAULT_LAYER} --addr-field {DEFAULT_ADDR_FIELD}\n')
+        return DEFAULT_LAYER, DEFAULT_ADDR_FIELD
+
+    print()
+    print('  No working method found via probe.')
+    print('  Next step: run tools/dcad_intercept.py locally to capture the real API call.')
+    print('  Then re-run with --layer-id N --addr-field FIELDNAME from the intercept output.')
     return None, None
 
 # ---------------------------------------------------------------------------

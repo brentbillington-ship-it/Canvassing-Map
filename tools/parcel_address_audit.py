@@ -51,9 +51,9 @@ VALID_ZIP_PREFIXES = ('750', '751', '752', '760', '761')
 
 # DCAD ArcGIS REST API endpoints
 # Layer 0 is the main parcel/account layer
-DCAD_REST_BASE    = 'https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer'
-DCAD_QUERY_URL    = f'{DCAD_REST_BASE}/0/query'   # spatial + attribute queries
-DCAD_FIND_URL     = f'{DCAD_REST_BASE}/find'       # text search across layers
+DCAD_REST_BASE    = "https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer"
+DCAD_QUERY_URL    = f'{DCAD_REST_BASE}/4/query'   # spatial + attribute queries
+DCAD_FIND_URL     = f'{DCAD_REST_BASE}/find'  # layers=4       # text search across layers
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (compatible; ParcelAudit/1.0)',
@@ -167,7 +167,7 @@ def query_by_address(address):
     """
     params = {
         'searchText':   address.strip(),
-        'layers':       '0',
+        'layers':       '4',
         'searchFields': 'SITEADDRESS,PROP_ADDR',
         'contains':     'true',
         'returnGeometry': 'false',

@@ -147,87 +147,6 @@ Town Creek (190 N Moore Rd) unit count unknown. Added as apartment_complex with
 
 ---
 
-## Work Order 2 — Changes Applied (v5.12)
-
-### Item 1 — Apartment Complex Building Marker Strategy (reworked)
-- **Research**: Townlake of Coppell (398 units, 2 stories, ~20 buildings) and Town Creek
-  (192 units, 2 stories, ~12 buildings). Building counts are estimates from property
-  research since exact counts are not publicly listed.
-- **config.js**: Added `knocked_building` result type ("Door Knocked Bldg"). Updated
-  `COMPLEX_RESULTS` to include it. Added `COMPLEX_PRESETS` with Townlake and Town Creek data.
-- **apps_script.js**: Extended house schema with `building_id` and `complex_name` columns.
-  Updated `addHouse` and `getAllData` to read/write these fields.
-- **map.js**: Complex markers now show "Bldg X · Nu" badge instead of plain 🏢 icon.
-  Badge uses building_id and unit_count per-building.
-- **ui.js**: Add House modal now includes Building ID field and preset dropdown for
-  known complexes. House card shows building info.
-- **style.css**: Added `.complex-marker`, `.cbadge-id`, `.cbadge-units` styles.
-
-### Item 2 — Login: Skip Name Input for Existing Users
-- **ui.js `_submitLogin`**: Now performs a server-side email lookup (`SheetsAPI.getUser`)
-  at the start of submission if `_foundUser` is not already set. Handles the case where
-  user presses Enter before the blur-triggered `_checkEmailLookup` completes. Name row
-  stays hidden for returning users.
-
-### Item 3 — New Zone + Background Delete Race Condition
-- **app.js**: Added `_deletingLetters` Set tracking zone letters with in-flight background
-  deletes. `deleteTurf` adds to set before API call, removes in `finally` block.
-- **app.js `_silentRefresh`**: Filters out zones with in-flight deletes to prevent ghost
-  resurrection from stale server data.
-- **turf_draw.js `_showPopulateModal`**: Excludes `_deletingLetters` from available zone
-  numbers alongside queued and pending letters.
-
-### Item 4 — Right-Click to Exit Draw Mode (single click)
-- **turf_draw.js**: Right-click handler now checks if any vertices have been placed
-  (`_polygonHandler._poly.getLatLngs().length`). If no vertices, single right-click
-  cancels draw cleanly. If vertices exist, first right-click undoes last vertex; second
-  within 1s cancels entirely.
-
-### Item 5 — Drag Vertices While Drawing a Zone
-- **turf_draw.js desktop**: `_activatePolygonDraw` hooks `draw:drawvertex.drag` to call
-  `_makePlacedVerticesDraggable()`, which enables dragging on each placed vertex marker
-  and updates the polygon's LatLngs on drag.
-- **turf_draw.js mobile**: Mobile vertices changed from `L.circleMarker` (not draggable)
-  to `L.marker` with `draggable: true`. Drag handler updates `_mobileVertices` array and
-  calls `_updateMobilePolygonPreview()` to refresh polyline/polygon preview.
-
-### Item 6 — Multi-Select: Batch Push & Persistent Selection
-- **apps_script.js**: Added `bulkSetResult` action — accepts array of `{id, result, result_by}`
-  and writes all in a single API call instead of one-per-house.
-- **sheets.js**: Added `bulkSetResult(items)` method using POST.
-- **app.js `applyMultiResult`**: Now calls `bulkSetResult` for a single batch push.
-  Falls back to individual calls on failure.
-- **ui.js `_msApply`**: After applying results, clears selection but keeps multi-select
-  mode active. User must explicitly click ✕ to exit multi-select.
-
-### Item 7 — Can't Exit Chat Mode
-- **ui.js `toggleChat`**: Now creates/manages a clickable backdrop (`#chat-backdrop`)
-  behind the chat panel. Clicking outside the panel dismisses it.
-- **ui.js `_buildMobileChatPanel`**: Close button now uses `addEventListener` instead
-  of inline `onclick` to avoid event listener issues. Also binds ESC key to close.
-- **ui.js**: Added `closeChat()` convenience method.
-- **style.css**: Added `.chat-backdrop` styles with z-index just below chat panel.
-
-### Item 8 — "Show in List" from Marker Card Navigates Correctly
-- **map.js**: Added "📋 Show in List" button to house popup HTML.
-- **map.js `_showInList`**: Closes popup, expands the zone in sidebar, switches to
-  list view on mobile, scrolls to `#hcard-{id}`, and applies a 2s highlight pulse.
-- **style.css**: Added `.popup-list-btn` styles and `@keyframes highlightPulse`.
-
-### Item 9 — Knocks Are a Free-for-All
-- **map.js `_refreshVisibleMarkers`**: Removed `isOtherZone` dimming — all markers now
-  render at full opacity regardless of the user's mode. Previously, a hanger volunteer
-  would see knock markers at 25% opacity (`.other-zone { opacity: 0.25 }`), making them
-  nearly invisible and unclickable. No code-level knock logging restrictions existed —
-  `setResult` never checked volunteer assignment.
-
-### Item 10 — End Sweep
-- **version.js**: Bumped to v5.12.
-- **index.html**: Updated all cache-busting versions from 5.11 to 5.12.
-- **tools/known_issues.md**: This log.
-
----
-
 ## Opportunistic Fixes Applied During End Sweep (Item 11)
 
 - **ui.js `toast`**: Fixed — now accepts optional third `duration` argument.
@@ -248,13 +167,9 @@ Town Creek (190 N Moore Rd) unit count unknown. Added as apartment_complex with
   sheet column which was removed in a prior schema change (column doesn't exist in
   `getSheet('turfs')` header). The value is ignored but wastes a cell. Safe to
   remove the `polygon_geojson` field from `bulkImport`'s `appendRow` call.
-- **Town Creek (190 N Moore Rd)**: Unit count now identified as 192 units (~12 buildings).
-  Added to `COMPLEX_PRESETS` in config.js with estimated building count.
-- **parcels_utils.js**: Fragile coordinate handling — `leafletRingCentroid()` and
-  `ptInDrawnRing()` mix Leaflet LatLng objects with plain arrays inconsistently.
-  No validation on input format. Low risk but worth unifying.
-- **package.json**: Leaflet/leaflet-draw listed as npm deps but loaded via CDN in
-  index.html. The npm packages are unused. Safe to remove or document.
+- **Town Creek (190 N Moore Rd)**: Unit count unknown. Added as `apartment_complex`
+  with `unit_count: null`. Admin should update via Edit House modal after verifying
+  with apartment management.
 
 ## Feature Verification Checklist (Item 11)
 
@@ -283,20 +198,3 @@ requires a running deployment.
 - Leaderboard — DST bug fixed; tab switching unchanged
 - Mobile sidebar, filters, zoom controls, layer button — CSS/layout unchanged
 - Multi-select — render debounce note in known_issues; existing App.render() call correct
-
-### v5.12 Feature Verification ✓
-- Login existing user: _submitLogin awaits getUser before proceeding
-- Login new user: name field appears, create account flow unchanged
-- Zone creation: _deletingLetters excluded from available letters
-- Zone deletion: _deletingLetters tracked, cleared in finally block
-- Silent refresh: filters out in-flight delete zones
-- Right-click draw cancel: single click exits when no vertices
-- Vertex dragging desktop: _makePlacedVerticesDraggable hooks draw:drawvertex
-- Vertex dragging mobile: L.marker with draggable:true, drag updates preview
-- Multi-select batch: bulkSetResult fires single API call
-- Multi-select persist: _msApply clears IDs but keeps mode, user clicks ✕ to exit
-- Chat close: backdrop + addEventListener + ESC key all dismiss panel
-- Show in List: scrollIntoView + highlight-pulse on house card
-- Knock logging: isOtherZone always false, no assignment gating
-- Complex markers: building_id badge, preset dropdown, new result type
-- Version: 5.12 in version.js, index.html cache busters, apps_script header

@@ -1,0 +1,809 @@
+[
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/styles/taxParcel.css"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/modernizr-3.6.0.js"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/infoWindow.js"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/postLoadErrors.js"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/homePage.js?v1.0.7.2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/utils.js?v1.0.7.2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/locator.js?v1.0.6.6"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/basemapGallery.js"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/logo.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/locateIcon.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/clear.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/ruler.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/Legend.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/gps.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/printIcon.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/comments.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/basemap.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/share.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/dcadhome.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/help.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/close.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/img_facebook.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/img_twitter.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/img_email.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/DropDown.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/locate.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/loader.gif"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/collapseArrow.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/expandArrow.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/back.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/getAccounts.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/config.js?v=1.0.7.2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/date.js?v=1.0.7.2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/DCADbanner.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/errorMessages.xml?dojo.preventCache=1775679436450"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/styles/browser.css"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Juris/Jurisdictions/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Imagery/Imagery2024/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ImageryParcel/MapServer?f=json&dpi=96&transparent=true&format=png8"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Imagery/Imagery2025/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ImageryParcel/MapServer?f=json&dpi=96&transparent=true&format=png8"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/DCADTaxMap.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/DCADJuris.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/DCADimageOverlay.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Property/ParcelMarkups/FeatureServer/0?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/legend?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/470"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/470"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/470"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/470"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/471"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/471"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/471"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/471"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/472"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/472"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/472"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/472"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/473"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/473"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/473"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/473"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/474"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/474"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/474"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/474"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/824/475"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/825/475"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/826/475"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/11/827/475"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer?f=json",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"This basemap provides parcel information to the general public and other consumers within an organization. The content presented in this map emulates hardcopy map products used throughout local government.Content includes a map grid, survey abstracts, parcel boundaries, lot and block numbers, parcel dimensions as well as road centerlines and water features.\",\"mapName\":\"Layers\",\"description\":\"This basemap provides tax parcel information to the general public and other consumers within an organization. The content presented in this map emulates hardcopy map products used throughout local government. The PLSS and the subdivided lands provide a navigation framework and additional detail is provided at larger scales. At a map scale of 1:4800 and less, parcels, lots and historical lot lines are shown.\",\"copyrightText\":\"DCAD, NCTCOG, MAPSCO, USGS, Esri.,Inc.\",\"supportsDynamicLayers\":false,\"layers\":[{\"id\":0,\"name\":\".5K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],\"minScale\":900,\"maxScale\":465,\"type\":\"Group Layer\"},{\"id\":1,\"name\":\"County Boundaries\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"Map Page\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"Map Index\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"Survey Abstracts\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":5,\"name\":\"Tract Number Labels\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPoint\"},{\"id\":6,\"name\":\"Block Labels\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":7,\"name\":\"Parcel Dimension Labels\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":8,\"name\":\"Railroads\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":9,\"name\":\"Road Centerline\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":10,\"name\":\"Parcel\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":11,\"name\":\"Lots\",\"parentLayerId\":0,\"defaultVisibility\":true,\"s"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Juris/Jurisdictions/MapServer?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"This basemap provides taxing jurisdiction information to the general public and other consumers within an organization. The content presented in this map emulates hardcopy map products used throughout local government.\",\"mapName\":\"Layers\",\"description\":\"This basemap provides taxin jurisdiction information to the general public and other consumers within an organization.\",\"copyrightText\":\"DCAD, USGS, NCTCOG, Esri.,Inc.\",\"supportsDynamicLayers\":false,\"layers\":[{\"id\":0,\"name\":\".5K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1,2,3,4,5,6,7,8,9,10,11,12,13,16,17],\"minScale\":900,\"maxScale\":451,\"type\":\"Group Layer\"},{\"id\":1,\"name\":\"County Boundaries\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"Facility Site Point\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPoint\"},{\"id\":3,\"name\":\"Dallas County Zip Codes\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"School District Boundary\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":5,\"name\":\"Municipal Boundary\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":6,\"name\":\"Railroads\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":7,\"name\":\"Road Centerline\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":8,\"name\":\"Parcel\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":9,\"name\":\"Facility Site\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":10,\"name\":\"Waterbodies\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":11,\"name\":\"Waterlines\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"},{\"id\":12,\"name\":\"Facility Site Parks\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":13,\"name\":\"Taxing Districts\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":[14,15],\"minScale\":0,\"maxScale\":0,\"typ"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ImageryParcel/MapServer?f=json&dpi=96&transparent=true&format=png8",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel symbology allows users to clearly identify property boundaries when overlayed on top of an aerial photo. The content in this map is visible below 1:19K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"High Scales\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1],\"minScale\":2257,\"maxScale\":0,\"type\":\"Group Layer\"},{\"id\":1,\"name\":\"Parcel\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"Low Scales\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[3],\"minScale\":18056,\"maxScale\":0,\"type\":\"Group Layer\"},{\"id\":3,\"name\":\"Parcel\",\"parentLayerId\":2,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754396224711282E7,\"ymin\":3890713.777619661,\"xmax\":-1.075362767427834E7,\"ymax\":3891048.1896184543,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":18056,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Imagery Parcel\",\"Author\":\"DCAD\",\"Comments\":\"The parcel symbology allows users to clearly identify property boundaries when overlayed on top of an aerial photo. The content in this map is visible below 1:19K.\",\"Subject\":\"The imagery parcel map is used to display parcel boundaries with an aerial imagery background.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Imagery Overlay\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\",\"resampling\":false}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Imagery/Imagery2024/MapServer?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"cimVersion\":\"2.6.0\",\"serviceDescription\":\"<DIV STYLE=\\\"text-align:Left;\\\"><DIV><DIV><P><SPAN>This image service comprises a set of ECW 3-band natural color images comprising the boundaries of Dallas County, Texas with approximately a mile buffer from the county boundary. The 6\\\" orthophotos were collected between December 2023 and March of 2024.<\\/SPAN><\\/P><\\/DIV><\\/DIV><\\/DIV>\",\"mapName\":\"Layers\",\"description\":\"This image service comprises a set of ECW 3-band natural color images comprising the boundaries of Dallas County, Texas with approximately a mile buffer from the county boundary. The 6\\\" orthophotos were collected between December 2022 and March of 2023.\",\"copyrightText\":\"Eagleview\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\".5K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1],\"minScale\":900,\"maxScale\":450,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":1,\"name\":\"Imagery2024\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":[2,3,4],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":2,\"name\":\"Boundary\",\"parentLayerId\":1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":3,\"name\":\"Footprint\",\"parentLayerId\":1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":4,\"name\":\"Image\",\"parentLayerId\":1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Raster Layer\",\"supportsDynamicLegends\":true},{\"id\":5,\"name\":\"1K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[6],\"minScale\":1950,\"maxScale\":901,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":6,\"name\":\"Imagery2024\",\"parentLayerId\":5,\"defaultVisibility\":true,\"subLayerIds\":[7,8,9],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":7,\"name\":\"Boundary\",\"parentLayerId\":6,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":8,\"name\":\"Footprint\",\"parentLayerId\":6,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":9,\"name\":\"Image\",\"parentLayerId\":6,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Raster Layer\",\"supportsDynamicLegends\":true},{\"id\":10,\"name\":\"2K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[11],\"minScale\":2500,\"maxScale\":1951,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":11,\"name\":\"Imagery2024\",\"parentLayerId\":10,\"defaultVisibility\":true,\"subLayerIds\":[12,13,14],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":12,\"name\":\"Boundary\",\"parentLayerId\":11,\"defaul"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ImageryParcel/MapServer?f=json&dpi=96&transparent=true&format=png8",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel symbology allows users to clearly identify property boundaries when overlayed on top of an aerial photo. The content in this map is visible below 1:19K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"High Scales\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1],\"minScale\":2257,\"maxScale\":0,\"type\":\"Group Layer\"},{\"id\":1,\"name\":\"Parcel\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"Low Scales\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[3],\"minScale\":18056,\"maxScale\":0,\"type\":\"Group Layer\"},{\"id\":3,\"name\":\"Parcel\",\"parentLayerId\":2,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754396224711282E7,\"ymin\":3890713.777619661,\"xmax\":-1.075362767427834E7,\"ymax\":3891048.1896184543,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":18056,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Imagery Parcel\",\"Author\":\"DCAD\",\"Comments\":\"The parcel symbology allows users to clearly identify property boundaries when overlayed on top of an aerial photo. The content in this map is visible below 1:19K.\",\"Subject\":\"The imagery parcel map is used to display parcel boundaries with an aerial imagery background.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Imagery Overlay\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\",\"resampling\":false}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Imagery/Imagery2025/MapServer?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"cimVersion\":\"2.6.0\",\"serviceDescription\":\"<DIV STYLE=\\\"text-align:Left;\\\"><DIV><DIV><P><SPAN>This image service comprises a set of MrSID 3-band natural color images comprising the boundaries of Dallas County, Texas with approximately a mile buffer from the county boundary. The 3\\\" orthophotos were collected between December 2024 and May of 2025.<\\/SPAN><\\/P><\\/DIV><\\/DIV><\\/DIV>\",\"mapName\":\"Layers\",\"description\":\"This image service comprises a set of MrSID 3-band natural color images comprising the boundaries of Dallas County, Texas with approximately a mile buffer from the county boundary. The 3\\\" orthophotos were collected between December 2024 and May of 2025.\",\"copyrightText\":\"Eagleview\",\"supportsDynamicLayers\":false,\"layers\":[{\"id\":0,\"name\":\".5K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[1],\"minScale\":900,\"maxScale\":450,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":1,\"name\":\"Imagery2025\",\"parentLayerId\":0,\"defaultVisibility\":true,\"subLayerIds\":[2,3,4],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":2,\"name\":\"Boundary\",\"parentLayerId\":1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":3,\"name\":\"Footprint\",\"parentLayerId\":1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":4,\"name\":\"Image\",\"parentLayerId\":1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Raster Layer\",\"supportsDynamicLegends\":true},{\"id\":5,\"name\":\"1K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[6],\"minScale\":1950,\"maxScale\":901,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":6,\"name\":\"Imagery2025\",\"parentLayerId\":5,\"defaultVisibility\":true,\"subLayerIds\":[7,8,9],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":7,\"name\":\"Boundary\",\"parentLayerId\":6,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":8,\"name\":\"Footprint\",\"parentLayerId\":6,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true},{\"id\":9,\"name\":\"Image\",\"parentLayerId\":6,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Raster Layer\",\"supportsDynamicLegends\":true},{\"id\":10,\"name\":\"2K\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":[11],\"minScale\":2500,\"maxScale\":1951,\"type\":\"Group Layer\",\"supportsDynamicLegends\":false},{\"id\":11,\"name\":\"Imagery2025\",\"parentLayerId\":10,\"defaultVisibility\":true,\"subLayerIds\":[12,13,14],\"minScale\":0,\"maxScale\":0,\"type\":\"Mosaic Layer\",\"supportsDynamicLegends\":false},{\"id\":12,\"name\":\"Boundary\",\"parentLayerId\":11,\"defau"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":11.3,\"cimVersion\":\"3.3.0\",\"serviceDescription\":\"<div style='text-align:Left;font-size:12pt'><p><span>This map presents transportation data, including highways, roads, railroads, and airports for the world. The map was developed by Esri using Esri highway data; Garmin basemap layers; HERE street data for North America, Europe, Australia, New Zealand, South America and Central America, India, select countries in Africa, and most of the Middle East. Data from OpenStreetMap contributors in select countries in Africa. For more information on this map, including our terms of use, visit us online at https://goto.arcgisonline.com/maps/Reference/World_Transportation<\\/span><\\/p><\\/div>\",\"mapName\":\"Layers\",\"description\":\"<DIV STYLE=\\\"text-align:Left;font-size:12pt\\\"><P><SPAN>This map presents transportation data, including highways, roads, railroads, and airports for the world. The map was developed by Esri using Esri highway data; Garmin basemap layers; HERE street data for North America, Europe, Australia, New Zealand, South America and Central America, India, select countries in Africa, and most of the Middle East. Data from OpenStreetMap contributors in select countries in Africa. For more information on this map, including our terms of use, visit us online at https://goto.arcgisonline.com/maps/Reference/World_Transportation<\\/SPAN><\\/P><\\/DIV>\",\"copyrightText\":\"Esri, HERE, Garmin, (c) OpenStreetMap contributors\",\"supportsDynamicLayers\":false,\"layers\":[{\"id\":0,\"name\":\"World_Transportation\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857,\"xyTolerance\":0.001,\"zTolerance\":0.001,\"mTolerance\":0.001,\"falseX\":-20037700,\"falseY\":-30241100,\"xyUnits\":10000,\"falseZ\":-100000,\"zUnits\":10000,\"falseM\":-100000,\"mUnits\":10000},\"singleFusedMapCache\":true,\"tileInfo\":{\"rows\":256,\"cols\":256,\"dpi\":96,\"format\":\"PNG32\",\"compressionQuality\":0,\"origin\":{\"x\":-2.0037508342787E7,\"y\":2.0037508342787E7},\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857,\"xyTolerance\":0.001,\"zTolerance\":0.001,\"mTolerance\":0.001,\"falseX\":-2.2041257773920003E7,\"falseY\":-3.3265069154240005E7,\"xyUnits\":1.353852477049927E8,\"falseZ\":-100000,\"zUnits\":10000,\"falseM\":-100000,\"mUnits\":10000},\"lods\":[{\"level\":0,\"resolution\":156543.03392800014,\"scale\":5.91657527591555E8},{\"level\":1,\"resolution\":78271.51696399994,\"scale\":2.95828763795777E8},{\"level\":2,\"resolution\":39135.75848200009,\"scale\":1.47914381897889E8},{\"level\":3,\"resolution\":19567.87924099992,\"scale\":7.3957190948944E7},{\"level\":4,\"resolution\":9783.93962049996,\"scale\":3.6978595474472E7},{\"level\":5,\"resolution\":4891.96981024998,\"scale\":1.8489297737236E7},{\"level\":6,\"resolution\":2445.98490512499,\"scale\":9244648.868618},{\"level\":7,\"resolution\":1222.992452562495,\"scale\":4622324.434309},{\"level\":8,\"resolution\":611.4962262813797,\"scale\":2311162.21715"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/DotNet/proxy.ashx?https://maps.dcad.org/prdwa/rest/services/Property/ParcelMarkups/FeatureServer/0?f=json",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "{\"currentVersion\":10.81,\"id\":0,\"name\":\"Feedback\",\"type\":\"Feature Layer\",\"parentLayer\":null,\"defaultVisibility\":true,\"minScale\":25000,\"maxScale\":0,\"canScaleSymbols\":false,\"geometryType\":\"esriGeometryPolygon\",\"description\":\"The geographic extent of a markup (redline) submitted by users of parcel information.\",\"copyrightText\":\"\",\"editFieldsInfo\":null,\"ownershipBasedAccessControlForFeatures\":null,\"syncCanReturnChanges\":false,\"relationships\":[],\"isDataVersioned\":true,\"isDataArchived\":false,\"isCoGoEnabled\":false,\"supportsRollbackOnFailureParameter\":false,\"archivingInfo\":{\"supportsQueryWithHistoricMoment\":false,\"startArchivingMoment\":-1},\"supportsStatistics\":true,\"supportsAdvancedQueries\":true,\"supportsValidateSQL\":true,\"supportsCoordinatesQuantization\":true,\"supportsCalculate\":false,\"supportsDatumTransformation\":true,\"advancedQueryCapabilities\":{\"supportsPagination\":true,\"supportsTrueCurve\":true,\"supportsQueryWithDistance\":true,\"supportsReturningQueryExtent\":true,\"supportsStatistics\":true,\"supportsHavingClause\":true,\"supportsOrderBy\":true,\"supportsDistinct\":true,\"supportsCountDistinct\":true,\"supportsQueryWithResultType\":true,\"supportsReturningGeometryCentroid\":true,\"supportsSqlExpression\":true,\"supportsQueryWithDatumTransformation\":true},\"extent\":{\"xmin\":-1.07979631882E7,\"ymin\":3835883.9565000013,\"xmax\":-1.07489910386E7,\"ymax\":3893278.0352,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[255,190,190,255],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[255,0,0,255],\"width\":3}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"hasM\":false,\"hasZ\":false,\"allowGeometryUpdates\":true,\"allowTrueCurvesUpdates\":false,\"onlyAllowTrueCurveUpdatesByTrueCurveClients\":false,\"hasAttachments\":false,\"supportsApplyEditsWithGlobalIds\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"objectIdField\":\"OBJECTID\",\"globalIdField\":\"\",\"displayField\":\"NAME\",\"typeIdField\":\"\",\"subtypeField\":\"\",\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null,\"editable\":false,\"nullable\":false,\"defaultValue\":null,\"modelName\":\"System-maintained ObjectID\"},{\"name\":\"MARKUPID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Markup Identifier\",\"domain\":null,\"editable\":true,\"nullable\":true,\"length\":50,\"defaultValue\":null,\"modelName\":\"MARKUPID\"},{\"name\":\"PROBTYPE\",\"type\":\"esriFieldTypeString\",\"alias\":\"Problem Type\",\"domain\":{\"type\":\"codedValue\",\"name\":\"ParcelProblemType\",\"description\":\"A characterization of the concern submitted with the markup\",\"codedValues\":[{\"name\":\"Real Property\",\"code\":\"Real Property\"},{\"name\":\"Map Cartography\",\"code\":\"Map Cartography\"},{\"name\":\"Business Personal Property\",\"code\":\"Business Personal Property\"},{\"name\":\"Web Map Functionality\",\"code\":\"Web Map Functionality\"},{\"name\":\"General\",\"code\":\"General\"}],\"mergePolicy\":\"esriMPTDefaultValue\",\"splitPolicy\""
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":11.3,\"cimVersion\":\"3.3.0\",\"serviceDescription\":\"<div style='text-align:Left;font-size:12pt'><p><span>This map presents transportation data, including highways, roads, railroads, and airports for the world. The map was developed by Esri using Esri highway data; Garmin basemap layers; HERE street data for North America, Europe, Australia, New Zealand, South America and Central America, India, select countries in Africa, and most of the Middle East. Data from OpenStreetMap contributors in select countries in Africa. For more information on this map, including our terms of use, visit us online at https://goto.arcgisonline.com/maps/Reference/World_Transportation<\\/span><\\/p><\\/div>\",\"mapName\":\"Layers\",\"description\":\"<DIV STYLE=\\\"text-align:Left;font-size:12pt\\\"><P><SPAN>This map presents transportation data, including highways, roads, railroads, and airports for the world. The map was developed by Esri using Esri highway data; Garmin basemap layers; HERE street data for North America, Europe, Australia, New Zealand, South America and Central America, India, select countries in Africa, and most of the Middle East. Data from OpenStreetMap contributors in select countries in Africa. For more information on this map, including our terms of use, visit us online at https://goto.arcgisonline.com/maps/Reference/World_Transportation<\\/SPAN><\\/P><\\/DIV>\",\"copyrightText\":\"Esri, HERE, Garmin, (c) OpenStreetMap contributors\",\"supportsDynamicLayers\":false,\"layers\":[{\"id\":0,\"name\":\"World_Transportation\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":0,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\",\"supportsDynamicLegends\":true}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857,\"xyTolerance\":0.001,\"zTolerance\":0.001,\"mTolerance\":0.001,\"falseX\":-20037700,\"falseY\":-30241100,\"xyUnits\":10000,\"falseZ\":-100000,\"zUnits\":10000,\"falseM\":-100000,\"mUnits\":10000},\"singleFusedMapCache\":true,\"tileInfo\":{\"rows\":256,\"cols\":256,\"dpi\":96,\"format\":\"PNG32\",\"compressionQuality\":0,\"origin\":{\"x\":-2.0037508342787E7,\"y\":2.0037508342787E7},\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857,\"xyTolerance\":0.001,\"zTolerance\":0.001,\"mTolerance\":0.001,\"falseX\":-2.2041257773920003E7,\"falseY\":-3.3265069154240005E7,\"xyUnits\":1.353852477049927E8,\"falseZ\":-100000,\"zUnits\":10000,\"falseM\":-100000,\"mUnits\":10000},\"lods\":[{\"level\":0,\"resolution\":156543.03392800014,\"scale\":5.91657527591555E8},{\"level\":1,\"resolution\":78271.51696399994,\"scale\":2.95828763795777E8},{\"level\":2,\"resolution\":39135.75848200009,\"scale\":1.47914381897889E8},{\"level\":3,\"resolution\":19567.87924099992,\"scale\":7.3957190948944E7},{\"level\":4,\"resolution\":9783.93962049996,\"scale\":3.6978595474472E7},{\"level\":5,\"resolution\":4891.96981024998,\"scale\":1.8489297737236E7},{\"level\":6,\"resolution\":2445.98490512499,\"scale\":9244648.868618},{\"level\":7,\"resolution\":1222.992452562495,\"scale\":4622324.434309},{\"level\":8,\"resolution\":611.4962262813797,\"scale\":2311162.21715"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/legend?f=json",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"layers\":[{\"layerId\":1,\"layerName\":\"County Boundaries\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"d7e49d1a1abc593ab624c331a381a8dd\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAIZJREFUOI1jYWBgYLi+Yf5/BioAzYBERhZqGcbAAHEYC5Lp+BRiyOMSY0HmELAdrxjMcBZ0RZoBiYx4TcY0FCXIULxMyJXEAAwXDhoDYb6jnQspDT9YHIygSKG6gVSPZYxIoRbAMJDS4oy2LsRWvuESx6WWRTMgkfH6hvn/8SVqQmUhkoMYAVhASMvceqv1AAAAAElFTkSuQmCC\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":2,\"layerName\":\"Map Page\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"7e27f24122ce21b38377c21082173fec\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAElJREFUOI1jYWBgYDiXktLDQAVgNGdOCQu1DGNggDiMhVqGwQDtDTSaM6eEFAPQg2wIennUwFEDh6WBlBZnQ8DLRnPmlFCzCgAADigUla36mXsAAAAASUVORK5CYII=\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":3,\"layerName\":\"Map Index\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"839033345de905fc9f3d25320b6a8bf7\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAADtJREFUOI1jYaAyYKGZgdfnz/9PqWGaiYmMLOgC5BoGcxDtvDxq4KiBowaOGojTQErKRFjRx4IuQCkAAFtYDT1OwfBQAAAAAElFTkSuQmCC\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":4,\"layerName\":\"Survey Abstracts\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"0d841c0d4da019b2e80aefb51006f7e0\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAENJREFUOI1jYaAyYGFgYGB4NpPhPzUMk0pnYGShhkHIAMVAqXQGRnIMQfYhbV04auCogaMGDg8DqVEu0saF5JaD2AAAr+QJUXyGm5kAAAAASUVORK5CYII=\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":5,\"layerName\":\"Tract Number Labels\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"2fa9a046f28bd9638488536e0a3a46be\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABtJREFUOI1jYaAyYBk1cNTAUQNHDRw1cKQaCAAQKwBR5g8A3AAAAABJRU5ErkJggg==\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":6,\"layerName\":\"Block Labels\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"2fa9a046f28bd9638488536e0a3a46be\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABtJREFUOI1jYaAyYBk1cNTAUQNHDRw1cKQaCAAQKwBR5g8A3AAAAABJRU5ErkJggg==\",\"contentType\":\"image/png\",\"height\":20,\"width\":20}]},{\"layerId\":7,\"layerName\":\"Parcel Dimension Labels\",\"layerType\":\"Feature Layer\",\"minScale\":0,\"maxScale\":0,\"legend\":[{\"label\":\"\",\"url\":\"2fa9a046f28bd9638488536e0a3a46be\",\"imageData\":\"iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IB2cksfwAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABtJREFUOI1jYaAyYBk1cNTAUQNHDRw1cKQaCAAQKwBR5g8A3AAAAABJRU5ErkJggg==\",\"contentType\":\"image/png\",\"height\":20,\"wi"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/arcgis_js_api/dijit/themes/claro/claro.css"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/js/dynamicLyrs.js"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/favicon/favicon-32x32.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A4"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/4?f=json&request.preventCache=1775679437251&callback=dojo_request_script_callbacks.dojo_request_script0"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A3"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/3?f=json&request.preventCache=1775679437255&callback=dojo_request_script_callbacks.dojo_request_script1"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/2?f=json&request.preventCache=1775679437260&callback=dojo_request_script_callbacks.dojo_request_script2"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A1"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/1?f=json&request.preventCache=1775679437264&callback=dojo_request_script_callbacks.dojo_request_script3"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/0?f=json&request.preventCache=1775679437268&callback=dojo_request_script_callbacks.dojo_request_script4"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer/4?f=json"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/FemaFloodPlain/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/FemaFloodPlain/MapServer/0?f=json&request.preventCache=1775679437276&callback=dojo_request_script_callbacks.dojo_request_script5"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/Contours/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/Contours/MapServer/0?f=json&request.preventCache=1775679437281&callback=dojo_request_script_callbacks.dojo_request_script6"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3784"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3784"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3784"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3784"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3784"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3785"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3785"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3785"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3785"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3785"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3786"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3786"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3786"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3786"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3786"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3787"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3787"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3787"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3787"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3787"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3788"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3788"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3788"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3788"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3788"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6609/3789"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6610/3789"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6611/3789"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6612/3789"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer/tile/14/6613/3789"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/unchecked.png"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prd/dpm/images/LayerArrow.png"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A4",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD, Esri, Inc.\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TaxParcel2021\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":1,\"name\":\"TaxParcel2022\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"TaxParcel2023\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"TaxParcel2024\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"TaxParcel2025\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754613356164403E7,\"ymin\":3890750.6884469236,\"xmax\":-1.0753780536600381E7,\"ymax\":3891199.0682697794,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":25000,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Parcel History\",\"Author\":\"DCAD\",\"Comments\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"Subject\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Historic Parcels\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\"}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A3",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD, Esri, Inc.\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TaxParcel2021\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":1,\"name\":\"TaxParcel2022\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"TaxParcel2023\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"TaxParcel2024\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"TaxParcel2025\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754613356164403E7,\"ymin\":3890750.6884469236,\"xmax\":-1.0753780536600381E7,\"ymax\":3891199.0682697794,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":25000,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Parcel History\",\"Author\":\"DCAD\",\"Comments\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"Subject\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Historic Parcels\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\"}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/3?f=json&request.preventCache=1775679437255&callback=dojo_request_script_callbacks.dojo_request_script1",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script1({\"currentVersion\":10.81,\"id\":3,\"name\":\"TaxParcel2024\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[130,130,130,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":false,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.3055000007,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"CNVYNAME\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,\"domain\":null},{\"name\":\"PRPRTYDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Description\",\"length\":255,\"domain\":null},{\"name\":\"CNVYNAME\",\"type\":\"esriFieldTypeString\",\"a"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A2",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD, Esri, Inc.\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TaxParcel2021\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":1,\"name\":\"TaxParcel2022\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"TaxParcel2023\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"TaxParcel2024\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"TaxParcel2025\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754613356164403E7,\"ymin\":3890750.6884469236,\"xmax\":-1.0753780536600381E7,\"ymax\":3891199.0682697794,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":25000,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Parcel History\",\"Author\":\"DCAD\",\"Comments\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"Subject\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Historic Parcels\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\"}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A1",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD, Esri, Inc.\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TaxParcel2021\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":1,\"name\":\"TaxParcel2022\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"TaxParcel2023\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"TaxParcel2024\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"TaxParcel2025\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754613356164403E7,\"ymin\":3890750.6884469236,\"xmax\":-1.0753780536600381E7,\"ymax\":3891199.0682697794,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":25000,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Parcel History\",\"Author\":\"DCAD\",\"Comments\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"Subject\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Historic Parcels\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\"}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"DCAD, Esri, Inc.\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TaxParcel2021\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":1,\"name\":\"TaxParcel2022\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":2,\"name\":\"TaxParcel2023\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":3,\"name\":\"TaxParcel2024\",\"parentLayerId\":-1,\"defaultVisibility\":false,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"},{\"id\":4,\"name\":\"TaxParcel2025\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":25000,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0754613356164403E7,\"ymin\":3890750.6884469236,\"xmax\":-1.0753780536600381E7,\"ymax\":3891199.0682697794,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":25000,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Parcel History\",\"Author\":\"DCAD\",\"Comments\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years. The content in this map is visible below 1:25K.\",\"Subject\":\"The parcel history map identifies parcel boundaries for prior certified appraisal years.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Parcel,Historic Parcels\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\"}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/2?f=json&request.preventCache=1775679437260&callback=dojo_request_script_callbacks.dojo_request_script2",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script2({\"currentVersion\":10.81,\"id\":2,\"name\":\"TaxParcel2023\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[156,156,156,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":false,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.3055000007,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"CNVYNAME\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,\"domain\":null},{\"name\":\"PRPRTYDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Description\",\"length\":255,\"domain\":null},{\"name\":\"CNVYNAME\",\"type\":\"esriFieldTypeString\",\"a"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/4?f=json&request.preventCache=1775679437251&callback=dojo_request_script_callbacks.dojo_request_script0",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script0({\"currentVersion\":10.81,\"id\":4,\"name\":\"TaxParcel2025\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[104,104,104,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":true,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"CNVYNAME\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"Shape_Length\",\"type\":\"esriFieldTypeDouble\",\"alias\":\"Shape_Length\",\"domain\":null},{\"name\":\"Shape_Area\",\"type\":\"esriFieldTypeDouble\",\"alias\":\"Shape_Area\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/1?f=json&request.preventCache=1775679437264&callback=dojo_request_script_callbacks.dojo_request_script3",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script3({\"currentVersion\":10.81,\"id\":1,\"name\":\"TaxParcel2022\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[178,178,178,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":false,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.3055000007,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"CNVYNAME\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,\"domain\":null},{\"name\":\"PRPRTYDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Description\",\"length\":255,\"domain\":null},{\"name\":\"CNVYNAME\",\"type\":\"esriFieldTypeString\",\"a"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer/4?f=json",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "{\"currentVersion\":10.81,\"id\":4,\"name\":\"ParcelPublishing\",\"type\":\"Feature Layer\",\"description\":\"The tax parcel publishing layer is published representation of tax parcel geometry used in the DCAD gis applications for query and map interaction (popup content).\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[225,225,225,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":true,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.4294999987,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeNone\",\"displayField\":\"LOWPARCELID\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,\"domain\":null},{\"name\":\"PRPRTYDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Description\",\"length\":255,\"domain\":null},{\"name\":\"CNVYNAME"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelHistory/MapServer/0?f=json&request.preventCache=1775679437268&callback=dojo_request_script_callbacks.dojo_request_script4",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script4({\"currentVersion\":10.81,\"id\":0,\"name\":\"TaxParcel2021\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":25000,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"simple\",\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[204,204,204,255],\"width\":1.2}},\"label\":\"\",\"description\":\"\"},\"transparency\":0,\"labelingInfo\":null},\"defaultVisibility\":false,\"extent\":{\"xmin\":-1.08022970094E7,\"ymin\":3835065.108000003,\"xmax\":-1.07442252962E7,\"ymax\":3893931.3055000007,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"CNVYNAME\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30,\"domain\":null},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50,\"domain\":null},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50,\"domain\":null},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50,\"domain\":null},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8,\"domain\":null},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4,\"domain\":null},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100,\"domain\":null},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4,\"domain\":null},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100,\"domain\":null},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4,\"domain\":null},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100,\"domain\":null},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10,\"domain\":null},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100,\"domain\":null},{\"name\":\"SITEADDRESS\",\"type\":\"esriFieldTypeString\",\"alias\":\"Site Address\",\"length\":255,\"domain\":null},{\"name\":\"PRPRTYDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Description\",\"length\":255,\"domain\":null},{\"name\":\"CNVYNAME\",\"type\":\"esriFieldTypeString\",\"a"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/FemaFloodPlain/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"This is a backup map service used in the event that the FEMA hosted service experiences an interruption. Contains data from the National Flood Hazard Layer, a GIS database of flood risks and regulatory flood determination data.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"FEMA\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"FEMA Flood Plain\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":36111,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolygon\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0782616341813384E7,\"ymin\":3865065.5123050287,\"xmax\":-1.0775446119139606E7,\"ymax\":3868769.6863800427,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08022645069E7,\"ymin\":3835093.918300003,\"xmax\":-1.07442094207E7,\"ymax\":3893890.005099997,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":36111,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"National Flood Hazard Layer\",\"Author\":\"FEMA\",\"Comments\":\"This is a backup map service used in the event that the FEMA hosted service experiences an interruption. Contains data from the National Flood Hazard Layer, a GIS database of flood risks and regulatory flood determination data.\",\"Subject\":\"FEMA Flood Plains. Backup FEMA NFHL map service.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"FEMA,Flood Plain\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\",\"resampling\":false}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/FemaFloodPlain/MapServer/0?f=json&request.preventCache=1775679437276&callback=dojo_request_script_callbacks.dojo_request_script5",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script5({\"currentVersion\":10.81,\"id\":0,\"name\":\"FEMA Flood Plain\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolygon\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":36111,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"uniqueValue\",\"field1\":\"SYMBOL\",\"field2\":null,\"field3\":null,\"defaultSymbol\":null,\"defaultLabel\":null,\"uniqueValueInfos\":[{\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,230,255,255],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSNull\",\"color\":[110,110,110,255],\"width\":0}},\"value\":\"1\",\"label\":\"1% Annual Chance Flood Hazard\",\"description\":\"\"},{\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSBackwardDiagonal\",\"color\":[255,0,0,255],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[110,110,110,255],\"width\":1}},\"value\":\"2\",\"label\":\"Regulatory Floodway\",\"description\":\"\"},{\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[255,128,0,255],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSNull\",\"color\":[110,110,110,255],\"width\":0}},\"value\":\"3\",\"label\":\"0.2% Annual Chance Flood Hazard\",\"description\":\"\"},{\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSSolid\",\"color\":[0,0,0,0],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSNull\",\"color\":[0,0,0,255],\"width\":0}},\"value\":\"4\",\"label\":\"Area of Minimal Flood Hazard\",\"description\":\"\"},{\"symbol\":{\"type\":\"esriSFS\",\"style\":\"esriSFSBackwardDiagonal\",\"color\":[110,110,110,255],\"outline\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[110,110,110,255],\"width\":1}},\"value\":\"5\",\"label\":\"Area with Reduced Risk Due to Levee\",\"description\":\"\"}],\"fieldDelimiter\":\",\"},\"transparency\":60,\"labelingInfo\":[{\"labelPlacement\":\"esriServerPolygonPlacementAlwaysHorizontal\",\"where\":null,\"labelExpression\":\"[ZONE_SUBTY] CONCAT  NEWLINE  CONCAT \\\" Zone \\\" CONCAT [FLD_ZONE]\",\"useCodedValues\":true,\"symbol\":{\"type\":\"esriTS\",\"color\":[104,104,104,255],\"backgroundColor\":null,\"borderLineColor\":null,\"borderLineSize\":null,\"verticalAlignment\":\"bottom\",\"horizontalAlignment\":\"center\",\"rightToLeft\":false,\"angle\":0,\"xoffset\":0,\"yoffset\":0,\"kerning\":true,\"haloColor\":[255,255,255,255],\"haloSize\":1,\"font\":{\"family\":\"Tahoma\",\"size\":8,\"style\":\"normal\",\"weight\":\"normal\",\"decoration\":\"none\"}},\"minScale\":0,\"maxScale\":0}]},\"defaultVisibility\":true,\"extent\":{\"xmin\":-1.08022645069E7,\"ymin\":3835093.918300003,\"xmax\":-1.07442094207E7,\"ymax\":3893890.005099997,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"DFIRM_ID\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"FID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"DFIRM_ID\",\"type\":\"esriFieldTypeString\",\"alias\":\"DFIRM_ID\",\"length\":6,\"domain\":null},{\"name\":\"VERSION_ID\",\"type\":\"esriFieldTypeString\",\"alias\":"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/Contours/MapServer?f=json&dpi=96&transparent=true&format=jpeg&layers=show%3A0",
+    "status": 200,
+    "has_address_data": false,
+    "body_preview": "{\"currentVersion\":10.81,\"serviceDescription\":\"This service provides information related to elevation points above sea level connected by vector lines. This data was collected in 2001. Elevation contours are labeled at 100 foot, 10 foot, and 2 foot intervals. Contours display at the 4.5K scale level. Labels and symbology differ for 100, 10, and 2 foot contour intervals.\",\"mapName\":\"Layers\",\"description\":\"\",\"copyrightText\":\"NCTCOG\",\"supportsDynamicLayers\":true,\"layers\":[{\"id\":0,\"name\":\"TwoFootContour\",\"parentLayerId\":-1,\"defaultVisibility\":true,\"subLayerIds\":null,\"minScale\":4550,\"maxScale\":0,\"type\":\"Feature Layer\",\"geometryType\":\"esriGeometryPolyline\"}],\"tables\":[],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"singleFusedMapCache\":false,\"initialExtent\":{\"xmin\":-1.0772843031649379E7,\"ymin\":3854095.7177826436,\"xmax\":-1.077241738236058E7,\"ymax\":3854280.9264863944,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"fullExtent\":{\"xmin\":-1.08070947307E7,\"ymin\":3829512.021899998,\"xmax\":-1.07380911149E7,\"ymax\":3902655.9104999974,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"minScale\":4550,\"maxScale\":0,\"units\":\"esriMeters\",\"supportedImageFormatTypes\":\"PNG32,PNG24,PNG,JPG,DIB,TIFF,EMF,PS,PDF,GIF,SVG,SVGZ,BMP\",\"documentInfo\":{\"Title\":\"Two Foot Elevation Contours\",\"Author\":\"DCAD\",\"Comments\":\"This service provides information related to elevation points above sea level connected by vector lines. This data was collected in 2001. Elevation contours are labeled at 100 foot, 10 foot, and 2 foot intervals. Contours display at the 4.5K scale level. Labels and symbology differ for 100, 10, and 2 foot contour intervals.\",\"Subject\":\"Linear segments representing points of equal elevation in feet.\",\"Category\":\"\",\"AntialiasingMode\":\"Fastest\",\"TextAntialiasingMode\":\"Force\",\"Keywords\":\"Elevation,Contours\"},\"capabilities\":\"Map,Query,Data\",\"supportedQueryFormats\":\"JSON, geoJSON\",\"exportTilesAllowed\":false,\"referenceScale\":0,\"supportsDatumTransformation\":true,\"maxRecordCount\":1000,\"maxImageHeight\":4096,\"maxImageWidth\":4096,\"supportedExtensions\":\"WMSServer\",\"resampling\":false}"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Topo/Contours/MapServer/0?f=json&request.preventCache=1775679437281&callback=dojo_request_script_callbacks.dojo_request_script6",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "dojo_request_script_callbacks.dojo_request_script6({\"currentVersion\":10.81,\"id\":0,\"name\":\"TwoFootContour\",\"type\":\"Feature Layer\",\"description\":\"\",\"geometryType\":\"esriGeometryPolyline\",\"sourceSpatialReference\":{\"wkid\":102100,\"latestWkid\":3857},\"copyrightText\":\"\",\"parentLayer\":null,\"subLayers\":[],\"minScale\":4550,\"maxScale\":0,\"drawingInfo\":{\"renderer\":{\"type\":\"uniqueValue\",\"field1\":\"TYPE\",\"field2\":null,\"field3\":null,\"defaultSymbol\":null,\"defaultLabel\":null,\"uniqueValueInfos\":[{\"symbol\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[204,64,25,255],\"width\":0.4},\"value\":\"I\",\"label\":\"Index\",\"description\":\"\"},{\"symbol\":{\"type\":\"esriSLS\",\"style\":\"esriSLSSolid\",\"color\":[191,38,0,255],\"width\":1},\"value\":\"P\",\"label\":\"Intermediate\",\"description\":\"\"}],\"fieldDelimiter\":\",\"},\"transparency\":0,\"labelingInfo\":[{\"labelPlacement\":\"esriServerLinePlacementAboveAlong\",\"where\":\"TYPE = 'P'\",\"labelExpression\":\"[ELEVATION]\",\"useCodedValues\":true,\"symbol\":{\"type\":\"esriTS\",\"color\":[191,38,0,255],\"backgroundColor\":null,\"borderLineColor\":null,\"borderLineSize\":null,\"verticalAlignment\":\"baseline\",\"horizontalAlignment\":\"left\",\"rightToLeft\":false,\"angle\":0,\"xoffset\":0,\"yoffset\":0,\"kerning\":true,\"haloColor\":[255,255,255,255],\"haloSize\":1,\"font\":{\"family\":\"Arial\",\"size\":11,\"style\":\"normal\",\"weight\":\"bold\",\"decoration\":\"none\"}},\"minScale\":0,\"maxScale\":0},{\"labelPlacement\":\"esriServerLinePlacementAboveAlong\",\"where\":\"TYPE = 'I'\",\"labelExpression\":\"[ELEVATION]\",\"useCodedValues\":true,\"symbol\":{\"type\":\"esriTS\",\"color\":[191,38,0,255],\"backgroundColor\":null,\"borderLineColor\":null,\"borderLineSize\":null,\"verticalAlignment\":\"baseline\",\"horizontalAlignment\":\"left\",\"rightToLeft\":false,\"angle\":0,\"xoffset\":0,\"yoffset\":0,\"kerning\":true,\"haloColor\":[255,255,255,255],\"haloSize\":1,\"font\":{\"family\":\"Arial\",\"size\":8,\"style\":\"normal\",\"weight\":\"normal\",\"decoration\":\"none\"}},\"minScale\":0,\"maxScale\":0}]},\"defaultVisibility\":true,\"extent\":{\"xmin\":-1.08070947307E7,\"ymin\":3829512.021899998,\"xmax\":-1.07380911149E7,\"ymax\":3902655.9104999974,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}},\"hasAttachments\":false,\"htmlPopupType\":\"esriServerHTMLPopupTypeAsHTMLText\",\"displayField\":\"LASTEDITOR\",\"typeIdField\":null,\"subtypeFieldName\":null,\"subtypeField\":null,\"defaultSubtypeCode\":null,\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\",\"domain\":null},{\"name\":\"Shape\",\"type\":\"esriFieldTypeGeometry\",\"alias\":\"Shape\",\"domain\":null},{\"name\":\"ELEVATION\",\"type\":\"esriFieldTypeDouble\",\"alias\":\"Elevation\",\"domain\":null},{\"name\":\"ELEVINDEX\",\"type\":\"esriFieldTypeSmallInteger\",\"alias\":\"Contour Index\",\"domain\":null},{\"name\":\"LASTUPDATE\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Last Update Date\",\"length\":8,\"domain\":null},{\"name\":\"LASTEDITOR\",\"type\":\"esriFieldTypeString\",\"alias\":\"Last Editor\",\"length\":50,\"domain\":null},{\"name\":\"TYPE\",\"type\":\"esriFieldTypeString\",\"alias\":\"TYPE\",\"length\":1,\"domain\":null},{\"name\":\"Shape_Length\",\"type\":\"esriFieldTypeDouble\",\"alias\":\"Shape_Length\",\"domain\":null}],\"geometryField\":{\"na"
+  },
+  {
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer/4/query?f=json&where=&returnGeometry=false&spatialRel=esriSpatialRelIntersects&geometry=%7B%22x%22%3A-10775576.297700364%2C%22y%22%3A3866231.7358651944%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%2C%22latestWkid%22%3A3857%7D%7D&geometryType=esriGeometryPoint&inSR=102100&outFields=*&outSR=102100"
+  },
+  {
+    "type": "RESPONSE",
+    "url": "https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer/4/query?f=json&where=&returnGeometry=false&spatialRel=esriSpatialRelIntersects&geometry=%7B%22x%22%3A-10775576.297700364%2C%22y%22%3A3866231.7358651944%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%2C%22latestWkid%22%3A3857%7D%7D&geometryType=esriGeometryPoint&inSR=102100&outFields=*&outSR=102100",
+    "status": 200,
+    "has_address_data": true,
+    "body_preview": "{\"displayFieldName\":\"LOWPARCELID\",\"fieldAliases\":{\"OBJECTID\":\"OBJECTID\",\"LOWPARCELID\":\"Lowest Parcel Identification Number\",\"PARCELID\":\"Parcel Identification Number\",\"BUILDING\":\"Building Number\",\"UNIT\":\"Unit Number\",\"STATEDAREA\":\"Stated Area\",\"LGLSTARTDT\":\"Legal Start Date\",\"CVTTXCD\":\"Tax District Code\",\"CVTTXDSCRP\":\"Tax District Description\",\"SCHLTXCD\":\"School District Code\",\"SCHLDSCRP\":\"School District Description\",\"USECD\":\"Assessing Use Code\",\"USEDSCRP\":\"Assessing Use Description\",\"NGHBRHDCD\":\"Assessing Neighbornood Code\",\"CLASSCD\":\"Property Class Code\",\"CLASSDSCRP\":\"Property Class\",\"SITEADDRESS\":\"Site Address\",\"PRPRTYDSCRP\":\"Property Description\",\"CNVYNAME\":\"Sub or Condo Name\",\"OWNERNME1\":\"First Owner Name\",\"OWNERNME2\":\"Second Owner Name\",\"PSTLADDRESS\":\"Postal Address\",\"PSTLCITY\":\"Postal City\",\"PSTLSTATE\":\"Postal State\",\"PSTLZIP5\":\"Postal Zip 5\",\"PSTLZIP4\":\"Postal Zip +4\",\"FLOORCOUNT\":\"Number of Floors\",\"BLDGAREA\":\"Building Area\",\"RESFLRAREA\":\"Residential Floor Area\",\"RESYRBLT\":\"Residential Year Built\",\"RESSTRTYP\":\"Residential Structure Type\",\"STRCLASS\":\"Structure Class\",\"CLASSMOD\":\"Structure Class Modifier\",\"LNDVALUE\":\"Land Value\",\"PRVASSDVAL\":\"Previous Market Value\",\"CNTASSDVAL\":\"Current Market Value\",\"LASTUPDATE\":\"Last Update Date\",\"MAPGRID\":\"Tax Map Grid\",\"REVALYR\":\"Revaluation Year\",\"PRVRVALYR\":\"Previous Revaluation Year\",\"IMPVALUE\":\"Improvement Value\",\"DBA1\":\"Doing Business As\",\"PRPSDVAL\":\"Proposed Value\",\"Shape.STArea()\":\"Shape.STArea()\",\"Shape.STLength()\":\"Shape.STLength()\"},\"fields\":[{\"name\":\"OBJECTID\",\"type\":\"esriFieldTypeOID\",\"alias\":\"OBJECTID\"},{\"name\":\"LOWPARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Lowest Parcel Identification Number\",\"length\":30},{\"name\":\"PARCELID\",\"type\":\"esriFieldTypeString\",\"alias\":\"Parcel Identification Number\",\"length\":30},{\"name\":\"BUILDING\",\"type\":\"esriFieldTypeString\",\"alias\":\"Building Number\",\"length\":50},{\"name\":\"UNIT\",\"type\":\"esriFieldTypeString\",\"alias\":\"Unit Number\",\"length\":50},{\"name\":\"STATEDAREA\",\"type\":\"esriFieldTypeString\",\"alias\":\"Stated Area\",\"length\":50},{\"name\":\"LGLSTARTDT\",\"type\":\"esriFieldTypeDate\",\"alias\":\"Legal Start Date\",\"length\":8},{\"name\":\"CVTTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Code\",\"length\":4},{\"name\":\"CVTTXDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Tax District Description\",\"length\":100},{\"name\":\"SCHLTXCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Code\",\"length\":4},{\"name\":\"SCHLDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"School District Description\",\"length\":100},{\"name\":\"USECD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Code\",\"length\":4},{\"name\":\"USEDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Use Description\",\"length\":100},{\"name\":\"NGHBRHDCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Assessing Neighbornood Code\",\"length\":10},{\"name\":\"CLASSCD\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class Code\",\"length\":10},{\"name\":\"CLASSDSCRP\",\"type\":\"esriFieldTypeString\",\"alias\":\"Property Class\",\"length\":100},{\"name\":\"SITEADDRESS\",\"t"
+  }
+]

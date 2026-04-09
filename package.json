@@ -4,6 +4,12 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "gas:login": "npx clasp login",
+    "gas:push": "npx clasp push",
+    "gas:deploy": "npx clasp push && npx clasp deploy -d \"Auto-deploy from CLI\"",
+    "gas:pull": "npx clasp pull",
+    "gas:open": "npx clasp open",
+    "gas:versions": "npx clasp versions",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

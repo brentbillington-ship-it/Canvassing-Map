@@ -1,0 +1,4 @@
+# Push only the Apps Script backend — ignore all client-side code
+**/*
+!apps_script.js
+!appsscript.json

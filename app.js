@@ -8,6 +8,7 @@ const App = {
   _lastHash: '',
   _flushing: false,
   _writeLock: {},   // houseId → expiry timestamp
+  _deletingLetters: new Set(),  // zone letters with in-flight background deletes
 
   async init() {
     MapModule.init();
@@ -184,6 +185,8 @@ const App = {
         const existing = this.state.turfs.find(e => String(e.letter) === String(t.letter));
         if (existing?.polygon_geojson) t.polygon_geojson = existing.polygon_geojson;
       });
+      // Filter out zones with in-flight deletes — prevents ghost zone resurrection
+      data.turfs = data.turfs.filter(t => !this._deletingLetters.has(String(t.letter)));
       this.state.turfs = this._dedupTurfs(data.turfs);
       // Now merge fresh polygons on top — after state is set so we don't overwrite with stale
       if (freshPolygons) this._mergePolygons(freshPolygons);
@@ -302,19 +305,23 @@ const App = {
     const removed = this.state.turfs.find(t => String(t.letter) === String(letter));
     this.state.turfs = this.state.turfs.filter(t => String(t.letter) !== String(letter));
     TurfDraw.removeTurfLayer(letter);
+    // Track in-flight delete to prevent new zones from colliding with this letter
+    this._deletingLetters.add(String(letter));
     this.render();
     UI.toast(`Zone ${letter} deleted`);
 
     try {
       const res = await SheetsAPI.deleteTurf(letter);
       if (res.error) {
-        // Sheet deletion failed — restore state so UI reflects reality
         UI.toast(`Zone ${letter} could not be fully deleted — reloading`, 'error');
         await this.loadData();
       }
     } catch(e) {
       UI.toast('Delete failed — reloading to sync', 'error');
       await this.loadData();
+    } finally {
+      // Delete is complete (success or fail) — letter is no longer in-flight
+      this._deletingLetters.delete(String(letter));
     }
   },
 
@@ -661,19 +668,32 @@ const App = {
       UI.toast('Undone ✓', 'success');
     });
 
-    // Fire all API calls in background
+    // Single batch API call instead of one per house
     UI.setSyncStatus('syncing');
-    let failed = 0;
-    await Promise.all(ids.map(async id => {
-      try {
-        const res = resultKey
-          ? await SheetsAPI.setResult(id, resultKey, UI.currentUser)
-          : await SheetsAPI.clearResult(id);
-        if (res.error) failed++;
-      } catch(e) { failed++; }
-    }));
-    UI.setSyncStatus(failed ? 'error' : 'ok');
-    if (failed) UI.toast(`${failed} houses failed to sync`, 'error');
+    try {
+      const items = ids.map(id => ({ id, result: resultKey, result_by: UI.currentUser }));
+      const res = await SheetsAPI.bulkSetResult(items);
+      if (res.error) {
+        UI.setSyncStatus('error');
+        UI.toast('Batch save failed — retrying individually', 'error');
+        // Fallback: fire individual calls
+        let failed = 0;
+        await Promise.all(ids.map(async id => {
+          try {
+            const r = resultKey
+              ? await SheetsAPI.setResult(id, resultKey, UI.currentUser)
+              : await SheetsAPI.clearResult(id);
+            if (r.error) failed++;
+          } catch(e) { failed++; }
+        }));
+        UI.setSyncStatus(failed ? 'error' : 'ok');
+      } else {
+        UI.setSyncStatus('ok');
+      }
+    } catch(e) {
+      UI.setSyncStatus('error');
+      UI.toast('Batch save failed', 'error');
+    }
   },
 
   _findHouse(id) {

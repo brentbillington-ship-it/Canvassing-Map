@@ -30,10 +30,36 @@ const CONFIG = {
     { key: 'left_materials',  label: 'Left at Office',     short: 'LM', icon: '📋', color: '#7c4dcc', bg: '#f3eeff' },
     { key: 'spoke_manager',   label: 'Spoke to Manager',   short: 'SM', icon: '🤝', color: '#1a9e9e', bg: '#e6f7f7' },
     { key: 'no_answer_office',label: 'No Answer — Office', short: 'NA', icon: '🏢', color: '#c9831a', bg: '#fdf3e3' },
+    { key: 'knocked_building',label: 'Door Knocked Bldg',  short: 'KB', icon: '🚪', color: '#2e6ec2', bg: '#e8f0fc' },
   ],
 
   // Apartment complex result keys — shown instead of standard buttons for complex markers
-  COMPLEX_RESULTS: ['left_materials', 'spoke_manager', 'no_answer_office', 'skip'],
+  COMPLEX_RESULTS: ['left_materials', 'spoke_manager', 'knocked_building', 'no_answer_office', 'skip'],
+
+  // Pre-defined apartment complex data for Zone 21 area (SE corner Parkway Blvd / N Moore Rd)
+  // Building counts are estimates from property research — admin should adjust as needed
+  COMPLEX_PRESETS: [
+    {
+      name: 'Townlake of Coppell',
+      address: '215 N Moore Rd',
+      totalUnits: 398,
+      stories: 2,
+      buildingCount: 20,
+      unitsPerBuilding: 20, // 398 / 20 ≈ 20
+      lat: 32.9630,
+      lon: -96.9795,
+    },
+    {
+      name: 'Town Creek',
+      address: '190 N Moore Rd',
+      totalUnits: 192,
+      stories: 2,
+      buildingCount: 12,
+      unitsPerBuilding: 16, // 192 / 12 = 16
+      lat: 32.9645,
+      lon: -96.9790,
+    },
+  ],
 
   // Legend grouping: keys before divider = group 1, after = group 2
   LEGEND_DIVIDER_AFTER: 'skip',

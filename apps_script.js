@@ -83,6 +83,7 @@ function handleAction(data) {
       case 'updateUser':      return json(updateUser(data.email, data.fields));
       case 'getUser':         return json(getUser(data.email));
       case 'backupZone':      return json(backupZone(data.letter));
+      case 'bulkSetResult':   return json(bulkSetResult(data.items));
       default:                return json({ error: 'Unknown action: ' + data.action });
     }
   } catch (err) { return json({ error: err.toString() }); }
@@ -100,7 +101,7 @@ function getSheet(name) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order','house_type','unit_count']);
+    if (name === 'houses')   sheet.appendRow(['id','turf','owner','address','lat','lon','notes','result','result_date','result_by','sort_order','house_type','unit_count','building_id','complex_name']);
     else if (name === 'turfs')    sheet.appendRow(['letter','color','volunteer','mode','created_date']);
     else if (name === 'presence') sheet.appendRow(['session_id','name','last_seen']);
     else if (name === 'logins')   sheet.appendRow(['timestamp','name','mode','session_id']);
@@ -148,7 +149,9 @@ function getAllData() {
         result_date: h.result_date || '', result_by: h.result_by || '',
         sort_order: parseInt(h.sort_order) || 0,
         house_type: h.house_type || '',
-        unit_count: h.unit_count ? parseInt(h.unit_count) : null
+        unit_count: h.unit_count ? parseInt(h.unit_count) : null,
+        building_id: h.building_id || '',
+        complex_name: h.complex_name || ''
       }))
   }));
   return { turfs, timestamp: new Date().toISOString() };
@@ -179,7 +182,7 @@ function addHouse(house) {
   const id = uid();
   sheet.appendRow([id, house.turf||'A', house.owner||'', house.address||'',
     house.lat||0, house.lon||0, house.notes||'', '', '', '', maxOrder + 1,
-    house.house_type||'', house.unit_count||'']);
+    house.house_type||'', house.unit_count||'', house.building_id||'', house.complex_name||'']);
   SpreadsheetApp.flush();
   return { success: true, id };
 }
@@ -234,6 +237,38 @@ function clearResult(id) {
     }
   }
   return { error: 'House not found: ' + id };
+}
+
+// Batch set result for multiple houses in a single API call (Item 6 — multi-select batch push)
+function bulkSetResult(items) {
+  if (!items || !items.length) return { error: 'No items' };
+  const sheet = getSheet('houses');
+  const data  = sheet.getDataRange().getValues();
+  const hdrs  = data[0];
+  const resCol  = hdrs.indexOf('result');
+  const dateCol = hdrs.indexOf('result_date');
+  const byCol   = hdrs.indexOf('result_by');
+  let updated = 0;
+  const now = new Date().toISOString();
+  for (const item of items) {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(item.id)) {
+        if (item.result === '' || item.result == null) {
+          sheet.getRange(i+1, resCol+1).setValue('');
+          sheet.getRange(i+1, dateCol+1).setValue('');
+          sheet.getRange(i+1, byCol+1).setValue('');
+        } else {
+          sheet.getRange(i+1, resCol+1).setValue(item.result);
+          sheet.getRange(i+1, dateCol+1).setValue(now);
+          sheet.getRange(i+1, byCol+1).setValue(item.result_by || '');
+        }
+        updated++;
+        break;
+      }
+    }
+  }
+  SpreadsheetApp.flush();
+  return { success: true, updated };
 }
 
 function reorderHouses(turfLetter, orderIds) {

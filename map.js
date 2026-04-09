@@ -309,10 +309,10 @@ const MapModule = {
       // Hanger markers: only show at zoom >= threshold. Knock markers: always visible.
       if (!isKnock && zoom < this._minMarkerZoom) return;
       const color = _turfColor(turf);
-      const isOtherZone = !UI.isAdmin && UI.userMode !== 'all' && (turf.mode || 'hanger') !== UI.userMode;
+      // No longer dim markers for "other mode" zones — anyone can log knocks (Item 9)
       turf.houses.forEach((house, idx) => {
         if (!bounds.contains([house.lat, house.lon])) return;
-        this._renderHouse(house, turf, idx, color, isOtherZone);
+        this._renderHouse(house, turf, idx, color, false);
       });
     });
   },
@@ -397,16 +397,21 @@ const MapModule = {
     const inMs         = UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter);
     const isSelected   = inMs && UI._selectedHouseIds.has(house.id);
 
-    // Apartment complex — building icon marker, always visible at lower zoom
+    // Apartment complex building — badge shows building ID + unit count
     if (isComplex) {
       const dotColor = resultDef ? resultDef.color : '#7c4dcc';
       const cls = `house-dot complex-marker${isDone ? ' done' : ''}${isOtherZone ? ' other-zone' : ''}`;
+      const bldgLabel = house.building_id ? `Bldg ${_esc(house.building_id)}` : '🏢';
+      const unitLabel = house.unit_count ? `${house.unit_count}u` : '';
+      const badgeText = house.building_id
+        ? `<span class="cbadge-id">${bldgLabel}</span>${unitLabel ? `<span class="cbadge-units">${unitLabel}</span>` : ''}`
+        : '🏢';
       return L.marker([house.lat, house.lon], {
         icon: L.divIcon({
-          html: `<div class="${cls}" style="--dc:${dotColor}" title="${_esc(house.address)}">🏢</div>`,
+          html: `<div class="${cls}" style="--dc:${dotColor}" title="${_esc(house.complex_name || house.address)}">${badgeText}</div>`,
           className: '',
-          iconSize: [34, 34],
-          iconAnchor: [17, 17],
+          iconSize: house.building_id ? [60, 28] : [34, 34],
+          iconAnchor: house.building_id ? [30, 14] : [17, 17],
         }),
         pane: 'housePane',
         zIndexOffset: isOtherZone ? -100 : 150,
@@ -526,6 +531,8 @@ const MapModule = {
       ? `<button class="popup-delete-btn" onclick="MapModule._confirmDeleteMarker('${house.id}')">🗑 Remove marker</button>`
       : '';
 
+    const showInListBtn = `<button class="popup-list-btn" onclick="MapModule._showInList('${house.id}','${_esc(turf.letter)}')">📋 Show in List</button>`;
+
     const modeBadge = isComplex
       ? `<span class="mode-badge complex">🏢 Complex${house.unit_count ? ' · ' + house.unit_count + ' units' : ''}</span>`
       : (turf.mode || 'hanger') === 'knock'
@@ -547,6 +554,7 @@ const MapModule = {
         <div class="popup-result-grid" style="grid-template-columns:repeat(${gridCols},1fr)">${btnRows}</div>
         ${notesHtml}
         ${clearBtn}
+        ${showInListBtn}
         ${deleteBtn}
       </div>`;
 
@@ -588,6 +596,27 @@ const MapModule = {
     // Re-open popup to refresh chip list
     const cached = window._houseCache?.[houseId];
     if (cached) MapModule._openHousePopup(cached.house, cached.turf, cached.color);
+  },
+
+  _showInList(houseId, letter) {
+    this.map.closePopup();
+    // Expand the zone in sidebar
+    UI._expandedTurfs.add(isNaN(letter) ? letter : Number(letter));
+    App.render();
+    // On mobile, switch to list view
+    if (window.innerWidth <= 680) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && !sidebar.classList.contains('sidebar-open')) UI.toggleMap();
+    }
+    // Scroll to and highlight the house card
+    setTimeout(() => {
+      const el = document.getElementById('hcard-' + houseId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlight-pulse');
+        setTimeout(() => el.classList.remove('highlight-pulse'), 2000);
+      }
+    }, 150);
   },
 
   async _confirmDeleteMarker(houseId) {

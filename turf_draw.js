@@ -54,14 +54,17 @@ const TurfDraw = (() => {
       });
     });
 
-    // Right-click: undo last vertex during draw (first), cancel (second within 1s)
+    // Right-click: cancel draw if no vertices placed, undo last vertex if drawing, cancel on second within 1s
     let _lastRightClickTime = 0;
     _map.on('contextmenu', e => {
       L.DomEvent.preventDefault(e.originalEvent);
       if (_editingLetter) { _cancelEditMode(); UI.toast('Edit cancelled'); return; }
       if (_active && _polygonHandler) {
         const now = Date.now();
-        if (_lastRightClickTime && now - _lastRightClickTime < 1000) {
+        // Check if any vertices have been placed — if not, single right-click exits cleanly
+        const hasVertices = _polygonHandler._poly && _polygonHandler._poly.getLatLngs().length > 0;
+        if (!hasVertices || (_lastRightClickTime && now - _lastRightClickTime < 1000)) {
+          // No vertices placed or double-right-click: cancel draw entirely
           _deactivateDraw();
           _active = false;
           const btn = document.getElementById('draw-mode-btn');
@@ -69,11 +72,12 @@ const TurfDraw = (() => {
           _hideDrawToolbar();
           document.getElementById('draw-mode-banner')?.remove();
           UI.toast('Draw cancelled');
+          _lastRightClickTime = 0;
         } else {
           try { _polygonHandler.deleteLastVertex(); } catch(err) {}
           UI.toast('Last point removed — right-click again to cancel', 'info');
+          _lastRightClickTime = now;
         }
-        _lastRightClickTime = now;
       }
     });
 
@@ -132,6 +136,37 @@ const TurfDraw = (() => {
     if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} }
     _polygonHandler = new L.Draw.Polygon(_map, _drawControl.options.draw.polygon);
     _polygonHandler.enable();
+    // Make placed vertices draggable (Item 5 — standard GIS behavior)
+    _map.off('draw:drawvertex.drag');
+    _map.on('draw:drawvertex.drag', () => _makePlacedVerticesDraggable());
+  }
+
+  // Make already-placed vertices draggable during polygon drawing
+  function _makePlacedVerticesDraggable() {
+    if (!_polygonHandler || !_polygonHandler._markers) return;
+    _polygonHandler._markers.forEach((marker, idx) => {
+      if (marker._ckDraggable) return; // already set up
+      marker._ckDraggable = true;
+      marker.options.draggable = true;
+      if (marker.dragging) marker.dragging.enable();
+      else {
+        // Leaflet markers need to be re-created with draggable option,
+        // but we can add drag handler via DOM events
+        try { new L.Handler.MarkerDrag(marker).enable(); } catch(e) {}
+      }
+      marker.on('drag', () => {
+        // Update the polygon's LatLngs array to reflect the dragged position
+        if (_polygonHandler._poly) {
+          const latlngs = _polygonHandler._poly.getLatLngs();
+          if (latlngs[idx]) {
+            latlngs[idx] = marker.getLatLng();
+            _polygonHandler._poly.setLatLngs(latlngs);
+          }
+        }
+        // Update the _markers internal latlng
+        _polygonHandler._markers[idx] = marker;
+      });
+    });
   }
 
   function _deactivateDraw() {
@@ -196,10 +231,21 @@ const TurfDraw = (() => {
   function _addMobileVertex(latlng) {
     _mobileVertices.push(latlng);
 
-    // Vertex marker — large, high-contrast yellow dot with dark outline
-    const m = L.circleMarker(latlng, {
-      radius: 9, color: '#1a1a1a', fillColor: DRAW_COLOR, fillOpacity: 1.0, weight: 2
+    // Vertex marker — large, high-contrast yellow dot with dark outline, draggable
+    const m = L.marker(latlng, {
+      icon: L.divIcon({
+        html: '<div class="mobile-vertex-dot"></div>',
+        className: '',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      }),
+      draggable: true,
     }).addTo(_map);
+    const vIdx = _mobileVertices.length - 1;
+    m.on('drag', () => {
+      _mobileVertices[vIdx] = m.getLatLng();
+      _updateMobilePolygonPreview();
+    });
     _mobileMarkers.push(m);
 
     // Polyline through vertices
@@ -219,6 +265,23 @@ const TurfDraw = (() => {
     }
 
     _updateMobilePolyBanner();
+  }
+
+  // Refresh the polyline and polygon preview after a vertex drag
+  function _updateMobilePolygonPreview() {
+    if (_mobilePolyline) { _mobilePolyline.remove(); _mobilePolyline = null; }
+    if (_mobilePolygonPreview) { _mobilePolygonPreview.remove(); _mobilePolygonPreview = null; }
+    if (_mobileVertices.length >= 1) {
+      _mobilePolyline = L.polyline(_mobileVertices, {
+        color: DRAW_COLOR, weight: DRAW_WEIGHT,
+      }).addTo(_map);
+    }
+    if (_mobileVertices.length >= 3) {
+      _mobilePolygonPreview = L.polygon(_mobileVertices, {
+        color: DRAW_COLOR, fillColor: DRAW_FILL,
+        fillOpacity: DRAW_FILL_OPACITY, weight: DRAW_WEIGHT,
+      }).addTo(_map);
+    }
   }
 
   function _undoMobileVertex() {
@@ -494,8 +557,11 @@ const TurfDraw = (() => {
     // in rapid succession before any of them have been written to the Sheet.
     const queuedLetters = App._createQueue.map(j => String(j.letter));
     const pendingLetters = Object.keys(App._pendingPolygons);
+    const deletingLetters = [...(App._deletingLetters || [])];
     queuedLetters.forEach(l => liveLetters.add(l));
     pendingLetters.forEach(l => liveLetters.add(l));
+    // Exclude letters with in-flight background deletes — prevents ghost zone collisions
+    deletingLetters.forEach(l => liveLetters.add(l));
     let nextLetter = _nextAvailableLetter(liveLetters);
     if (!nextLetter) { UI.toast('No zone numbers available', 'error'); return; }
 

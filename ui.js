@@ -265,6 +265,19 @@ const UI = {
 
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; return; }
 
+    // Always check for existing user before proceeding — handles Enter key
+    // bypassing the blur-triggered _checkEmailLookup
+    if (!this._foundUser) {
+      try {
+        const res = await SheetsAPI.getUser(email);
+        if (res.user) {
+          this._foundUser = res.user;
+          const nameRow = document.getElementById('login-name-row');
+          if (nameRow) nameRow.style.display = 'none';
+        }
+      } catch(e) { /* proceed as new user */ }
+    }
+
     let name, color;
     if (this._foundUser) {
       name  = this._foundUser.name;
@@ -1166,7 +1179,10 @@ const UI = {
     if (!ok) return;
 
     await App.applyMultiResult(ids, resultKey, null);
-    this._msCancel();
+    // Clear selection after successful apply but keep multi-select mode active
+    this._selectedHouseIds = new Set();
+    App.render();
+    this.toast(`Applied to ${ids.length} — select more or ✕ to exit`, 'success');
   },
 
   async _inlineAssignVolunteer(letter, volunteerName) {
@@ -1240,7 +1256,7 @@ const UI = {
 
     const isComplex = house.house_type === 'apartment_complex';
     const complexBadge = isComplex
-      ? `<span class="complex-badge">🏢${house.unit_count ? ' ' + house.unit_count + ' units' : ''}</span>`
+      ? `<span class="complex-badge">🏢${house.building_id ? ' Bldg ' + _esc(house.building_id) : ''}${house.unit_count ? ' · ' + house.unit_count + ' units' : ''}</span>`
       : '';
 
     return `<div class="house-card${result ? ' house-done' : ''}${isComplex ? ' complex-house' : ''}${house.id === UI._nextDoorId ? ' next-door' : ''}${inMs ? ' ms-mode' : ''}${isSelected ? ' ms-selected' : ''}" id="hcard-${house.id}"
@@ -1582,11 +1598,19 @@ const UI = {
       <div id="complex-fields" style="display:none">
         <label class="f-label">Complex Name</label>
         <input id="f-complex-name" class="f-input" type="text" placeholder="e.g. Townlake of Coppell" autocomplete="off"/>
-        <label class="f-label" style="margin-top:8px">Unit Count</label>
-        <input id="f-unit-count" class="f-input" type="number" min="1" placeholder="e.g. 398"/>
+        <label class="f-label" style="margin-top:8px">Building ID</label>
+        <input id="f-building-id" class="f-input" type="text" placeholder="e.g. A, B, 1, 2..." autocomplete="off"/>
+        <label class="f-label" style="margin-top:8px">Units in This Building</label>
+        <input id="f-unit-count" class="f-input" type="number" min="1" placeholder="e.g. 20"/>
         <label class="f-label" style="margin-top:8px">Address</label>
         <input id="f-complex-addr" class="f-input" type="text" placeholder="e.g. 215 N Moore Rd" autocomplete="off"/>
-        <div class="f-hint">Click on the map after closing to place the marker, or enter coordinates below.</div>
+        ${(CONFIG.COMPLEX_PRESETS||[]).length ? `
+        <div class="f-hint" style="margin-top:8px">Or quick-fill from a known complex:</div>
+        <select id="f-preset-sel" class="f-input" onchange="UI._fillComplexPreset()" style="margin-top:4px">
+          <option value="">— Select preset —</option>
+          ${CONFIG.COMPLEX_PRESETS.map((p,i) => `<option value="${i}">${_esc(p.name)} (${p.totalUnits} units, ~${p.buildingCount} bldgs)</option>`).join('')}
+        </select>` : ''}
+        <div class="f-hint" style="margin-top:6px">Click on the map after closing to place the marker, or enter coordinates below.</div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <input id="f-complex-lat" class="f-input" type="number" step="0.000001" placeholder="Lat"/>
           <input id="f-complex-lon" class="f-input" type="number" step="0.000001" placeholder="Lon"/>
@@ -1606,14 +1630,19 @@ const UI = {
 
       const isComplex = document.getElementById('f-is-complex')?.checked;
       if (isComplex) {
-        const name     = (document.getElementById('f-complex-name')?.value || '').trim();
+        const name      = (document.getElementById('f-complex-name')?.value || '').trim();
+        const buildingId = (document.getElementById('f-building-id')?.value || '').trim();
         const unitCount = parseInt(document.getElementById('f-unit-count')?.value || '', 10) || null;
-        const addr     = (document.getElementById('f-complex-addr')?.value || '').trim() || name;
-        const lat      = parseFloat(document.getElementById('f-complex-lat')?.value || '');
-        const lon      = parseFloat(document.getElementById('f-complex-lon')?.value || '');
+        const addr      = (document.getElementById('f-complex-addr')?.value || '').trim() || name;
+        const lat       = parseFloat(document.getElementById('f-complex-lat')?.value || '');
+        const lon       = parseFloat(document.getElementById('f-complex-lon')?.value || '');
         if (!addr) { this.toast('Enter a complex name or address', 'error'); return false; }
         if (isNaN(lat) || isNaN(lon)) { this.toast('Enter coordinates for the complex (or place on map)', 'error'); return false; }
-        App.addHouse({ turf: zone, address: addr, owner: name, lat, lon, house_type: 'apartment_complex', unit_count: unitCount });
+        App.addHouse({
+          turf: zone, address: addr, owner: name, lat, lon,
+          house_type: 'apartment_complex', unit_count: unitCount,
+          building_id: buildingId, complex_name: name,
+        });
         return true;
       }
 
@@ -1634,6 +1663,23 @@ const UI = {
     document.getElementById('standard-fields').style.display = on ? 'none' : '';
     if (on) setTimeout(() => document.getElementById('f-complex-name')?.focus(), 50);
     else     setTimeout(() => document.getElementById('parcel-search')?.focus(), 50);
+  },
+
+  _fillComplexPreset() {
+    const sel = document.getElementById('f-preset-sel');
+    if (!sel || sel.value === '') return;
+    const preset = CONFIG.COMPLEX_PRESETS[parseInt(sel.value)];
+    if (!preset) return;
+    const nameEl = document.getElementById('f-complex-name');
+    const addrEl = document.getElementById('f-complex-addr');
+    const latEl  = document.getElementById('f-complex-lat');
+    const lonEl  = document.getElementById('f-complex-lon');
+    const unitEl = document.getElementById('f-unit-count');
+    if (nameEl) nameEl.value = preset.name;
+    if (addrEl) addrEl.value = preset.address;
+    if (latEl)  latEl.value  = preset.lat;
+    if (lonEl)  lonEl.value  = preset.lon;
+    if (unitEl) unitEl.value = preset.unitsPerBuilding;
   },
 
   _selectedParcel: null,
@@ -2092,12 +2138,30 @@ const UI = {
     panel = document.getElementById('chat-panel');
     const isOpen = panel.classList.toggle('open');
     this._chatOpen = isOpen;
+    // Manage backdrop for click-outside-to-close
+    let backdrop = document.getElementById('chat-backdrop');
     if (isOpen) {
+      if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'chat-backdrop';
+        backdrop.className = 'chat-backdrop';
+        backdrop.onclick = () => this.toggleChat();
+        document.body.appendChild(backdrop);
+      }
+      backdrop.classList.add('active');
       this._chatUnread = 0;
       this._clearUnreadBadges();
       setTimeout(() => document.getElementById('chat-input')?.focus(), 120);
       this._scrollChatBottom('chat-messages');
+    } else {
+      if (backdrop) backdrop.classList.remove('active');
+      this._chatOpen = false;
     }
+  },
+
+  closeChat() {
+    const panel = document.getElementById('chat-panel');
+    if (panel?.classList.contains('open')) this.toggleChat();
   },
 
   _buildMobileChatPanel() {
@@ -2106,7 +2170,7 @@ const UI = {
     panel.innerHTML = `
       <div class="chat-header">
         <span class="chat-title">Team Chat</span>
-        <button class="chat-close" onclick="UI.toggleChat()">X</button>
+        <button class="chat-close" id="chat-close-btn">✕</button>
       </div>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
@@ -2115,6 +2179,15 @@ const UI = {
         <button class="chat-send" onclick="UI._sendChat()">Send</button>
       </div>`;
     document.body.appendChild(panel);
+    // Bind close button via addEventListener to avoid inline onclick issues
+    document.getElementById('chat-close-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      UI.closeChat();
+    });
+    // ESC key closes chat
+    panel.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') UI.closeChat();
+    });
     this._renderChatMessages('chat-messages');
   },
 

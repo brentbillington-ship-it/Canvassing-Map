@@ -49,4 +49,5 @@ const SheetsAPI = {
   createZone(letter, color, volunteer, geojson, houses) { return this._post({ action: 'createZone', letter, color, volunteer, geojson, houses }); },
   getPolygons()                         { return this._call({ action: 'getPolygons' }); },
   claimZone(letter, volunteer, color)   { return this._call({ action: 'claimZone', letter, volunteer, color }); },
+  bulkSetResult(items)                  { return this._post({ action: 'bulkSetResult', items }); },
 };

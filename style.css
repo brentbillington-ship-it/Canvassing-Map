@@ -1422,3 +1422,30 @@ body {
 .toast-undo { display: flex; align-items: center; gap: 10px; min-width: 220px; }
 .toast-undo-btn { background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.5); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .toast-undo-btn:hover { background: rgba(255,255,255,0.4); }
+
+/* ─── Complex building marker badges (Item 1) ──────────────────────────────── */
+.complex-marker { display: flex; align-items: center; justify-content: center; gap: 2px; border-radius: 6px; background: var(--dc, #7c4dcc); color: #fff; font-size: 10px; font-weight: 700; white-space: nowrap; padding: 2px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.complex-marker .cbadge-id { font-size: 10px; }
+.complex-marker .cbadge-units { font-size: 9px; opacity: 0.85; margin-left: 2px; }
+.complex-marker.done { opacity: 0.6; }
+
+/* ─── "Show in List" button in house popup (Item 8) ─────────────────────────── */
+.popup-list-btn { width: 100%; padding: 6px 0; margin-top: 4px; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
+.popup-list-btn:hover { background: #e8f0fc; color: #2e6ec2; border-color: #2e6ec2; }
+
+/* ─── House card highlight pulse (Item 8) ───────────────────────────────────── */
+@keyframes highlightPulse {
+  0%   { outline: 3px solid #2e6ec2; background: rgba(46,110,194,0.12); }
+  100% { outline: 3px solid transparent; background: transparent; }
+}
+.highlight-pulse { animation: highlightPulse 2s ease-out; }
+
+/* ─── Chat backdrop for click-outside-to-close (Item 7) ─────────────────────── */
+.chat-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 7999; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.chat-backdrop.active { opacity: 1; pointer-events: auto; }
+.chat-close { background: none; border: none; color: rgba(255,255,255,0.9); font-size: 20px; cursor: pointer; padding: 4px 10px; line-height: 1; z-index: 1; position: relative; }
+.chat-close:hover { color: #fff; }
+
+/* ─── Mobile vertex dot for draggable drawing (Item 5) ──────────────────────── */
+.mobile-vertex-dot { width: 18px; height: 18px; border-radius: 50%; background: #FFE600; border: 2px solid #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: grab; }
+.mobile-vertex-dot:active { cursor: grabbing; }

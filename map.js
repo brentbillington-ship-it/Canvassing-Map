@@ -235,7 +235,7 @@ const MapModule = {
     }
 
     if (belowThreshold) {
-      // Below hanger threshold — only knock markers visible, still scale them
+      // Below hanger threshold (zoom 15-16) — only knock markers visible, still scale them
       this.houseGroup?.eachLayer(marker => {
         if (!marker._icon) return;
         const icon = marker._icon.querySelector('.house-dot');
@@ -303,16 +303,23 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
+    // Below zoom 15: no house markers of any type — clear everything for performance
+    if (zoom < 15) {
+      this.houseGroup.clearLayers();
+      this.houseMarkers = {};
+      return;
+    }
+
     const bounds = this.map.getBounds().pad(0.05);
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
 
     turfs.forEach((turf) => {
       const isKnock = (turf.mode || 'hanger') === 'knock';
-      // Hanger markers: only show at zoom >= threshold. Knock markers: always visible.
-      if (!isKnock && zoom < this._minMarkerZoom) return;
+      // Two-tier zoom: knock diamonds at 15, hanger circles at 17
+      const minZoom = isKnock ? 15 : this._minMarkerZoom;
+      if (zoom < minZoom) return;
       const color = _turfColor(turf);
-      // No longer dim markers for "other mode" zones — anyone can log knocks (Item 9)
       turf.houses.forEach((house, idx) => {
         if (!bounds.contains([house.lat, house.lon])) return;
         this._renderHouse(house, turf, idx, color, false);
@@ -449,17 +456,19 @@ const MapModule = {
     }
 
     const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
-    // Circle = hanger, diamond = knock
+    // Circle = hanger, diamond = knock. Knock diamonds render smaller + higher z so both visible at shared addresses.
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
+    const markerSize = isDoorKnock ? 20 : 26;
+    const markerAnchor = Math.round(markerSize / 2);
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
         html: `<div class="${cls}" style="--dc:${dotColor}"></div>`,
         className: '',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        iconSize: [markerSize, markerSize],
+        iconAnchor: [markerAnchor, markerAnchor],
       }),
       pane: 'housePane',
-      zIndexOffset: isOtherZone ? -200 : (isDone ? 0 : 100),
+      zIndexOffset: isOtherZone ? -200 : (isDoorKnock ? 300 : (isDone ? 0 : 100)),
     });
   },
 

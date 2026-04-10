@@ -332,8 +332,7 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
-          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,784 knock locations from voter file (precincts 2601–4677)">📥 Voter Knocks</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
       }
       this._renderTop3();
     } else {
@@ -394,8 +393,7 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
-          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,784 knock locations from voter file (precincts 2601–4677)">📥 Voter Knocks</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
       }
       App.render();
       UI.toast('Admin mode active', 'success');
@@ -546,12 +544,27 @@ const UI = {
     });
   },
 
-  // ── CSV Export ────────────────────────────────────────────────────────────
+  // ── CSV Export — includes voter data columns for round-trip import ──────
   exportCSV() {
-    const rows = [['Zone', 'Address', 'Owner', 'Result', 'Result By', 'Result Date', 'Notes', 'Lat', 'Lon']];
+    const rows = [['address', 'Zone', 'Owner', 'Result', 'Result By', 'Result Date', 'Notes', 'Lat', 'Lon', 'voters', 'voter_count', 'total_votes', 'may_votes', 'nov_votes', 'precinct']];
     App.state.turfs.forEach(t => {
+      const isKnock = (t.mode || 'hanger') === 'knock';
       t.houses.forEach(h => {
-        rows.push([t.letter, h.address, h.owner, h.result, h.result_by, h.result_date, h.notes, h.lat, h.lon]);
+        // Look up voter data for knock houses
+        let voters = '', voterCount = '', totalVotes = '', mayVotes = '', novVotes = '';
+        const precinct = isKnock ? (t.letter || '') : '';
+        if (isKnock && typeof VOTER_DATA !== 'undefined') {
+          const normKey = (h.address || '').replace(/,\s*COPPELL.*/i, '').replace(/\s+/g, ' ').trim().toUpperCase();
+          const entry = VOTER_DATA[normKey];
+          if (entry && entry.voters) {
+            voters = entry.voters.map(v => v.name).join(';');
+            voterCount = String(entry.voters.length);
+            totalVotes = entry.voters.map(v => String(v.total_votes || 0)).join(',');
+            mayVotes = String(entry.voters.reduce((s, v) => s + (v.may_votes || 0), 0));
+            novVotes = String(entry.voters.reduce((s, v) => s + (v.nov_votes || 0), 0));
+          }
+        }
+        rows.push([h.address, t.letter, h.owner, h.result, h.result_by, h.result_date, h.notes, h.lat, h.lon, voters, voterCount, totalVotes, mayVotes, novVotes, precinct]);
       });
     });
     const csv = rows.map(r => r.map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -678,37 +691,6 @@ const UI = {
     reader.readAsText(file);
   },
 
-  // ── One-time voter knock zone import ────────────────────────────────────
-  async importVoterKnocks() {
-    if (typeof KNOCK_ZONES_IMPORT === 'undefined') {
-      this.toast('Knock import data not loaded', 'error'); return;
-    }
-    const turfs = KNOCK_ZONES_IMPORT.turfs;
-    const totalHouses = turfs.reduce((n, t) => n + t.houses.length, 0);
-    const existingLetters = new Set(App.state.turfs.map(t => String(t.letter)));
-    const toCreate  = turfs.filter(t => !existingLetters.has(String(t.letter)));
-    const toUpdate  = turfs.filter(t =>  existingLetters.has(String(t.letter)));
-
-    const ok = await this._confirm(
-      'Import Voter Knock Zones',
-      `This will import <strong>${totalHouses.toLocaleString()} knock locations</strong> across <strong>${turfs.length} precincts</strong> (${toCreate.length} new zones, ${toUpdate.length} existing).<br><br>` +
-      turfs.map(t => `Precinct ${t.letter}: ${t.houses.length} houses`).join('<br>') +
-      '<br><br>Already-imported zones will be skipped (no duplicates).',
-      'Import Now'
-    );
-    if (!ok) return;
-
-    this.toast(`Importing ${totalHouses} knock locations…`, 'info', 8000);
-    try {
-      const res = await SheetsAPI.bulkImport(turfs);
-      if (res.error) { this.toast(res.error, 'error'); return; }
-      await App.loadData();
-      this.toast(`Voter knocks imported — ${res.turfs} zones, ${res.houses} houses ✓`, 'success');
-    } catch(e) {
-      this.toast('Import failed — check connection', 'error');
-    }
-  },
-
   async _doZoneImport(rows) {
     UI.toast(`Importing ${rows.length} zones…`, 'info');
     let updated = 0, created = 0, failed = 0;
@@ -776,6 +758,33 @@ const UI = {
       const rows = UI._importRows;
       if (!rows || !rows.length) { UI.toast('No rows to import', 'error'); return false; }
 
+      // ── Voter CSV path ───────────────────────────────────────────────────
+      if (UI._importIsVoter) {
+        const matched = rows.filter(r => r.matched);
+        if (!matched.length) { UI.toast('No addresses matched parcels', 'error'); return false; }
+        // Group by precinct — each precinct becomes a knock zone
+        const byPrecinct = {};
+        for (const r of matched) {
+          const key = r.precinct || 'unknown';
+          if (!byPrecinct[key]) byPrecinct[key] = [];
+          byPrecinct[key].push({ address: r.address, owner: r.owner || '', lat: r.lat, lon: r.lon });
+        }
+        const turfs = Object.entries(byPrecinct).map(([precinct, houses]) => ({
+          letter: precinct, color: '#b3a8c8', volunteer: '[UNASSIGNED]', mode: 'knock', houses,
+        }));
+        const ok = await UI._confirm(
+          'Import Voter Data',
+          `Import <strong>${matched.length}</strong> knock locations across <strong>${turfs.length}</strong> precincts?`,
+          'Import'
+        );
+        if (!ok) return false;
+        await App.bulkImport(turfs);
+        UI._importRows = null;
+        UI._importIsVoter = false;
+        return true;
+      }
+
+      // ── Standard address CSV path ────────────────────────────────────────
       // Block if any volunteer name errors
       if (rows.some(r => r.volunteerError)) {
         UI.toast('Fix unrecognized volunteer name(s) before importing', 'error'); return false;
@@ -813,6 +822,7 @@ const UI = {
         await App.bulkImport([{ letter, color: turf?.color || CONFIG.TURF_COLORS[0], volunteer: turf?.volunteer || '[UNASSIGNED]', houses }]);
       }
       UI._importRows = null;
+      UI._importIsVoter = false;
       return true;
     }, 'Import');
   },
@@ -838,6 +848,14 @@ const UI = {
         if (!lines.length) { UI.toast('Empty file', 'error'); return; }
         const header   = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
         const addrIdx  = header.findIndex(h => h === 'address');
+
+        // ── Auto-detect voter data CSV ─────────────────────────────────────
+        const isVoterCSV = header.includes('voters') || header.includes('voter_count') || header.includes('total_votes');
+        if (isVoterCSV) {
+          UI._handleVoterImportFile(lines, header);
+          return;
+        }
+
         const typeIdx  = header.findIndex(h => h === 'type');
         const volIdx   = header.findIndex(h => h === 'volunteer');
         if (addrIdx < 0) { UI.toast('CSV must have an "Address" column', 'error'); return; }
@@ -906,6 +924,67 @@ const UI = {
       }
     };
     reader.readAsText(file);
+  },
+
+  // ── Voter data CSV import (auto-detected by _handleImportFile) ──────────
+  _handleVoterImportFile(lines, header) {
+    const col = c => header.indexOf(c);
+    const parseCols = line => {
+      const cells = []; let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+      cells.push(cur);
+      return cells;
+    };
+    const get = (cells, c) => col(c) >= 0 ? (cells[col(c)] || '').trim().replace(/^"|"$/g, '') : '';
+
+    const rows = lines.slice(1).map(line => {
+      const cells   = parseCols(line);
+      const addr    = get(cells, 'address');
+      if (!addr) return null;
+      const voters  = get(cells, 'voters');
+      const voterCount = get(cells, 'voter_count');
+      const totalVotes = get(cells, 'total_votes');
+      const mayVotes   = get(cells, 'may_votes');
+      const novVotes   = get(cells, 'nov_votes');
+      const precinct   = get(cells, 'precinct');
+
+      // Match address to parcel
+      const matches = ParcelsUtil.searchParcels(addr, 1);
+      const match = matches[0] || null;
+
+      return {
+        address: match ? match.address : addr,
+        originalAddr: addr,
+        lat: match ? match.lat : null,
+        lon: match ? match.lon : null,
+        owner: match ? match.owner : '',
+        matched: !!match,
+        voters, voterCount, totalVotes, mayVotes, novVotes, precinct,
+      };
+    }).filter(Boolean);
+
+    const matched   = rows.filter(r => r.matched).length;
+    const unmatched = rows.length - matched;
+
+    const previewEl = document.getElementById('import-preview');
+    if (previewEl) {
+      previewEl.style.display = '';
+      previewEl.innerHTML = `<div class="import-stats">
+        <strong>Voter data CSV detected</strong><br>
+        ${rows.length} rows — ${matched} matched to parcels, ${unmatched} unmatched
+      </div>`;
+    }
+    // Hide zone selector — voter imports go to knock zones by precinct
+    const zoneRow = document.getElementById('import-zone-row');
+    if (zoneRow) zoneRow.style.display = 'none';
+
+    UI._importRows = rows;
+    UI._importIsVoter = true;
   },
 
   async _nominatimGeocode(row) {
@@ -1178,32 +1257,68 @@ const UI = {
       return;
     }
 
-    const sorted = [...filtered].sort((a, b) => {
-      const aKnock = (a.mode || 'hanger') === 'knock' ? 0 : 1;
-      const bKnock = (b.mode || 'hanger') === 'knock' ? 0 : 1;
-      if (aKnock !== bKnock) return aKnock - bKnock;
+    // ── Separate knock vs hanger turfs ──────────────────────────────────────
+    const knockTurfs  = filtered.filter(t => (t.mode || 'hanger') === 'knock');
+    const hangerTurfs = filtered.filter(t => (t.mode || 'hanger') !== 'knock');
 
+    // Sort hanger turfs: my zones first, then unassigned, then others, then by number
+    const sortedHangers = [...hangerTurfs].sort((a, b) => {
       const me = UI.currentUser;
       const aUnassigned = !a.volunteer || a.volunteer === '[UNASSIGNED]';
       const bUnassigned = !b.volunteer || b.volunteer === '[UNASSIGNED]';
-
-      // Group: my zones (0), unassigned (1), other volunteers (2)
       const aGroup = a.volunteer === me ? 0 : aUnassigned ? 1 : 2;
       const bGroup = b.volunteer === me ? 0 : bUnassigned ? 1 : 2;
       if (aGroup !== bGroup) return aGroup - bGroup;
-
-      // Within assigned groups: sort by volunteer name alphabetically
       const aVol = aUnassigned ? '' : (a.volunteer || '');
       const bVol = bUnassigned ? '' : (b.volunteer || '');
       if (aVol !== bVol) return aVol.localeCompare(bVol);
-
-      // Within same volunteer (or unassigned): sort numerically by zone letter
       const aNum = parseInt(a.letter, 10);
       const bNum = parseInt(b.letter, 10);
       if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
       return String(a.letter).localeCompare(String(b.letter));
     });
-    list.innerHTML = sorted.map((turf, i) => {
+
+    // ── Consolidated "Knocks" block at top ──────────────────────────────────
+    let knockHtml = '';
+    if (knockTurfs.length) {
+      const allKnockHouses = knockTurfs.flatMap(t => t.houses);
+      const kTotal     = allKnockHouses.length;
+      const kContacted = allKnockHouses.filter(h => h.result && h.result !== 'skip').length;
+      const kPct       = kTotal ? Math.round(kContacted / kTotal * 100) : 0;
+      const kIs100     = kTotal > 0 && kContacted === kTotal;
+      const kColor     = '#b3a8c8';
+      const kExpanded  = this._expandedTurfs.has('_KNOCKS') || !!this.turfFilter;
+
+      // Build house cards — each references its real turf for data operations
+      const kFiltered = this._filterHouses(allKnockHouses);
+      const kSorted   = [...kFiltered].sort((a, b) => (a.address || '').localeCompare(b.address || ''));
+      const kCards = kSorted.map((house, hi) => {
+        const realTurf = knockTurfs.find(t => t.houses.some(h => h.id === house.id)) || knockTurfs[0];
+        return this._houseCard(house, realTurf, hi, kColor);
+      }).join('');
+
+      knockHtml = `<div class="${kExpanded ? 'turf-block turf-expanded' : 'turf-block'}${kIs100 ? ' turf-complete' : ''} turf-knock" id="turf-block-_KNOCKS">
+        <div class="turf-header" style="--tc:${kColor}" onclick="UI._toggleTurf('_KNOCKS')">
+          <div class="turf-letter-badge knock-badge" style="background:${kColor}"><span style="display:inline-block;transform:rotate(-45deg);font-size:14px;line-height:1">✊</span></div>
+          <div class="turf-info">
+            <div class="turf-volunteer"><strong>Knocks</strong>${kIs100 ? ' <span class="turf-complete-badge">\u2713 Complete!</span>' : ''}</div>
+            <div class="turf-progress-row">
+              <div class="turf-prog-track">
+                <div class="turf-prog-fill" style="width:${kPct}%;background:${kIs100 ? '#2d9e5f' : kColor}"></div>
+              </div>
+              <div class="turf-pct">${kContacted}/${kTotal}</div>
+            </div>
+          </div>
+          <div class="turf-chevron" id="chev-_KNOCKS">${kExpanded ? '\u25be' : '\u25b8'}</div>
+        </div>
+        <div class="turf-houses" id="houses-_KNOCKS" style="display:${kExpanded ? 'block' : 'none'}">
+          ${kCards || `<div class="sb-empty-turf">No knock houses${this.resultFilter ? ' matching filter' : ''}.</div>`}
+        </div>
+      </div>`;
+    }
+
+    // ── Hanger zone blocks ──────────────────────────────────────────────────
+    const hangerHtml = sortedHangers.map((turf, i) => {
       const color     = _turfColor(turf);
       const houses    = this._filterHouses(turf.houses);
       const total     = turf.houses.length;
@@ -1229,24 +1344,22 @@ const UI = {
           onchange="event.stopPropagation();UI._inlineAssignVolunteer('${turf.letter}',this.value)">${opts}</select>`;
       })() : '';
 
-      const isKnock = (turf.mode || 'hanger') === 'knock';
       const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
       const isMyZone = !this.isAdmin && turf.volunteer === this.currentUser;
-      const claimBtn = !this.isAdmin && isUnassigned && !isKnock
+      const claimBtn = !this.isAdmin && isUnassigned
         ? `<button class="claim-zone-btn" onclick="event.stopPropagation();UI._confirmClaimZone('${turf.letter}')">Claim Zone</button>`
         : '';
-      const unclaimBtn = isMyZone && !isKnock
+      const unclaimBtn = isMyZone
         ? `<button class="unclaim-zone-btn" onclick="event.stopPropagation();UI._confirmUnclaimZone('${turf.letter}')">Unclaim</button>`
         : '';
-      return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}${isKnock ? ' turf-knock' : ''}" id="turf-block-${turf.letter}">
+      return `<div class="${expanded ? 'turf-block turf-expanded' : 'turf-block'}${is100 ? ' turf-complete' : ''}" id="turf-block-${turf.letter}">
         <div class="turf-header" style="--tc:${color}" onclick="UI._toggleTurf('${turf.letter}')">
-          <div class="turf-letter-badge${isKnock ? ' knock-badge' : ''}" style="background:${isKnock ? '#b3a8c8' : color}">${isKnock ? '<span style="display:inline-block;transform:rotate(-45deg);font-size:14px;line-height:1">✊</span>' : turf.letter}</div>
+          <div class="turf-letter-badge" style="background:${color}">${turf.letter}</div>
           <div class="turf-info">
             ${this.isAdmin
               ? inlineAssign
-              : `<div class="turf-volunteer">${isKnock ? '<strong>Knocks</strong>' : (isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer))}${is100 ? ' <span class="turf-complete-badge">✓ Complete!</span>' : ''}${claimBtn}${unclaimBtn}</div>`
+              : `<div class="turf-volunteer">${isUnassigned ? '<em style="color:#9ca3af">Unassigned</em>' : _esc(turf.volunteer)}${is100 ? ' <span class="turf-complete-badge">\u2713 Complete!</span>' : ''}${claimBtn}${unclaimBtn}</div>`
             }
-            ${isKnock && turf.volunteer && turf.volunteer !== '[UNASSIGNED]' ? `<div style="font-size:11px;color:#b3a8c8;margin-top:1px">◆ ${_esc(turf.volunteer)}</div>` : ''}
             <div class="turf-progress-row">
               <div class="turf-prog-track">
                 <div class="turf-prog-fill" style="width:${pct}%;background:${is100 ? '#2d9e5f' : color}"></div>
@@ -1254,7 +1367,7 @@ const UI = {
               <div class="turf-pct">${contacted}/${total}</div>
             </div>
           </div>
-          <div class="turf-chevron" id="chev-${turf.letter}">${expanded ? '▾' : '▸'}</div>
+          <div class="turf-chevron" id="chev-${turf.letter}">${expanded ? '\u25be' : '\u25b8'}</div>
           ${adminBtns}
         </div>
         <div class="turf-houses" id="houses-${turf.letter}" style="display:${expanded ? 'block' : 'none'}">
@@ -1264,23 +1377,25 @@ const UI = {
               <div class="ms-active-bar">
                 <div class="ms-street-wrap">
                   <select class="ms-street-sel" onchange="UI._selectByStreet('${turf.letter}',this.value)">
-                    <option value="">Select street…</option>
+                    <option value="">Select street\u2026</option>
                     ${[...new Set(turf.houses.map(h => (h.address||'').replace(/^\d+\s*/,'').split(',')[0].trim()).filter(Boolean))].sort().map(s => `<option value="${_esc(s)}">${_esc(s)}</option>`).join('')}
                   </select>
                 </div>
                 <button class="ms-btn ms-all" onclick="UI._msSelectAll('${turf.letter}')">All</button>
                 <button class="ms-btn ms-none" onclick="UI._msSelectNone('${turf.letter}')">None</button>
                 <button class="ms-btn ms-apply" onclick="UI._msApply('${turf.letter}')">Apply (${this._multiSelectTurf === turf.letter ? this._selectedHouseIds.size : 0})</button>
-                <button class="ms-btn ms-cancel" onclick="UI._msCancel()">✕</button>
+                <button class="ms-btn ms-cancel" onclick="UI._msCancel()">\u2715</button>
               </div>
             ` : `
-              <button class="ms-start-btn" onclick="event.stopPropagation();UI._msStart('${turf.letter}')">☑ Update Multiple</button>
+              <button class="ms-start-btn" onclick="event.stopPropagation();UI._msStart('${turf.letter}')">\u2611 Update Multiple</button>
             `}
           </div>` : ''}
           ${houseCards || `<div class="sb-empty-turf">No houses${this.resultFilter ? ' matching filter' : ''}.${this.isAdmin ? ' Draw a zone boundary to populate.' : ''}</div>`}
         </div>
       </div>`;
     }).join('');
+
+    list.innerHTML = knockHtml + hangerHtml;
   },
 
 

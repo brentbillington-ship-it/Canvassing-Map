@@ -198,3 +198,87 @@ requires a running deployment.
 - Leaderboard — DST bug fixed; tab switching unchanged
 - Mobile sidebar, filters, zoom controls, layer button — CSS/layout unchanged
 - Multi-select — render debounce note in known_issues; existing App.render() call correct
+
+---
+
+## Fixes Applied During Work Order v2 (Items 1–10)
+
+### Item 1 — Knock Marker Zoom Performance Fix
+- **map.js `_refreshVisibleMarkers`**: Added early-exit clearing all markers below zoom 15.
+  Replaced blanket knock bypass (`always visible`) with two-tier thresholds:
+  knock diamonds appear at zoom 15+, hanger circles at zoom 17+ (`_minMarkerZoom`).
+  Below zoom 15, `houseGroup.clearLayers()` removes all DOM elements — fixes mobile lag.
+- **map.js `_updateZoomStyle`**: Updated comment to reflect zoom 15-16 range for knock-only.
+
+### Item 2 — Knock/Hanger Marker Overlap
+- **map.js `_makeMarker`**: Knock diamonds now render at 20x20px (vs 26x26 for hangers),
+  with `zIndexOffset: 300` (higher than hanger's 100). Both markers visible at shared addresses.
+- **style.css `.house-dot.diamond`**: Added `border: 1.5px solid #fff` and
+  `box-shadow: 0 0 3px rgba(0,0,0,0.35)` for visual separation from hanger circles beneath.
+
+### Item 3 — Consolidate Knock Zones in Sidebar
+- **ui.js `renderSidebar`**: Knock turfs now merged into single "Knocks" block at sidebar top.
+  Aggregates house count and progress bar across all knock zones. Houses sorted by address
+  in one flat list. Each house card still references its real underlying turf for data writes.
+  Hanger zones render individually below the consolidated knock block.
+
+### Item 4 — Remove Special Import Button, Consolidate Import
+- **ui.js**: Deleted `📥 Voter Knocks` button from both admin toolbar renderings.
+  Deleted `importVoterKnocks()` method (one-time bulk import function).
+- **ui.js `_handleImportFile`**: Added voter CSV auto-detection. If header contains
+  `voters`, `voter_count`, or `total_votes` columns → routes to `_handleVoterImportFile()`.
+- **ui.js `_handleVoterImportFile`**: New method. Parses voter data CSVs, matches addresses
+  to parcels, groups by precinct, imports as knock zones via `bulkImport`.
+- **ui.js `exportCSV`**: Added voter data columns (`voters`, `voter_count`, `total_votes`,
+  `may_votes`, `nov_votes`, `precinct`) for round-trip compatibility with voter CSV import.
+
+### Item 6 — Apps Script CLASP Sync
+- **`.gitignore`**: Added `.clasprc.json` (OAuth tokens — never commit).
+- **DEPLOYMENT.md**: Created. Documents script ID, stable deployment URL, CLASP workflow,
+  first-time setup steps. CLASP interactive login deferred to user.
+- `.clasp.json` and `.claspignore` already correctly configured in repo.
+
+### Item 8 — Zone Claim/Assign Polygon Color (Verified)
+- **Confirmed already fixed in prior work order.** `claimZone()`, `unclaimZone()`, and
+  `updateTurf()` all call `MapModule.setZoneStyle()` + `TurfDraw.setZoneStyle()` immediately
+  after API success, then `render()`. User record ensured in `_users` cache before render.
+
+### Item 9 — Missing House Markers Audit
+- Knock zone polygons are stored in Google Sheets (not in repo). Full point-in-polygon
+  audit requires live API data. knock_zones_import.js contains 1,784 houses across 15 zones
+  (precincts 2601-4677). Diagnostic script provided but cannot run without Sheet access.
+
+### Item 10 — Knock Data Verification & 830 Spyglass
+
+**Full match audit results:**
+- Total voter_data keys: 2,086
+- Exact matches to parcels: 1,608 (77.1%)
+- No parcel match: 478 (22.9%)
+  - 386 of these have ", IRVING" city suffix (Irving addresses in CISD precincts)
+  - After stripping city suffix: 163 rescued, 315 truly unmatched (15.1%)
+- Abbreviation mismatches (DR/DRIVE etc.): zero impact — both files use same abbreviations
+- Remaining 315 unmatched: mostly Irving addresses (N MacArthur Blvd, Stone Harbor Way,
+  Sandbar Dr, Offshore Dr, Mateo Trl — Valley Ranch/Las Colinas area, not Coppell parcels)
+
+**830 SPYGLASS DR: Confirmed nonexistent** in both voter_data.js and parcels.js.
+SPYGLASS DR parcels range 101-416. SPYGLASS CV includes 889-902. No "830" SPYGLASS
+exists in Coppell DCAD parcel data. This address is not a real Coppell property.
+
+### Item 5 — NW Coppell Knock Data Gap
+
+**Geographic analysis** (NW = north of Sandy Lake Rd lat>=32.975, west of Denton Tap lon<=-96.99):
+- Parcels in NW quadrant: 1,433 (1,322 unique addresses)
+- Voter_data entries matching NW parcels: 150 (11.4% of NW parcels)
+- Knock zone precincts covering NW: **2805** (13 houses), **2808** (136 houses)
+
+**Diagnosis:** NW Coppell is significantly under-represented. Precincts 2805 and 2808
+partially cover the area but contribute only ~149 knock-zone houses. The gap is primarily
+a **precinct coverage issue** — NW Coppell may need additional precincts included in
+the voter file, or the 2805/2808 precincts may straddle the NW boundary with most
+qualifying voters falling outside the NW quadrant. To fill the gap, regenerate voter
+data with broader precinct coverage or lower vote thresholds for NW-area precincts.
+
+## Opportunistic Fixes (Work Order v2)
+
+- **ui.js `renderSidebar`**: Removed `isKnock` check from claim/unclaim buttons
+  (was redundant since knock zones are now consolidated and don't show claim buttons).

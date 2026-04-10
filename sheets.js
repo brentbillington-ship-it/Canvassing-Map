@@ -46,7 +46,7 @@ const SheetsAPI = {
   backupZone(letter)                    { return this._call({ action: 'backupZone', letter }); },
   // POST for large payloads (#10)
   bulkImportHouses(letter, houses)      { return this._post({ action: 'bulkImportHouses', letter, houses }); },
-  createZone(letter, color, volunteer, geojson, houses) { return this._post({ action: 'createZone', letter, color, volunteer, geojson, houses }); },
+  createZone(letter, color, volunteer, geojson, houses, mode) { return this._post({ action: 'createZone', letter, color, volunteer, geojson, houses, mode: mode || 'hanger' }); },
   getPolygons()                         { return this._call({ action: 'getPolygons' }); },
   claimZone(letter, volunteer, color)   { return this._call({ action: 'claimZone', letter, volunteer, color }); },
   bulkSetResult(items)                  { return this._post({ action: 'bulkSetResult', items }); },

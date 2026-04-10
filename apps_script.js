@@ -67,7 +67,7 @@ function handleAction(data) {
       case 'reorderHouses':   return json(reorderHouses(data.turf, data.order));
       case 'bulkImport':      return json(bulkImport(data.turfs));
       case 'bulkImportHouses': return json(bulkImportHouses(data.letter, data.houses));
-      case 'createZone':       return json(createZone(data.letter, data.color, data.volunteer, data.geojson, data.houses));
+      case 'createZone':       return json(createZone(data.letter, data.color, data.volunteer, data.geojson, data.houses, data.mode));
       case 'claimZone':        return json(claimZone(data.letter, data.volunteer, data.color));
       case 'clearTurf':       return json(clearTurf(data.letter));
       case 'heartbeat':       return json(heartbeat(data.name, data.sessionId));
@@ -417,7 +417,7 @@ function bulkImport(turfs) {
 
 // ─── Atomic Zone Creation ─────────────────────────────────────────────────────
 
-function createZone(letter, color, volunteer, geojson, houses) {
+function createZone(letter, color, volunteer, geojson, houses, mode) {
   const turfsSheet  = getSheet('turfs');
   const housesSheet = getSheet('houses');
 
@@ -434,7 +434,7 @@ function createZone(letter, color, volunteer, geojson, houses) {
     // 1. Write turf row (no polygon — stored separately)
     turfsSheet.appendRow([
       letter, color || '#6b7280', volunteer || '[UNASSIGNED]',
-      'hanger', new Date().toISOString()
+      mode || 'hanger', new Date().toISOString()
     ]);
     // 1b. Write polygon to polygons sheet
     if (geojson) {

@@ -1672,8 +1672,14 @@ const UI = {
   showEditTurfModal(letter) {
     const turf = App.state.turfs.find(t => String(t.letter) === String(letter));
     if (!turf) return;
+    const curMode = turf.mode || 'hanger';
     this._modal(`Edit Zone ${letter}`, `
-      <label class="f-label">Assigned Volunteer</label>
+      <label class="f-label">Zone Type</label>
+      <select id="f-zone-mode" class="f-input">
+        <option value="hanger"${curMode === 'hanger' ? ' selected' : ''}>🗂 Drop Hangers</option>
+        <option value="knock"${curMode === 'knock' ? ' selected' : ''}>🚪 Door Knock</option>
+      </select>
+      <label class="f-label" style="margin-top:10px">Assigned Volunteer</label>
       ${this._userDropdownHtml(turf.volunteer)}
       <label class="f-label" style="margin-top:10px">Talking Points / Script (optional)</label>
       <input id="f-script" class="f-input" type="text" value="${_esc(turf._script || '')}" placeholder="e.g. Hi, I'm volunteering for Kevin Chaka…"/>
@@ -1683,6 +1689,7 @@ const UI = {
           <span class="clear-turf-hint">${turf.houses.length} houses · ${turf.houses.filter(h=>h.result).length} with results</span>
         </div>` : ''}
     `, async () => {
+      const mode      = document.getElementById('f-zone-mode')?.value || 'hanger';
       const sel       = document.getElementById('f-volunteer-sel');
       const volunteer = sel?.value || '[UNASSIGNED]';
       const opt       = sel?.options[sel.selectedIndex];
@@ -1690,7 +1697,7 @@ const UI = {
         ? opt.dataset.color
         : '#6b7280';
       const script    = (document.getElementById('f-script')?.value || '').trim();
-      await App.updateTurf(letter, { volunteer, color, mode: turf.mode || 'hanger' });
+      await App.updateTurf(letter, { volunteer, color, mode });
       const t = App.state.turfs.find(x => x.letter === letter);
       if (t) t._script = script;
       return true;

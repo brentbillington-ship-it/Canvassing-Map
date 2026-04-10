@@ -358,7 +358,7 @@ const App = {
     try {
       const toSave = this._createQueue.map(j => ({
         letter: j.letter, color: j.color, volunteer: j.volunteer,
-        geojson: j.geojson, houses: j.houses,
+        geojson: j.geojson, houses: j.houses, mode: j.mode || 'hanger',
       }));
       localStorage.setItem('ck_zone_queue', JSON.stringify(toSave));
     } catch(e) {}
@@ -385,7 +385,7 @@ const App = {
     }
   },
 
-  createTurfFromDraw({ letter, color, volunteer, geojson, parcels, pendingLayer }) {
+  createTurfFromDraw({ letter, color, volunteer, geojson, parcels, pendingLayer, mode }) {
     // Convert parcels to serializable houses format immediately (no Leaflet objects)
     const houses = (parcels || []).map(p => ({
       address: p.address, owner: p.owner || '', lat: p.lat, lon: p.lon,
@@ -399,7 +399,7 @@ const App = {
       this._pendingPolygons[letter] = pending;
     }
     UI.toast(`Zone ${letter} queued — drawing next zone now`, 'info', 2500);
-    this._createQueue.push({ letter, color, volunteer, geojson, houses });
+    this._createQueue.push({ letter, color, volunteer, geojson, houses, mode: mode || 'hanger' });
     this._saveZoneQueue();
     this._updateQueueBanner();
     if (!this._queueRunning) this._runCreateQueue();
@@ -436,10 +436,10 @@ const App = {
     this._updateQueueBanner();
     while (this._createQueue.length) {
       const job = this._createQueue[0];
-      let { letter, color, volunteer, geojson, houses } = job;
+      let { letter, color, volunteer, geojson, houses, mode } = job;
       this._updateQueueBanner();
       try {
-        let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+        let res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses, mode || 'hanger');
 
         // Collision — another admin grabbed this number
         if (res.error && res.nextAvailable) {
@@ -459,7 +459,7 @@ const App = {
             continue;
           }
           letter = String(res.nextAvailable);
-          res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses);
+          res = await SheetsAPI.createZone(letter, color, volunteer || '[UNASSIGNED]', geojson, houses, mode || 'hanger');
         }
 
         // Remove pending polygon — real one comes from loadData
@@ -471,6 +471,10 @@ const App = {
         if (res.error) {
           UI.toast(`Zone ${letter} failed: ${res.error}`, 'error');
         } else {
+          // If mode is knock, set it now — createZone defaults to hanger if apps_script not yet updated
+          if ((mode || 'hanger') === 'knock') {
+            await SheetsAPI.updateTurf(letter, { mode: 'knock' }).catch(() => {});
+          }
           await this.loadData();
           UI.toast(`Zone ${letter} created with ${res.houseCount} houses ✓`, 'success');
         }

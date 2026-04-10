@@ -332,7 +332,8 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
+          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,620 knock locations from voter file (precincts 2801–2808)">📥 Voter Knocks</button>`;
       }
       this._renderTop3();
     } else {
@@ -393,7 +394,8 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
+          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,620 knock locations from voter file (precincts 2801–2808)">📥 Voter Knocks</button>`;
       }
       App.render();
       UI.toast('Admin mode active', 'success');
@@ -676,6 +678,37 @@ const UI = {
     reader.readAsText(file);
   },
 
+  // ── One-time voter knock zone import ────────────────────────────────────
+  async importVoterKnocks() {
+    if (typeof KNOCK_ZONES_IMPORT === 'undefined') {
+      this.toast('Knock import data not loaded', 'error'); return;
+    }
+    const turfs = KNOCK_ZONES_IMPORT.turfs;
+    const totalHouses = turfs.reduce((n, t) => n + t.houses.length, 0);
+    const existingLetters = new Set(App.state.turfs.map(t => String(t.letter)));
+    const toCreate  = turfs.filter(t => !existingLetters.has(String(t.letter)));
+    const toUpdate  = turfs.filter(t =>  existingLetters.has(String(t.letter)));
+
+    const ok = await this._confirm(
+      'Import Voter Knock Zones',
+      `This will import <strong>${totalHouses.toLocaleString()} knock locations</strong> across <strong>${turfs.length} precincts</strong> (${toCreate.length} new zones, ${toUpdate.length} existing).<br><br>` +
+      turfs.map(t => `Precinct ${t.letter}: ${t.houses.length} houses`).join('<br>') +
+      '<br><br>Already-imported zones will be skipped (no duplicates).',
+      'Import Now'
+    );
+    if (!ok) return;
+
+    this.toast(`Importing ${totalHouses} knock locations…`, 'info', 8000);
+    try {
+      const res = await SheetsAPI.bulkImport(turfs);
+      if (res.error) { this.toast(res.error, 'error'); return; }
+      await App.loadData();
+      this.toast(`Voter knocks imported — ${res.turfs} zones, ${res.houses} houses ✓`, 'success');
+    } catch(e) {
+      this.toast('Import failed — check connection', 'error');
+    }
+  },
+
   async _doZoneImport(rows) {
     UI.toast(`Importing ${rows.length} zones…`, 'info');
     let updated = 0, created = 0, failed = 0;
@@ -705,7 +738,7 @@ const UI = {
           const res = await SheetsAPI.createZone(
             row.zone_id, row.zone_color,
             row.assignee || '[UNASSIGNED]',
-            geojson, []
+            geojson, [], row.zone_type || 'hanger'
           );
           if (!res.error) created++;
           else failed++;

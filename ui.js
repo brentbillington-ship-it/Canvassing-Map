@@ -333,7 +333,7 @@ const UI = {
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
           <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
-          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,620 knock locations from voter file (precincts 2801–2808)">📥 Voter Knocks</button>`;
+          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,784 knock locations from voter file (precincts 2601–4677)">📥 Voter Knocks</button>`;
       }
       this._renderTop3();
     } else {
@@ -395,7 +395,7 @@ const UI = {
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
           <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
-          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,620 knock locations from voter file (precincts 2801–2808)">📥 Voter Knocks</button>`;
+          <button class="admin-btn" onclick="UI.importVoterKnocks()" title="Import 1,784 knock locations from voter file (precincts 2601–4677)">📥 Voter Knocks</button>`;
       }
       App.render();
       UI.toast('Admin mode active', 'success');

@@ -330,7 +330,9 @@ const UI = {
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
           <button class="admin-btn" onclick="UI.showAddKnockModal()">+ Knock</button>
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
-          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>`;
+          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
+          <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
       }
       this._renderTop3();
     } else {
@@ -389,7 +391,9 @@ const UI = {
           <button class="admin-btn" onclick="UI.showAddHouseModal()">+ House</button>
           <button class="admin-btn" onclick="UI.showAddKnockModal()">+ Knock</button>
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
-          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>`;
+          <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
+          <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
       }
       App.render();
       UI.toast('Admin mode active', 'success');
@@ -555,6 +559,161 @@ const UI = {
     a.download = `chaka_canvass_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     this.toast('CSV exported ✓', 'success');
+  },
+
+  // ── Zone CSV Export (Item 3a) ─────────────────────────────────────────────
+  exportZonesCSV() {
+    const rows = [['zone_id','zone_name','zone_color','zone_type','assignee','volunteer_name','status','polygon_coordinates','house_count']];
+    App.state.turfs.forEach(t => {
+      const total     = t.houses.length;
+      const contacted = t.houses.filter(h => h.result && h.result !== 'skip').length;
+      const status    = total === 0 ? 'unstarted'
+                      : contacted === total ? 'complete'
+                      : contacted > 0 ? 'in_progress'
+                      : 'unstarted';
+      let poly = '';
+      if (t.polygon_geojson) {
+        try { poly = JSON.stringify(t.polygon_geojson); } catch(e) {}
+      }
+      rows.push([
+        t.letter,
+        t.name || `Zone ${t.letter}`,
+        t.color || '#6b7280',
+        t.mode || 'hanger',
+        t.volunteer || '[UNASSIGNED]',
+        t.volunteer || '[UNASSIGNED]',
+        status,
+        poly,
+        total,
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `zones_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.toast(`${App.state.turfs.length} zones exported ✓`, 'success');
+  },
+
+  // ── Zone CSV Import (Item 3b) ─────────────────────────────────────────────
+  showImportZonesModal() {
+    this._modal('Import Zones CSV', `
+      <div class="import-section">
+        <div class="import-step-label">Select a zones_export CSV to import</div>
+        <div class="f-hint">Columns required: <strong>zone_id, zone_color, zone_type, assignee, polygon_coordinates</strong></div>
+        <input type="file" id="zone-import-file" accept=".csv" class="import-file-input"
+          onchange="UI._handleZoneImportFile(this)"/>
+        <label for="zone-import-file" class="import-file-label" id="zone-import-file-label">📂 Choose zones CSV…</label>
+      </div>
+      <div id="zone-import-preview" style="margin-top:10px;font-size:13px;color:var(--text2)"></div>
+    `, async () => {
+      const rows = UI._importZoneRows;
+      if (!rows || !rows.length) { UI.toast('No zone rows to import', 'error'); return false; }
+      const ok = await UI._confirm(
+        'Confirm Zone Import',
+        `This will upsert <strong>${rows.length}</strong> zone${rows.length !== 1 ? 's' : ''}.<br><br>Existing zones with the same ID will be updated. New zones will be created. No zones will be deleted.`,
+        'Import Zones'
+      );
+      if (!ok) return false;
+      await UI._doZoneImport(rows);
+      return true;
+    }, 'Preview & Import');
+  },
+
+  _importZoneRows: null,
+
+  _handleZoneImportFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('zone-import-file-label').textContent = '✓ ' + file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) { UI.toast('CSV appears empty', 'error'); return; }
+        const header = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+        const req = ['zone_id','zone_color','zone_type','assignee'];
+        const missing = req.filter(c => !header.includes(c));
+        if (missing.length) { UI.toast(`Missing columns: ${missing.join(', ')}`, 'error'); return; }
+        const col = c => header.indexOf(c);
+
+        const parseCell = s => s.trim().replace(/^"|"$/g,'');
+        const rows = lines.slice(1).map(line => {
+          // CSV-aware split: handle quoted commas
+          const cells = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+            else { cur += ch; }
+          }
+          cells.push(cur);
+          const get = c => col(c) >= 0 ? parseCell(cells[col(c)] || '') : '';
+          return {
+            zone_id:   get('zone_id'),
+            zone_color: get('zone_color') || '#6b7280',
+            zone_type:  get('zone_type')  || 'hanger',
+            assignee:   get('assignee')   || '[UNASSIGNED]',
+            volunteer_name: get('volunteer_name') || get('assignee') || '[UNASSIGNED]',
+            polygon_coordinates: get('polygon_coordinates'),
+          };
+        }).filter(r => r.zone_id);
+
+        UI._importZoneRows = rows;
+        const prev = document.getElementById('zone-import-preview');
+        if (prev) {
+          const existing = rows.filter(r => App.state.turfs.some(t => String(t.letter) === String(r.zone_id))).length;
+          const newCount = rows.length - existing;
+          prev.innerHTML = `<strong>${rows.length}</strong> zones found — <strong>${existing}</strong> updates, <strong>${newCount}</strong> new`;
+        }
+      } catch(err) {
+        UI.toast('Failed to parse CSV: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  },
+
+  async _doZoneImport(rows) {
+    UI.toast(`Importing ${rows.length} zones…`, 'info');
+    let updated = 0, created = 0, failed = 0;
+    for (const row of rows) {
+      const existingTurf = App.state.turfs.find(t => String(t.letter) === String(row.zone_id));
+      try {
+        if (existingTurf) {
+          // Update existing zone
+          const fields = { color: row.zone_color, mode: row.zone_type, volunteer: row.assignee };
+          await SheetsAPI.updateTurf(row.zone_id, fields);
+          Object.assign(existingTurf, fields);
+          // Update polygon if provided
+          if (row.polygon_coordinates) {
+            try {
+              const poly = JSON.parse(row.polygon_coordinates);
+              await SheetsAPI.saveTurfPolygon(row.zone_id, poly);
+              existingTurf.polygon_geojson = poly;
+            } catch(e) { /* skip bad polygon */ }
+          }
+          updated++;
+        } else {
+          // Create new zone
+          let geojson = null;
+          if (row.polygon_coordinates) {
+            try { geojson = JSON.parse(row.polygon_coordinates); } catch(e) {}
+          }
+          const res = await SheetsAPI.createZone(
+            row.zone_id, row.zone_color,
+            row.assignee || '[UNASSIGNED]',
+            geojson, []
+          );
+          if (!res.error) created++;
+          else failed++;
+        }
+      } catch(e) { failed++; }
+    }
+    await App.loadData();
+    this.toast(`Import done — ${updated} updated, ${created} created${failed ? ', ' + failed + ' failed' : ''} ✓`, 'success');
   },
 
   // ── CSV Import ────────────────────────────────────────────────────────────

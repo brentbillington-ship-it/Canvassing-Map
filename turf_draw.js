@@ -136,9 +136,11 @@ const TurfDraw = (() => {
     if (_polygonHandler) { try { _polygonHandler.disable(); } catch(e) {} }
     _polygonHandler = new L.Draw.Polygon(_map, _drawControl.options.draw.polygon);
     _polygonHandler.enable();
-    // Make placed vertices draggable (Item 5 — standard GIS behavior)
+    // Make placed vertices draggable and right-click-deletable in create mode
     _map.off('draw:drawvertex.drag');
     _map.on('draw:drawvertex.drag', () => _makePlacedVerticesDraggable());
+    _map.off('draw:drawvertex.rc');
+    _map.on('draw:drawvertex.rc', () => _attachCreateVertexContextMenu()); // Item 5
   }
 
   // Make already-placed vertices draggable during polygon drawing
@@ -776,9 +778,40 @@ const TurfDraw = (() => {
     UI.toast('Draw cancelled');
   }
 
+  // ── Instant zone color update in drawnLayers (Item 4) ────────────────────
+  function setZoneStyle(letter, color) {
+    const isUnassigned = !color || color === '#6b7280';
+    const borderColor  = isUnassigned ? '#000000' : color;
+    Object.entries(_turfLetters).forEach(([lid, l]) => {
+      if (String(l) === String(letter)) {
+        const layer = _drawnLayers.getLayer(parseInt(lid));
+        if (layer && layer.setStyle) {
+          layer.setStyle({ color: borderColor, fillColor: borderColor });
+        }
+      }
+    });
+  }
+
+  // ── Right-click vertex delete handler for create mode (Item 5) ───────────
+  function _attachCreateVertexContextMenu() {
+    const markers = _polygonHandler?._markers;
+    if (!markers || !markers.length) return;
+    const m = markers[markers.length - 1];
+    if (m._ckRcAttached) return;
+    m._ckRcAttached = true;
+    m.on('contextmenu', e => {
+      const orig = e.originalEvent || e;
+      if (orig && orig.preventDefault) orig.preventDefault();
+      if (orig && orig.stopPropagation) orig.stopPropagation();
+      try { _polygonHandler.deleteLastVertex(); } catch(err) {}
+      _lastRightClickTime = Date.now();
+      UI.toast('Last point removed — right-click again to cancel', 'info');
+    });
+  }
+
   return {
     init, toggle, isActive, isEditing, loadTurfs, removeTurfLayer,
-    startEditBoundary, resortTurf, _onCommercialToggle,
+    startEditBoundary, resortTurf, setZoneStyle, _onCommercialToggle,
     _cancelMobilePolygon, _undoMobileVertex, _finishMobilePolygon,
     _commitEdit, _cancelEditMode, _undoLastVertex, _cancelDraw,
   };

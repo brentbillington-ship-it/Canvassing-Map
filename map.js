@@ -277,12 +277,15 @@ const MapModule = {
   _minMarkerZoom: 17,
   _allTurfsCache: [],  // store last rendered turfs for viewport refresh
 
+  _turfPolyByLetter: {},  // letter → L.geoJSON layer in turfPolygonGroup (Item 4)
+
   // ── Full render ────────────────────────────────────────────────────────────
   renderAll(turfs) {
     this.turfPolygonGroup.clearLayers();
     this.turfLabelGroup.clearLayers();
     this.houseGroup.clearLayers();
     this.houseMarkers = {};
+    this._turfPolyByLetter = {};
     this._allTurfsCache = turfs;
     turfs.forEach(turf => {
       this._renderTurfPolygon(turf, _turfColor(turf));
@@ -336,6 +339,7 @@ const MapModule = {
       const poly = L.geoJSON(geojson, {
         style: { color: borderColor, fillColor: '#000000', fillOpacity: 0.14, weight: 2.5, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
+      this._turfPolyByLetter[String(turf.letter)] = poly; // track for instant setStyle (Item 4)
       const bounds = poly.getBounds();
       if (bounds.isValid()) {
       // Zone label in turfLabelPane (z645) — above dots (z600), below address chips (z660)
@@ -362,6 +366,17 @@ const MapModule = {
       marker.addTo(this.turfLabelGroup);
       }
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
+  },
+
+  // ── Instant zone color update — no full re-render needed (Item 4) ─────────
+  setZoneStyle(letter, color) {
+    const poly = this._turfPolyByLetter[String(letter)];
+    if (!poly) return;
+    const isUnassigned = !color || color === '#6b7280';
+    const borderColor  = isUnassigned ? '#000000' : color;
+    poly.eachLayer(l => {
+      if (l.setStyle) l.setStyle({ color: borderColor });
+    });
   },
 
   // ── House dot — blank, color = result status, shape = turf mode ───────────
@@ -539,6 +554,30 @@ const MapModule = {
         ? `<span class="mode-badge knock">Knock</span>`
         : `<span class="mode-badge hanger">Hanger</span>`;
 
+    // Registered voters lookup (Item 2)
+    const voterHtml = (() => {
+      if (typeof VOTER_DATA === 'undefined') return '';
+      const addr2 = (house.address || '').trim();
+      // Normalize: strip city/state/zip suffix, uppercase
+      const normKey = addr2
+        .replace(/,\s*COPPELL\s*,\s*TX\s*\d{5}.*/i, '')
+        .replace(/,\s*COPPELL\s*,\s*TX.*/i, '')
+        .replace(/,\s*TX\s*\d{5}.*/i, '')
+        .replace(/,\s*TX.*/i, '')
+        .replace(/\s+/g, ' ').trim().toUpperCase();
+      const entry = VOTER_DATA[normKey];
+      if (!entry || !entry.voters || !entry.voters.length) return '';
+      const rows = entry.voters.map(v => {
+        const redStars  = v.may_votes  > 0 ? `<span class="voter-stars voter-stars-red">${'★'.repeat(v.may_votes)}</span>`  : '';
+        const blueStars = v.nov_votes  > 0 ? `<span class="voter-stars voter-stars-blue">${'★'.repeat(v.nov_votes)}</span>` : '';
+        return `<div class="voter-row">
+          <div class="voter-name">${_esc(v.name)}</div>
+          <div class="voter-star-rows">${redStars}${blueStars}</div>
+        </div>`;
+      }).join('');
+      return `<div class="popup-voters"><div class="popup-voters-title">Registered Voters</div>${rows}</div>`;
+    })();
+
     const gridCols = visibleResults.length <= 2 ? 2 : 3;
     const html = `
       <div class="house-popup">
@@ -550,6 +589,7 @@ const MapModule = {
             ${modeBadge}
           </div>
         </div>
+        ${voterHtml}
         ${statusHtml}
         <div class="popup-result-grid" style="grid-template-columns:repeat(${gridCols},1fr)">${btnRows}</div>
         ${notesHtml}

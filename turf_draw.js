@@ -588,10 +588,17 @@ const TurfDraw = (() => {
         <span class="pop-letter-badge" id="zone-id-badge">${nextLetter}</span>
       </div>
 
+      <label class="f-label" style="margin-top:8px">Zone Type</label>
+      <select id="zone-mode-sel" class="f-input">
+        <option value="hanger">🗂 Drop Hangers (default)</option>
+        <option value="knock">🚪 Door Knock</option>
+      </select>
       <label class="f-label" style="margin-top:8px">Assign Volunteer</label>
       ${UI._userDropdownHtml('')}
     `, () => {
       const letter    = nextLetter;
+      const modeSel   = document.getElementById('zone-mode-sel');
+      const mode      = modeSel?.value || 'hanger';
       const sel       = document.getElementById('f-volunteer-sel');
       const volunteer = sel?.value || '[UNASSIGNED]';
       const opt       = sel?.options[sel?.selectedIndex];
@@ -606,7 +613,7 @@ const TurfDraw = (() => {
       const finalParcels = ParcelsUtil.walkOrder(residential, centroid);
 
       const geojson = geojsonSnapshot;
-      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels, pendingLayer: layer });
+      App.createTurfFromDraw({ letter, color, volunteer, geojson, parcels: finalParcels, pendingLayer: layer, mode });
       _rearmDraw();
       return true;
     }, 'Create Zone', () => _rearmDraw());

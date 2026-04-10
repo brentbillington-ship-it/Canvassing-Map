@@ -432,6 +432,15 @@ body {
 .popup-turf-badge { color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
 .popup-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
 .popup-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+/* Registered Voters section (Item 2) */
+.popup-voters { padding: 8px 12px 6px; border-bottom: 1px solid var(--border); background: #f8fafc; }
+.popup-voters-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text3); margin-bottom: 5px; }
+.voter-row { margin-bottom: 5px; }
+.voter-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.4; }
+.voter-star-rows { display: flex; flex-direction: column; gap: 1px; margin-top: 2px; }
+.voter-stars { font-size: 11px; letter-spacing: 1px; display: block; line-height: 1.3; }
+.voter-stars-red  { color: #dc2626; }
+.voter-stars-blue { color: #2563eb; }
 .popup-status { padding: 6px 12px; font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--border); }
 .popup-status.unpopulated { color: var(--text4); background: var(--bg); }
 .popup-result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 8px; border-bottom: 1px solid var(--border); }

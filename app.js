@@ -294,6 +294,10 @@ const App = {
       await SheetsAPI.updateTurf(letter, fields);
       const turf = this.state.turfs.find(t => t.letter === letter);
       if (turf) Object.assign(turf, fields);
+      // Instant polygon color update — same frame as API response (Item 4)
+      const newColor = (turf?.color) || '#6b7280';
+      MapModule.setZoneStyle(letter, newColor);
+      TurfDraw.setZoneStyle(letter, newColor);
       this.render();
       UI.toast(`Zone ${letter} updated`, 'success');
     } catch(e) { UI.toast('Failed to update zone', 'error'); }
@@ -499,6 +503,9 @@ const App = {
       }
       const turf = this.state.turfs.find(t => String(t.letter) === String(letter));
       if (turf) { turf.volunteer = user.name; turf.color = user.color; }
+      // Instant polygon color update — same frame as API response (Item 4)
+      MapModule.setZoneStyle(letter, user.color);
+      TurfDraw.setZoneStyle(letter, user.color);
       this.render();
       UI.toast(`Zone ${letter} claimed ✓`, 'success');
     } catch(e) { UI.toast('Failed to claim zone', 'error'); }
@@ -510,6 +517,9 @@ const App = {
       if (res.error) { UI.toast(res.error, 'error'); return; }
       const turf = this.state.turfs.find(t => String(t.letter) === String(letter));
       if (turf) { turf.volunteer = '[UNASSIGNED]'; turf.color = '#6b7280'; }
+      // Instant polygon color update (Item 4)
+      MapModule.setZoneStyle(letter, '#6b7280');
+      TurfDraw.setZoneStyle(letter, '#6b7280');
       this.render();
       UI.toast(`Zone ${letter} unclaimed`, 'success');
     } catch(e) { UI.toast('Failed to unclaim zone', 'error'); }

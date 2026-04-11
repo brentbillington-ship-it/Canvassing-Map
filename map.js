@@ -226,7 +226,11 @@ const MapModule = {
       // no real street address — those should never render as markers.
       if (!/^\d+\s+\S/.test(addr2)) continue;
       const num = addr2.match(/^(\d+)/)[1];
-      if (parseInt(num, 10) > 99999) continue;
+      // Coppell physical addresses are always ≤ 9999. Anything higher is
+      // a DCAD mailing address (Dallas/Irving/Lewisville owner address)
+      // bleeding through — skip it. (v5.22 accidentally raised this to
+      // 99999, which let 5-digit mailing addresses like "16815" render.)
+      if (parseInt(num, 10) > 9999) continue;
       const c = ParcelsUtil.featureCentroid(f);
       if (!c || !bounds.contains([c.lat, c.lon])) continue;
 
@@ -541,7 +545,10 @@ const MapModule = {
     const markerAnchor = Math.round(markerSize / 2);
     // Hanger circles show the street number for at-a-glance navigation.
     // Knock diamonds are 14 px — too small to fit a number legibly — so skip.
-    const numLabel = !isDoorKnock ? ((house.address || '').match(/^(\d+)/)?.[1] || '') : '';
+    // Coppell physical addresses are always ≤ 9999. Numbers above that are
+    // DCAD owner mailing addresses (Dallas/Irving/Lewisville) bleeding through.
+    const _rawNum = !isDoorKnock ? ((house.address || '').match(/^(\d+)/)?.[1] || '') : '';
+    const numLabel = _rawNum && parseInt(_rawNum, 10) <= 9999 ? _rawNum : '';
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
         html: `<div class="${cls}" style="--dc:${dotColor}">${numLabel ? `<span class="house-dot-num">${numLabel}</span>` : ''}</div>`,

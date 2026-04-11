@@ -159,17 +159,14 @@ const MapModule = {
   },
 
   // ── Unassigned residential parcel markers ───────────────────────────────
-  // v5.22: Renders at zoom 17+. Every residential parcel in viewport gets a
-  // dark-grey circle with the house number in black text inside ("dark grey
-  // markers encapsulating black text" per user spec). Parcels that already
-  // have a canvassing house-dot at or near the same location are deduped out
-  // — but via LAT/LON proximity (not address string), because existing sheet
-  // rows were created from the OLD parcels.js and have different addr2
-  // strings than the new Coppell site addresses. String-based dedupe was the
-  // v5.21 bug that left ghost "double markers" everywhere.
+  // v5.23: Renders at zoom 17+. Every residential parcel NOT already covered
+  // by a canvassing house-dot gets one dark-grey hanger-style circle with the
+  // house number in black text inside — the exact same visual as an unvisited
+  // hanger marker. Parcels WITH a turf house are deduped out via 15 m
+  // proximity so they show ONLY the colored hanger dot, never a stacked dup.
   //
   // Dedupe strategy:
-  //   1. Internal: one unassigned marker per normalized addr2 (handled by `seen`)
+  //   1. Internal: one marker per normalized addr2 (handled by `seen`)
   //   2. Against turf houses: proximity within 15 m of any turf house centroid
   //      (spatial bucket index, 0.0003° / ~33 m buckets, 3x3 window).
   //      15 m is tight enough to preserve neighboring lots (~15-25 m apart
@@ -241,9 +238,13 @@ const MapModule = {
       // sheet-address problem that left ghost duplicates in v5.21.
       if (nearTurfHouse(c.lat, c.lon)) continue;
 
+      // Render using the same house-dot visual as real hanger markers —
+      // dark grey (#6b7280), white ring, black number label. Placed in
+      // addrPane (z610, non-interactive) so colored canvassing dots in
+      // housePane (z620) always render on top when present.
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
-          html: `<div class="addr-label"><span class="addr-label-num">${num}</span></div>`,
+          html: `<div class="house-dot parcel-only" style="--dc:#6b7280"><span class="house-dot-num">${num}</span></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
@@ -537,9 +538,12 @@ const MapModule = {
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
     const markerSize = isDoorKnock ? 14 : 26;
     const markerAnchor = Math.round(markerSize / 2);
+    // Hanger circles show the street number for at-a-glance navigation.
+    // Knock diamonds are 14 px — too small to fit a number legibly — so skip.
+    const numLabel = !isDoorKnock ? ((house.address || '').match(/^(\d+)/)?.[1] || '') : '';
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
-        html: `<div class="${cls}" style="--dc:${dotColor}"></div>`,
+        html: `<div class="${cls}" style="--dc:${dotColor}">${numLabel ? `<span class="house-dot-num">${numLabel}</span>` : ''}</div>`,
         className: '',
         iconSize: [markerSize, markerSize],
         iconAnchor: [markerAnchor, markerAnchor],

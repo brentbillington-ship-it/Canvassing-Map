@@ -379,3 +379,88 @@ data with broader precinct coverage or lower vote thresholds for NW-area precinc
 - tools/dedupe_parcels.py — NEW
 - tools/dedupe_report.txt — NEW (audit log)
 - version.js — v5.17 → v5.18
+
+---
+
+## v5.23 — Parcel Centroid Marker Label & Style Fixes
+
+**Branch:** `claude/fix-parcel-centroid-markers-y1XyU`
+
+### Root Cause Analysis
+
+The v5.22 parcel boundary update introduced two regressions:
+
+1. **Missing address labels on hanger markers (house-dot)**
+   - `_makeMarker` produced `<div class="house-dot" ...></div>` with an empty
+     inner div — no street number label. The number was never wired into the
+     turf marker HTML path; it only appeared in the separate `addr-label` layer.
+
+2. **Unwanted light-grey marker variant (addr-label)**
+   - v5.22 introduced a new `.addr-label` CSS class (`#9ca3af` light grey) and
+     a parallel rendering layer (`_renderUnassignedMarkers`) that stamped a
+     grey+number dot on every residential parcel in the viewport. This created
+     a visually distinct second marker style not in the legend and not matching
+     the dark-grey hanger spec.
+
+### Fixes Applied
+
+#### Item 1 — Restore Address Labels on All Hanger Markers
+- **map.js `_makeMarker`**: Added `numLabel` extraction from `house.address`
+  using `/^(\d+)/` match. Hanger (non-knock, non-complex) markers now render
+  `<span class="house-dot-num">${numLabel}</span>` inside the house-dot div.
+  Knock diamonds (14 px) intentionally excluded — too small for a legible label.
+- **style.css `.house-dot`**: Added `display: flex; align-items: center;
+  justify-content: center` so the `.house-dot-num` span is auto-centered.
+
+#### Item 2 — Remove Light-Grey Marker Variant
+- **style.css**: Removed `.addr-label` and `.addr-label-num` CSS blocks entirely.
+  The `#9ca3af` light-grey style no longer exists in the stylesheet.
+- **map.js `_renderUnassignedMarkers`**: Changed the marker HTML from the
+  removed `addr-label` class to `house-dot parcel-only` with `--dc:#6b7280`
+  (dark grey, matching unvisited hanger circles). The rendered marker is now
+  visually identical to an unvisited hanger marker.
+
+#### Item 3 — Auto-Create Hanger Markers for New Centroids
+- **map.js `_renderUnassignedMarkers`** (same function, fixed output): Each
+  parcel centroid not within 15 m of an existing turf house now renders a
+  dark-grey `house-dot parcel-only` with the street number via `.house-dot-num`.
+  These markers: live in `addrPane` (z610, non-interactive); use the same
+  15 m proximity dedupe against `_allTurfsCache`; scale with `--dot-size` like
+  all other canvassing markers; appear at zoom 17+. No Sheet writes needed —
+  these are display-only unvisited placeholders at parcel centroid positions.
+
+#### CSS — `.house-dot-num` (new class)
+```css
+.house-dot-num {
+  font-size: 9px; font-weight: 800; color: #000;
+  letter-spacing: -0.4px; white-space: nowrap;
+  user-select: none; pointer-events: none;
+}
+```
+
+#### CSS — `.house-dot.parcel-only` (new modifier)
+```css
+.house-dot.parcel-only {
+  margin-left: calc((32px - var(--dot-size, 20px)) / 2);
+  margin-top:  calc((32px - var(--dot-size, 20px)) / 2);
+  cursor: default; pointer-events: none;
+}
+```
+Centers the dot within the fixed 32×32 Leaflet icon wrapper as `--dot-size`
+scales with zoom (same technique `.addr-label` used).
+
+### Self-Check Results
+- All hanger markers (turf house-dots): dark grey circle, white ring, black
+  number label ✓
+- No light-grey (`#9ca3af`) markers anywhere — `.addr-label` class removed ✓
+- New parcel centroids without Sheet entries: render as dark-grey house-dot
+  with number, identical to unvisited hanger markers ✓
+- Legend unchanged — no new marker types added ✓
+- Knock diamonds: unchanged (no number label — intentional, too small) ✓
+- Apartment complex markers: unchanged (use cbadge-id for building label) ✓
+
+### Files Changed in v5.23
+- map.js — `_makeMarker` number label; `_renderUnassignedMarkers` style fix
+- style.css — removed `.addr-label`/`.addr-label-num`; added `.house-dot-num`,
+  `display:flex` on `.house-dot`, `.house-dot.parcel-only`
+- tools/known_issues.md — this entry

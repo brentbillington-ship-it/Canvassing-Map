@@ -710,39 +710,21 @@ body {
   font-weight: 700;
 }
 
-/* ─── Address label — v5.22 ────────────────────────────────────────────────
-   Every residential parcel in viewport at zoom 17+ gets one of these. It's
-   the "dark grey marker encapsulating a black house number" visual: a
-   medium-grey filled circle with a black number label inside. Canvassing
-   house-dots (colored) render in housePane (z620), which is ABOVE addrPane
-   (z610) — but they're deduped via 15 m proximity in _renderUnassignedMarkers,
-   so turf homes show ONLY the colored dot, never a stacked duplicate.
-   Size tracks --dot-size so it scales with zoom like the canvassing markers. */
-.addr-label {
-  width: var(--dot-size, 20px);
-  height: var(--dot-size, 20px);
-  border-radius: 50%;
-  background: #9ca3af;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  box-sizing: border-box;
-  /* Lives in a fixed 32x32 Leaflet wrapper; center tracking --dot-size */
-  margin-left: calc((32px - var(--dot-size, 20px)) / 2);
-  margin-top:  calc((32px - var(--dot-size, 20px)) / 2);
-}
-.addr-label-num {
-  font-size: 10px;
+/* ─── House dot number label ────────────────────────────────────────────────
+   Black street number shown inside every hanger circle (turf markers and
+   parcel-only dots at zoom 17+). Not shown for knock diamonds (too small)
+   or apartment complex badges (use cbadge-id instead).
+   House-dot uses display:flex so this span is auto-centered. */
+.house-dot-num {
+  font-size: 9px;
   font-weight: 800;
   color: #000;
   line-height: 1;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
   white-space: nowrap;
   user-select: none;
+  pointer-events: none;
 }
 
 /* ─── House dot ─────────────────────────────────────────────────────────────── */
@@ -751,8 +733,7 @@ body {
   background: var(--dc, #6b7280);
   border: 2px solid rgba(255,255,255,0.95);
   box-shadow: 0 2px 5px rgba(0,0,0,0.35);
-  /* v5.21: turf-assigned house-dots jump to full opacity so colors read clearly
-     against the satellite imagery. */
+  display: flex; align-items: center; justify-content: center;
   opacity: var(--dot-opacity, 0.95);
   transition: transform 0.15s, opacity 0.15s, width 0.2s, height 0.2s;
   cursor: pointer;
@@ -765,6 +746,15 @@ body {
    screen space (before rotate) so the offset reads correctly. */
 .house-dot.diamond { border-radius: 3px; transform: translate(11px, -11px) rotate(45deg); opacity: 0.95; border: 1.5px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.35); }
 .house-dot.diamond:hover { transform: translate(11px, -11px) rotate(45deg) scale(1.3); }
+/* Parcel-only markers live in a fixed 32x32 Leaflet icon wrapper in addrPane.
+   Center the dot within that wrapper as --dot-size scales with zoom. Non-
+   interactive: pointer-events are disabled on the pane and the marker. */
+.house-dot.parcel-only {
+  margin-left: calc((32px - var(--dot-size, 20px)) / 2);
+  margin-top:  calc((32px - var(--dot-size, 20px)) / 2);
+  cursor: default;
+  pointer-events: none;
+}
 
 /* ─── Mode toggle ───────────────────────────────────────────────────────────── */
 

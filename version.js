@@ -1,3 +1,3 @@
 // ─── Chaka Canvassing — Version ───────────────────────────────────────────
 // Update this file only when pushing a new version.
-const APP_VERSION = 'v5.24';
+const APP_VERSION = 'v5.25';

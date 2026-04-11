@@ -8,7 +8,7 @@
  *  ✅ Same URL — no config.js change needed
  * ─────────────────────────────────────────────────────────────
  *
- * Chaka Canvassing — Google Sheets Backend v4.9
+ * Chaka Canvassing — Google Sheets Backend v5.22
  *
  *  "houses"       — id | turf | owner | address | lat | lon | notes |
  *                   result | result_date | result_by | sort_order

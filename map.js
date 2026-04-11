@@ -42,6 +42,11 @@ const MapModule = {
       { attribution: '© Esri', maxZoom: 19, opacity: 0.65, crossOrigin: true }
     );
 
+    // v5.21: Road Labels is an opt-in overlay, NOT added to the map by default.
+    // The Street base layer is a full voyager raster that already has street
+    // names baked in, so toggling to Street still shows labels. When Aerial is
+    // active, labels stay hidden unless the user explicitly enables "Road Labels"
+    // in the layer control. Fixes persistent street-name bleed-through on aerial.
     this.map.createPane('labelsPane');
     this.map.getPane('labelsPane').style.zIndex = 580;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
@@ -50,7 +55,13 @@ const MapModule = {
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
-    // Zone label pane — above markerPane (z600) but below addrPane (z660)
+    // Pane z-index order (low -> high):
+    //   labelsPane (580)   — opt-in voyager street labels (hidden by default on aerial)
+    //   markerPane (600)   — Leaflet default
+    //   addrPane   (610)   — unassigned residential parcel markers (neutral gray)
+    //   housePane  (620)   — canvassing house-dots (turf colors, knock diamonds)
+    //   turfLabelPane(645) — zone letter badges, clickable
+    //   schoolPane (700)   — 🏫 school labels, always on top
     this.map.createPane('turfLabelPane');
     this.map.getPane('turfLabelPane').style.zIndex = 645;
     this.map.getPane('turfLabelPane').style.pointerEvents = 'auto';
@@ -70,7 +81,7 @@ const MapModule = {
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
-    labels.addTo(this.map);
+    // labels layer NOT added by default — see Road Labels overlay below.
     // Aerial tile opacity 0.65 on all devices for consistent look
 
     // CISD boundary layer
@@ -107,19 +118,22 @@ const MapModule = {
     setTimeout(() => this.map.invalidateSize(), 100);
     this._tryInitialGPS();
 
-    // Split zoom and pan listeners — address labels only at zoom≥18, markers gated at zoom≥15
+    // Zoom and pan listeners — markers gated at zoom 17 / 16 per type
+    // _refreshVisibleMarkers runs first so that the turf house-dot dedupe set
+    // in _renderUnassignedMarkers is populated from the data cache, then the
+    // unassigned gray dots render for everything else.
     this.map.on('zoomend', () => {
       this._updateZoomStyle();
-      this._renderAddressLabels();
       this._refreshVisibleMarkers();
+      this._renderUnassignedMarkers();
     });
     // Debounce moveend so rapid panning doesn't rebuild markers on every pixel
     let _moveTimer = null;
     this.map.on('moveend', () => {
       clearTimeout(_moveTimer);
       _moveTimer = setTimeout(() => {
-        this._renderAddressLabels();
         this._refreshVisibleMarkers();
+        this._renderUnassignedMarkers();
       }, 150);
     });
     this._updateZoomStyle();
@@ -144,16 +158,30 @@ const MapModule = {
     }, () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
   },
 
-  // ── Residential parcel markers — every house gets a consistent circle ────
-  // Renders at zoom 17+ (same as hanger markers). Each residential parcel shows
-  // a small white circle with its house number. Canvassing markers (knock diamonds,
-  // hanger circles) render in housePane ABOVE this pane, so for turfs with state
-  // the colored marker is what the user sees. For untouched parcels, the consistent
-  // white circle is visible — no more plain-text numbers floating on the basemap.
-  _renderAddressLabels() {
+  // ── Unassigned residential parcel markers ───────────────────────────────
+  // v5.21: Renders at zoom 17+ (same as hanger markers). Each residential parcel
+  // that is NOT already represented by a canvassing house-dot gets a small
+  // neutral-gray circle in the same visual language as hanger circles. Parcels
+  // WITH a turf house are deduped out — their colored house-dot is the only
+  // marker at that location. Result: every home has exactly one marker, every
+  // marker uses the same visual language (solid circle), no more mixed
+  // white-with-text labels floating alongside colored dots.
+  _renderUnassignedMarkers() {
     this.addressLabelGroup.clearLayers();
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
+
+    // Build dedupe set of addresses that already have a canvassing marker.
+    // _refreshVisibleMarkers runs before this so every in-viewport turf house
+    // is already rendered as a .house-dot in housePane. We match by normalized
+    // address string — same normalization the click handler / list view use.
+    const turfAddrs = new Set();
+    for (const turf of (this._allTurfsCache || [])) {
+      for (const house of (turf.houses || [])) {
+        const k = (house.address || '').toUpperCase().replace(/\s+/g, ' ').trim();
+        if (k) turfAddrs.add(k);
+      }
+    }
 
     const bounds = this.map.getBounds().pad(0.05);
     const seen = new Set();
@@ -162,19 +190,19 @@ const MapModule = {
       const addr2 = (f.properties.addr2 || '').trim();
       if (!addr2) continue;
       if (ParcelsUtil.isCommercialOrApt(addr2, f.properties)) continue;
-      // Must start with a street number
+      // Must start with a street number (skip PO boxes / weird DCAD records)
       const num = addr2.match(/^(\d+)/)?.[1];
       if (!num || parseInt(num, 10) > 9999) continue;
       const c = ParcelsUtil.featureCentroid(f);
       if (!c || !bounds.contains([c.lat, c.lon])) continue;
-      // Dedupe by addr2 — prevents the same number showing twice from co-owner records
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
+      if (turfAddrs.has(dedupeKey)) continue;  // already rendered as a turf house-dot
       seen.add(dedupeKey);
 
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
-          html: `<div class="addr-marker"><span class="addr-marker-num">${num}</span></div>`,
+          html: `<div class="house-dot unassigned"></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
@@ -216,7 +244,11 @@ const MapModule = {
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
     const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
     const size    = Math.round(lerp(8, 26, t));
-    const opacity = lerp(0.65, 0.95, t).toFixed(2);
+    // v5.21: bump opacity lerp from 0.65-0.95 -> 0.80-1.0. The old range was
+    // tuned to let a white addr-marker show through from underneath — that
+    // layer is gone in v5.21, so turf colors need to read at full saturation
+    // against the satellite imagery (no more washed-out pastel dots).
+    const opacity = lerp(0.80, 1.0, t).toFixed(2);
     const anchor  = Math.round(size / 2);
     // Polygon fill opacity: 0.30 at zoom 13 (visible from far) → 0.05 at zoom 18+
     // (very transparent so markers dominate). Markers appear at zoom 16.
@@ -276,10 +308,11 @@ const MapModule = {
     turfs.forEach(turf => {
       this._renderTurfPolygon(turf, _turfColor(turf));
     });
-    // Apply zoom threshold before adding markers
+    // Apply zoom threshold before adding markers. Turf house-dots must render
+    // first so _renderUnassignedMarkers can dedupe against _allTurfsCache.
     this._updateZoomStyle();
     this._refreshVisibleMarkers();
-    this._renderAddressLabels();
+    this._renderUnassignedMarkers();
     this._renderLegend();
   },
 

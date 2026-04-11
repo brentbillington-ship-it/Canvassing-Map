@@ -710,50 +710,36 @@ body {
   font-weight: 700;
 }
 
-/* ─── Address markers (every residential parcel) ─── v5.20 ─────────────────
-   Renders at zoom 17+ in the addrPane (below housePane) so canvassing markers
-   overlay cleanly. Unified white-circle style across every parcel — no more
-   mixed plain-text and circle styles. Size matches --dot-size (set by
-   _updateZoomStyle) so hanger circles overlay cleanly without edge artifacts. */
-.addr-marker {
-  width: var(--dot-size, 20px);
-  height: var(--dot-size, 20px);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid rgba(40, 40, 40, 0.8);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  box-sizing: border-box;
-  /* Center inside the 32x32 Leaflet wrapper */
-  margin-left: calc((32px - var(--dot-size, 20px)) / 2);
-  margin-top: calc((32px - var(--dot-size, 20px)) / 2);
-}
-.addr-marker-num {
-  font-size: 9px;
-  font-weight: 800;
-  color: #1f2937;
-  line-height: 1;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-  user-select: none;
-}
-
 /* ─── House dot ─────────────────────────────────────────────────────────────── */
 .house-dot {
   width: var(--dot-size, 20px); height: var(--dot-size, 20px); border-radius: 50%;
   background: var(--dc, #6b7280);
   border: 2px solid rgba(255,255,255,0.95);
   box-shadow: 0 2px 5px rgba(0,0,0,0.35);
-  /* v5.20: blank house-dots are 70% opaque so the addr-marker underneath is visible.
-     Completed houses (.done) jump to full opacity so the result color dominates. */
-  opacity: var(--dot-opacity, 0.70);
+  /* v5.21: turf-assigned house-dots jump to full opacity so colors read clearly
+     against the satellite imagery. The old 0.70 transparency was needed while
+     the white addr-marker was layered underneath — that layer is gone now. */
+  opacity: var(--dot-opacity, 0.95);
   transition: transform 0.15s, opacity 0.15s, width 0.2s, height 0.2s;
   cursor: pointer;
   position: relative; z-index: 2;
+}
+/* v5.21: Unassigned parcel marker — same circle visual language as canvassing
+   house-dots, just in a neutral gray. Non-interactive (click-through to zone
+   polygon). Ensures every home on the map renders as a single consistent
+   circle regardless of canvassing state. No more mixed white-with-text vs.
+   colored-dot visual split. Lives in a fixed 32x32 Leaflet wrapper (unlike
+   turf house-dots whose wrapper is set to the dot size by _updateZoomStyle),
+   so it needs an explicit centering margin tracking --dot-size. */
+.house-dot.unassigned {
+  background: #cbd5e1;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.30);
+  opacity: 0.78;
+  cursor: default;
+  box-sizing: border-box;
+  margin-left: calc((32px - var(--dot-size, 20px)) / 2);
+  margin-top:  calc((32px - var(--dot-size, 20px)) / 2);
 }
 .house-dot.done { opacity: min(calc(var(--dot-opacity, 0.55) + 0.2), 1); }
 .house-dot:hover { transform: scale(1.3); opacity: 1 !important; z-index: 9999; }
@@ -1407,7 +1393,7 @@ body {
   }
   /* Aerial tile: force 0.65 opacity on mobile to match desktop */
   .leaflet-tile-pane img { opacity: 0.65 !important; }
-  /* addr-label wrapper: always transparent regardless of dark mode */
+  /* Marker wrappers: always transparent regardless of dark mode */
   .leaflet-pane.leaflet-shadow-pane,
   .leaflet-marker-pane > div { background: transparent !important; }
 }

@@ -1,1508 +1,254 @@
 [
   {
-    "feature_index": 12,
-    "parcel_id": "309256",
-    "old_address": "621 SH 121 (BYPASS)",
+    "feature_index": 1690,
+    "parcel_id": "65149357510030000",
+    "old_address": "1780 E BELT LINE RD",
     "corrected_address": ""
   },
   {
-    "feature_index": 221,
-    "parcel_id": "336435",
-    "old_address": "695 SH 121 (BYPASS)",
+    "feature_index": 1693,
+    "parcel_id": "65074113010010100",
+    "old_address": "1800 E BELTLINE RD",
     "corrected_address": ""
   },
   {
-    "feature_index": 230,
-    "parcel_id": "18042100040020000",
-    "old_address": "4255 PATRIOT DR",
+    "feature_index": 1746,
+    "parcel_id": "65149357510042200",
+    "old_address": "1507 E BELT LINE RD",
     "corrected_address": ""
   },
   {
-    "feature_index": 231,
-    "parcel_id": "18042100050020000",
-    "old_address": "4250 PATRIOT DR",
+    "feature_index": 2197,
+    "parcel_id": "180016700A0010000",
+    "old_address": "621 S ROYAL LN",
     "corrected_address": ""
   },
   {
-    "feature_index": 232,
-    "parcel_id": "18042100050030000",
-    "old_address": "4265 TRADE CENTER DR",
+    "feature_index": 8281,
+    "parcel_id": "189013600A0040000",
+    "old_address": "120 DIVIDEND DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 235,
-    "parcel_id": "18042100030020000",
-    "old_address": "200 TRADE CENTER DR",
+    "feature_index": 8294,
+    "parcel_id": "180060400503R0000",
+    "old_address": "112 WRANGLER DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 245,
-    "parcel_id": "188700000A0020000",
-    "old_address": "1030 W SANDY LAKE RD",
+    "feature_index": 8299,
+    "parcel_id": "18006080070050000",
+    "old_address": "1111 EXECUTIVE BLVD",
     "corrected_address": ""
   },
   {
-    "feature_index": 1492,
-    "parcel_id": "65149357510042800",
-    "old_address": "600 S MACARTHUR BLVD",
+    "feature_index": 8300,
+    "parcel_id": "180060700704R0000",
+    "old_address": "425 AIRLINE DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 1689,
-    "parcel_id": "65074113010010000",
-    "old_address": "1850 E BELT LINE RD",
+    "feature_index": 8302,
+    "parcel_id": "180016200A0020000",
+    "old_address": "1111 FREEPORT PKWY",
     "corrected_address": ""
   },
   {
-    "feature_index": 1744,
-    "parcel_id": "18006570000010000",
-    "old_address": "777 FAIRWAY DR",
+    "feature_index": 8304,
+    "parcel_id": "180016200A03R0000",
+    "old_address": "601 FRITZ DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 1745,
-    "parcel_id": "18006570000020000",
-    "old_address": "770 FAIRWAY DR",
+    "feature_index": 8305,
+    "parcel_id": "18001620000000A00",
+    "old_address": "900 FREEPORT PKWY",
     "corrected_address": ""
   },
   {
-    "feature_index": 2107,
-    "parcel_id": "180060400802R0000",
-    "old_address": "505 AIRLINE DR",
+    "feature_index": 8308,
+    "parcel_id": "18001620020000A00",
+    "old_address": "600 GATEWAY BLVD",
     "corrected_address": ""
   },
   {
-    "feature_index": 2108,
-    "parcel_id": "18006040080010000",
-    "old_address": "555 AIRLINE DR",
+    "feature_index": 8557,
+    "parcel_id": "18001670003CR0000",
+    "old_address": "440 S ROYAL LN",
     "corrected_address": ""
   },
   {
-    "feature_index": 2109,
-    "parcel_id": "180016200C0010000",
-    "old_address": "603 AIRLINE DR",
+    "feature_index": 8562,
+    "parcel_id": "180000400A2R3R100",
+    "old_address": "350 NORTHPOINT DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2114,
-    "parcel_id": "00845900000000200",
-    "old_address": "12000 N MACARTHUR BLVD",
+    "feature_index": 8563,
+    "parcel_id": "180000400A1BR0000",
+    "old_address": "301 NORTHPOINT DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2115,
-    "parcel_id": "180067900A0010000",
-    "old_address": "1000 S ROYAL LN",
+    "feature_index": 8565,
+    "parcel_id": "180000400A1AR0000",
+    "old_address": "201 NORTHPOINT DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2154,
-    "parcel_id": "18DFW0VS000000000",
-    "old_address": "1000 COTTON RD",
+    "feature_index": 8570,
+    "parcel_id": "18001730011R1B000",
+    "old_address": "724 CANYON DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2156,
-    "parcel_id": "18006040080040000",
-    "old_address": "398 FREEPORT PKWY",
+    "feature_index": 9141,
+    "parcel_id": "180019100C1R10000",
+    "old_address": "601 DIVIDEND DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2157,
-    "parcel_id": "18006040083R10000",
-    "old_address": "508 WRANGLER DR",
+    "feature_index": 9142,
+    "parcel_id": "180023400D01X0000",
+    "old_address": "1 DIVIDEND DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2158,
-    "parcel_id": "18000250010010000",
-    "old_address": "1751 E BELT LINE RD",
+    "feature_index": 12023,
+    "parcel_id": "180016700002R0000",
+    "old_address": "680 S ROYAL LN",
     "corrected_address": ""
   },
   {
-    "feature_index": 2159,
-    "parcel_id": "65043133010010000",
-    "old_address": "1701 LEDBETTER RD",
+    "feature_index": 12762,
+    "parcel_id": "180062800A0010000",
+    "old_address": "320 S STATE HWY 121",
     "corrected_address": ""
   },
   {
-    "feature_index": 2165,
-    "parcel_id": "65149357510040100",
-    "old_address": "1550 E BELT LINE RD",
+    "feature_index": 12879,
+    "parcel_id": "186654500B0040000",
+    "old_address": "310 NORTHWEST DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2166,
-    "parcel_id": "180018400A0020000",
-    "old_address": "1721 E BELTLINE RD",
+    "feature_index": 12913,
+    "parcel_id": "12913",
+    "old_address": "111 RIVER ST STE 1010",
     "corrected_address": ""
   },
   {
-    "feature_index": 2169,
-    "parcel_id": "65043133010040000",
-    "old_address": "1799 LEDBETTER RD",
+    "feature_index": 12914,
+    "parcel_id": "12914",
+    "old_address": "3311 BOYINGTON DR STE 400",
     "corrected_address": ""
   },
   {
-    "feature_index": 2170,
-    "parcel_id": "65043133010040100",
-    "old_address": "1700 LEDBETTER RD",
+    "feature_index": 12915,
+    "parcel_id": "12915",
+    "old_address": "3800 W CANAL ST",
     "corrected_address": ""
   },
   {
-    "feature_index": 2171,
-    "parcel_id": "65043133010030100",
-    "old_address": "1794 LEDBETTER RD",
+    "feature_index": 14965,
+    "parcel_id": "14965",
+    "old_address": "8309 LAKEHURST DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 2172,
-    "parcel_id": "65003022010090100",
-    "old_address": "1909 LEDBETTER RD",
+    "feature_index": 14971,
+    "parcel_id": "14971",
+    "old_address": "107 PITTSBURG ST",
     "corrected_address": ""
   },
   {
-    "feature_index": 2173,
-    "parcel_id": "65031944010020800",
-    "old_address": "9690 VALLEY RANCH PKWY",
+    "feature_index": 14984,
+    "parcel_id": "14984",
+    "old_address": "835 W IRVING BLVD",
     "corrected_address": ""
   },
   {
-    "feature_index": 2174,
-    "parcel_id": "00845800000000000",
-    "old_address": "9598 E VALLEY RANCH PKWY",
+    "feature_index": 14986,
+    "parcel_id": "14986",
+    "old_address": "4447 TAOS RD",
     "corrected_address": ""
   },
   {
-    "feature_index": 2195,
-    "parcel_id": "180016700A0020000",
-    "old_address": "611 S ROYAL LN",
+    "feature_index": 14987,
+    "parcel_id": "14987",
+    "old_address": "500 N CAPITAL OF TEXAS HWY STE 200",
     "corrected_address": ""
   },
   {
-    "feature_index": 2196,
-    "parcel_id": "180016700A0030000",
-    "old_address": "601 S ROYAL LN",
+    "feature_index": 14988,
+    "parcel_id": "14988",
+    "old_address": "8650 S FREEPORT PKWY",
     "corrected_address": ""
   },
   {
-    "feature_index": 2199,
-    "parcel_id": "65149357510042700",
-    "old_address": "1505 E BELTLINE RD",
+    "feature_index": 15017,
+    "parcel_id": "15017",
+    "old_address": "255 WASHINGTON ST",
     "corrected_address": ""
   },
   {
-    "feature_index": 2901,
-    "parcel_id": "18000180000010000",
-    "old_address": "542 BEVERLY DR",
+    "feature_index": 15018,
+    "parcel_id": "15018",
+    "old_address": "15 LINDSLEY AVE",
     "corrected_address": ""
   },
   {
-    "feature_index": 3222,
-    "parcel_id": "18006070022R30000",
-    "old_address": "1025 S BELT LINE RD",
+    "feature_index": 15035,
+    "parcel_id": "15035",
+    "old_address": "7501 ESTERS BLVD STE B130",
     "corrected_address": ""
   },
   {
-    "feature_index": 3223,
-    "parcel_id": "18006070022R10100",
-    "old_address": "204 AIRLINE DR",
+    "feature_index": 15091,
+    "parcel_id": "15091",
+    "old_address": "301 COMMERCE ST STE 1399",
     "corrected_address": ""
   },
   {
-    "feature_index": 3224,
-    "parcel_id": "18006070021R10000",
-    "old_address": "500 AIRLINE DR",
+    "feature_index": 15096,
+    "parcel_id": "15096",
+    "old_address": "6012 W CAMPUS CIRCLE DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 3226,
-    "parcel_id": "18006070022R10000",
-    "old_address": "306 AIRLINE DR",
+    "feature_index": 15823,
+    "parcel_id": "15823",
+    "old_address": "650 NEWPORT CENTER DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 3227,
-    "parcel_id": "18006070021R20000",
-    "old_address": "450 AIRLINE DR",
+    "feature_index": 15873,
+    "parcel_id": "15873",
+    "old_address": "800 BRAZOS ST STE 600",
     "corrected_address": ""
   },
   {
-    "feature_index": 8280,
-    "parcel_id": "189013600A0030000",
-    "old_address": "300 DIVIDEND DR",
+    "feature_index": 16797,
+    "parcel_id": "16797",
+    "old_address": "221 HAWKSWOOD DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 8282,
-    "parcel_id": "180061500B02R0000",
-    "old_address": "1333 CRESTSIDE DR",
+    "feature_index": 16800,
+    "parcel_id": "16800",
+    "old_address": "110 VIA MENTONE",
     "corrected_address": ""
   },
   {
-    "feature_index": 8287,
-    "parcel_id": "65005640510010200",
-    "old_address": "1525 POINT WEST BLVD",
+    "feature_index": 16802,
+    "parcel_id": "16802",
+    "old_address": "200 NORTHPOINT DR",
     "corrected_address": ""
   },
   {
-    "feature_index": 8288,
-    "parcel_id": "180016300B0010000",
-    "old_address": "1421 S BELTLINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8289,
-    "parcel_id": "180023700A0020000",
-    "old_address": "240 DIVIDEND DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8292,
-    "parcel_id": "180045500A0010000",
-    "old_address": "1201 S BELTLINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8293,
-    "parcel_id": "18006080060010000",
-    "old_address": "1110 EXECUTIVE BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8295,
-    "parcel_id": "180060400502R0000",
-    "old_address": "1199 S BELTLINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8296,
-    "parcel_id": "18006040050010000",
-    "old_address": "1177 S BELTLINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8297,
-    "parcel_id": "18006070070030000",
-    "old_address": "1150 ENTERPRISE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8298,
-    "parcel_id": "18006040070020000",
-    "old_address": "455 AIRLINE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8303,
-    "parcel_id": "180020200I01R0000",
-    "old_address": "635 FRITZ DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8306,
-    "parcel_id": "18001620010010000",
-    "old_address": "660 FRITZ DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8307,
-    "parcel_id": "18001620010020000",
-    "old_address": "955 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8309,
-    "parcel_id": "18001620023CR0000",
-    "old_address": "710 GATEWAY BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8311,
-    "parcel_id": "18034240000000000",
-    "old_address": "800 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8313,
-    "parcel_id": "180016200203B0100",
-    "old_address": "925 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8314,
-    "parcel_id": "18001620023AR2000",
-    "old_address": "950 EXCHANGE CIR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8316,
-    "parcel_id": "18002840014R10000",
-    "old_address": "779 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8317,
-    "parcel_id": "180028400103R0000",
-    "old_address": "775 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8318,
-    "parcel_id": "180028400101R0000",
-    "old_address": "777 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8319,
-    "parcel_id": "180028400102R0000",
-    "old_address": "921 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8324,
-    "parcel_id": "180021800A2R20000",
-    "old_address": "700 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8325,
-    "parcel_id": "180021800A2R10000",
-    "old_address": "800 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8326,
-    "parcel_id": "180021800A0060000",
-    "old_address": "625 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8327,
-    "parcel_id": "180021800A5R20000",
-    "old_address": "635 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8328,
-    "parcel_id": "180021800A0040000",
-    "old_address": "600 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8516,
-    "parcel_id": "187000000A1R10000",
-    "old_address": "400 S FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8553,
-    "parcel_id": "18000960010010000",
-    "old_address": "1080 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8555,
-    "parcel_id": "180016700005R0200",
-    "old_address": "586 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8556,
-    "parcel_id": "18001670010010000",
-    "old_address": "404 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8558,
-    "parcel_id": "180016700004R0000",
-    "old_address": "600 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8559,
-    "parcel_id": "18001890010020000",
-    "old_address": "2450 STATE HWY 121",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8560,
-    "parcel_id": "18001670011R20000",
-    "old_address": "445 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8564,
-    "parcel_id": "180018000002R0000",
-    "old_address": "989 W SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8567,
-    "parcel_id": "18001670020010000",
-    "old_address": "1110 NORTHPOINT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8568,
-    "parcel_id": "180034900101R0000",
-    "old_address": "861 W SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 8744,
-    "parcel_id": "65132715510030200",
-    "old_address": "375 N DENTON TAP RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 9140,
-    "parcel_id": "180019100C2R10000",
-    "old_address": "555 DIVIDEND DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 9495,
-    "parcel_id": "180014400101R0000",
-    "old_address": "185 W PARKWAY BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 9502,
-    "parcel_id": "180010100A01R0000",
-    "old_address": "234 E PARKWAY BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11006,
-    "parcel_id": "65069869010030000",
-    "old_address": "1575 SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11007,
-    "parcel_id": "65115256510050000",
-    "old_address": "1503 SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11008,
-    "parcel_id": "187310500A0010000",
-    "old_address": "1530 E SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11100,
-    "parcel_id": "180021800A0070000",
-    "old_address": "615 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11410,
-    "parcel_id": "18003450020000000",
-    "old_address": "850 NORTH LAKE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11563,
-    "parcel_id": "180045500E0010000",
-    "old_address": "1315 S BELT LINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11564,
-    "parcel_id": "180045500D1R2R000",
-    "old_address": "1221 S BELT LINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11572,
-    "parcel_id": "65096817510080000",
-    "old_address": "1001 NORTHPOINT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11573,
-    "parcel_id": "65096817510070000",
-    "old_address": "353 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11575,
-    "parcel_id": "180000400A2R1R000",
-    "old_address": "825 W SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11788,
-    "parcel_id": "180017311R1AR2000",
-    "old_address": "788 CANYON DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11853,
-    "parcel_id": "18001670030030000",
-    "old_address": "585 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 11867,
-    "parcel_id": "180021800A03R0000",
-    "old_address": "500 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12022,
-    "parcel_id": "180016700003R0000",
-    "old_address": "650 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12024,
-    "parcel_id": "180012100A0020000",
-    "old_address": "940 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12028,
-    "parcel_id": "180019100B0000A00",
-    "old_address": "600 DIVIDEND DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12029,
-    "parcel_id": "180023700A0010000",
-    "old_address": "400 DIVIDEND DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12030,
-    "parcel_id": "180019100B01R0000",
-    "old_address": "1250 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12043,
-    "parcel_id": "188700000A0040000",
-    "old_address": "240 W STATE HWY 121",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12228,
-    "parcel_id": "180000400A1CR0000",
-    "old_address": "330 S ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12627,
-    "parcel_id": "18005380010020000",
-    "old_address": "751 CANYON DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12632,
-    "parcel_id": "180012100A01R0000",
-    "old_address": "980 W BETHEL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12637,
-    "parcel_id": "180010900A0010000",
-    "old_address": "1201 WRANGLER DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12638,
-    "parcel_id": "18006960010010000",
-    "old_address": "944 W SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12639,
-    "parcel_id": "18001220011R30000",
-    "old_address": "800 W SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12645,
-    "parcel_id": "186654500A0030000",
-    "old_address": "220 N FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12646,
-    "parcel_id": "186654500A4R20000",
-    "old_address": "360 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12647,
-    "parcel_id": "186654500B01R0000",
-    "old_address": "415 N FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12650,
-    "parcel_id": "188250000A0010000",
-    "old_address": "450 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12720,
-    "parcel_id": "65171653510030000",
-    "old_address": "1300 CREEKVIEW DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12742,
-    "parcel_id": "189060800A0010000",
-    "old_address": "631 SOUTHWESTERN BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12745,
-    "parcel_id": "18006040000000A00",
-    "old_address": "500 SOUTHWESTERN DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12751,
-    "parcel_id": "180016700302R0000",
-    "old_address": "1125 GATEVIEW DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12752,
-    "parcel_id": "18005140011R30000",
-    "old_address": "1155 NORTHPOINT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12754,
-    "parcel_id": "189019100A01R0000",
-    "old_address": "1225 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12755,
-    "parcel_id": "65129685510180400",
-    "old_address": "1200 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12766,
-    "parcel_id": "65177243010100000",
-    "old_address": "601 STATE HWY 121",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12767,
-    "parcel_id": "65179500000120000",
-    "old_address": "100 PATRIOT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12768,
-    "parcel_id": "18042100040030000",
-    "old_address": "4301 PATRIOT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12800,
-    "parcel_id": "187305000A0010000",
-    "old_address": "1201 CREEKVIEW DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12811,
-    "parcel_id": "00845900000010000",
-    "old_address": "10200 COWBOYS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12813,
-    "parcel_id": "186654500B2R10000",
-    "old_address": "455 N FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12904,
-    "parcel_id": "12904",
-    "old_address": "14131 MIDWAY RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12905,
-    "parcel_id": "12905",
-    "old_address": "4490 LAKESIDE PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12911,
-    "parcel_id": "12911",
-    "old_address": "14241 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12912,
-    "parcel_id": "12912",
-    "old_address": "14841 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12918,
-    "parcel_id": "12918",
-    "old_address": "2929 N IH 35E",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12919,
-    "parcel_id": "12919",
-    "old_address": "861 LAKE VISTA DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12923,
-    "parcel_id": "12923",
-    "old_address": "2398 SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 12996,
-    "parcel_id": "12996",
-    "old_address": "11771 MIRA LAGO BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13015,
-    "parcel_id": "13015",
-    "old_address": "10549 CHAUCER HILL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13016,
-    "parcel_id": "13016",
-    "old_address": "10531 FAULKNER POINT WAY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13060,
-    "parcel_id": "13060",
-    "old_address": "10538 TENNYSON RIDGE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13084,
-    "parcel_id": "13084",
-    "old_address": "10342 LAKEBREEZE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13150,
-    "parcel_id": "13150",
-    "old_address": "10319 MARCHANT LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13174,
-    "parcel_id": "13174",
-    "old_address": "10424 STOKES LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13175,
-    "parcel_id": "13175",
-    "old_address": "10415 MATEO TRAIL",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13185,
-    "parcel_id": "13185",
-    "old_address": "10419 LAKEBREEZE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13187,
-    "parcel_id": "13187",
-    "old_address": "10305 MARCHANT LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13189,
-    "parcel_id": "13189",
-    "old_address": "10315 LAKEBREEZE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13201,
-    "parcel_id": "13201",
-    "old_address": "10323 MARCHANT LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13202,
-    "parcel_id": "13202",
-    "old_address": "10401 MATEO TRAIL",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13203,
-    "parcel_id": "13203",
-    "old_address": "10320 STONE HARBOR WAY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13204,
-    "parcel_id": "13204",
-    "old_address": "10245 MARCHANT LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13205,
-    "parcel_id": "13205",
-    "old_address": "10343 LAKEBREEZE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13215,
-    "parcel_id": "13215",
-    "old_address": "10404 MATEO TRAIL",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13216,
-    "parcel_id": "13216",
-    "old_address": "3400 CARLISLE ST STE 345",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13263,
-    "parcel_id": "13263",
-    "old_address": "10023 SANDBAR DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13267,
-    "parcel_id": "13267",
-    "old_address": "10020 SANDBAR DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13269,
-    "parcel_id": "13269",
-    "old_address": "10021 BLUEWATER TERRACE",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 13274,
-    "parcel_id": "13274",
-    "old_address": "10005 SANDBAR DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14307,
-    "parcel_id": "14307",
-    "old_address": "13901 MIDWAY RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14638,
-    "parcel_id": "14638",
-    "old_address": "15950 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14722,
-    "parcel_id": "14722",
-    "old_address": "15455 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14953,
-    "parcel_id": "14953",
-    "old_address": "4683 CHABOT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14958,
-    "parcel_id": "14958",
-    "old_address": "400 CONTINENTAL BLVD STE 500",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14959,
-    "parcel_id": "14959",
-    "old_address": "4399 SANTA ANITA AVE",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14960,
-    "parcel_id": "14960",
-    "old_address": "5950 BERKSHIRE LN STE 900",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14962,
-    "parcel_id": "14962",
-    "old_address": "120 N LA SALLE ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14963,
-    "parcel_id": "14963",
-    "old_address": "5201 REGENT BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14964,
-    "parcel_id": "14964",
-    "old_address": "691 S MILPITAS BLVD STE 1",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14968,
-    "parcel_id": "14968",
-    "old_address": "9155 STERLING ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14970,
-    "parcel_id": "14970",
-    "old_address": "9020 STERLING ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14972,
-    "parcel_id": "14972",
-    "old_address": "9001 CURRENCY ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14973,
-    "parcel_id": "14973",
-    "old_address": "9000 N ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14974,
-    "parcel_id": "14974",
-    "old_address": "31 COMMERCE ST STE 1399",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14975,
-    "parcel_id": "14975",
-    "old_address": "8925 STERLING ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14976,
-    "parcel_id": "14976",
-    "old_address": "4770 REGENT BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14977,
-    "parcel_id": "14977",
-    "old_address": "80 N KING ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14980,
-    "parcel_id": "14980",
-    "old_address": "8516 ESTERS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14981,
-    "parcel_id": "14981",
-    "old_address": "3131 MCKINNEY AVE STE 600",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14982,
-    "parcel_id": "14982",
-    "old_address": "601 W 5TH ST STE 300",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14983,
-    "parcel_id": "14983",
-    "old_address": "4 EMBARCADERO CTR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14985,
-    "parcel_id": "14985",
-    "old_address": "1230 RIVER BEND DR STE 110",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14989,
-    "parcel_id": "14989",
-    "old_address": "101 W ELM ST STE 600",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14990,
-    "parcel_id": "14990",
-    "old_address": "16901 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14991,
-    "parcel_id": "14991",
-    "old_address": "500 N CAPITAL OF TEXAS HWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14992,
-    "parcel_id": "14992",
-    "old_address": "5426 ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14993,
-    "parcel_id": "14993",
-    "old_address": "185 GREAT NECK RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14997,
-    "parcel_id": "14997",
-    "old_address": "5005 W ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 14998,
-    "parcel_id": "14998",
-    "old_address": "4560 BELT LINE RD STE 400",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15000,
-    "parcel_id": "15000",
-    "old_address": "1415 LOUISIANA ST STE 3000",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15001,
-    "parcel_id": "15001",
-    "old_address": "14185 DALLAS PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15009,
-    "parcel_id": "15009",
-    "old_address": "8111 ROYAL RIDGE PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15016,
-    "parcel_id": "15016",
-    "old_address": "8101 TRISTAR DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15021,
-    "parcel_id": "15021",
-    "old_address": "5050 W HIGHWAY 114 FWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15031,
-    "parcel_id": "15031",
-    "old_address": "2009 COTTONWOOD VALLEY CIR S",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15034,
-    "parcel_id": "15034",
-    "old_address": "4550 W JOHN CARPENTER FWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15044,
-    "parcel_id": "15044",
-    "old_address": "2001 K ST NW STE 775",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15045,
-    "parcel_id": "15045",
-    "old_address": "120 NAVO RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15050,
-    "parcel_id": "15050",
-    "old_address": "8102 MESQUITE BEND DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15054,
-    "parcel_id": "15054",
-    "old_address": "7820 CRESCENT EXECUTIVE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15065,
-    "parcel_id": "15065",
-    "old_address": "7829 RIDGEPOINT DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15084,
-    "parcel_id": "15084",
-    "old_address": "71 N PUTTING PARK DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15088,
-    "parcel_id": "15088",
-    "old_address": "6300 N BELT LINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15089,
-    "parcel_id": "15089",
-    "old_address": "2801 WOODSIDE ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15090,
-    "parcel_id": "15090",
-    "old_address": "8377 E HARTFORD DR STE 100",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15092,
-    "parcel_id": "15092",
-    "old_address": "6210 N BELTLINE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15094,
-    "parcel_id": "15094",
-    "old_address": "6029 W CAMPUS CIRCLE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15139,
-    "parcel_id": "15139",
-    "old_address": "2999 WILDWOOD PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15140,
-    "parcel_id": "15140",
-    "old_address": "2402 SANDY LAKE RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15141,
-    "parcel_id": "15141",
-    "old_address": "15400 KNOLL TRAIL DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15142,
-    "parcel_id": "15142",
-    "old_address": "3225 S MACDILL AVE STE 129-380",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15280,
-    "parcel_id": "15280",
-    "old_address": "2323 ROSS AVE STE 200",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15343,
-    "parcel_id": "15343",
-    "old_address": "255 WASHINGTON ST STE 300",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15344,
-    "parcel_id": "15344",
-    "old_address": "4890 ALPHA RD STE 100",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15430,
-    "parcel_id": "15430",
-    "old_address": "6600 FRANCE AVE S",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15539,
-    "parcel_id": "15539",
-    "old_address": "3367 OLYMPUS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15540,
-    "parcel_id": "15540",
-    "old_address": "3330 SCOTCH CREEK RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15541,
-    "parcel_id": "15541",
-    "old_address": "9111 CYPRESS WATERS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15542,
-    "parcel_id": "15542",
-    "old_address": "2 SAINTSBURY ST",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15543,
-    "parcel_id": "15543",
-    "old_address": "1801 HERMITAGE BLVD STE 600",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15819,
-    "parcel_id": "15819",
-    "old_address": "8840 CYPRESS WATERS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15820,
-    "parcel_id": "15820",
-    "old_address": "1700 GEORGE BUSH DR E STE 240",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15822,
-    "parcel_id": "15822",
-    "old_address": "3 RAVINIA DR STE 100",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15824,
-    "parcel_id": "15824",
-    "old_address": "4950 W ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 15872,
-    "parcel_id": "15872",
-    "old_address": "4051 N HIGHWAY 121",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16013,
-    "parcel_id": "16013",
-    "old_address": "6641 W BROAD ST STE 101",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16273,
-    "parcel_id": "16273",
-    "old_address": "12400 COIT RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16274,
-    "parcel_id": "16274",
-    "old_address": "303 PERIMETER CTR N STE 202",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16275,
-    "parcel_id": "16275",
-    "old_address": "1726 ROUTH ST STE 770",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16461,
-    "parcel_id": "16461",
-    "old_address": "200 CRESCENT CT STE 560",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16464,
-    "parcel_id": "16464",
-    "old_address": "2020 K ST NW STE 600",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16466,
-    "parcel_id": "16466",
-    "old_address": "815 BRAZOS ST STE 500",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16670,
-    "parcel_id": "16670",
-    "old_address": "4800 REGENT BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16671,
-    "parcel_id": "16671",
-    "old_address": "1266 ROUND HILL RD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16699,
-    "parcel_id": "16699",
-    "old_address": "10636 CANOE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16703,
-    "parcel_id": "16703",
-    "old_address": "10609 STEINBECK CT",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16720,
-    "parcel_id": "16720",
-    "old_address": "10608 CANOE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16722,
-    "parcel_id": "16722",
-    "old_address": "10554 DUCKLING DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16761,
-    "parcel_id": "16761",
-    "old_address": "10644 CANOE DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16799,
-    "parcel_id": "16799",
-    "old_address": "1055 WASHINGTON BLVD FL 7",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16801,
-    "parcel_id": "16801",
-    "old_address": "4600 REGENT BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16805,
-    "parcel_id": "16805",
-    "old_address": "4343 IH 30",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16806,
-    "parcel_id": "16806",
-    "old_address": "3401 DEL AMO BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16808,
-    "parcel_id": "16808",
-    "old_address": "115 OLYMPUS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16810,
-    "parcel_id": "16810",
-    "old_address": "1909 HEREFORD DR",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16814,
-    "parcel_id": "16814",
-    "old_address": "277 PARK AVE FL 9",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16815,
-    "parcel_id": "16815",
-    "old_address": "410 FREEPORT PKWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16818,
-    "parcel_id": "16818",
-    "old_address": "131 E EXCHANGE AVE STE 220",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16819,
-    "parcel_id": "16819",
-    "old_address": "222 S RIVERSIDE PLZ FL 34",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16820,
-    "parcel_id": "16820",
-    "old_address": "7501 ESTERS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16821,
-    "parcel_id": "16821",
-    "old_address": "1125 EXECUTIVE CIR # 200",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16825,
-    "parcel_id": "16825",
-    "old_address": "111 E SEGO LILY DR STE 400",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16827,
-    "parcel_id": "16827",
-    "old_address": "4651 W JOHN W CARPENTER FWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16828,
-    "parcel_id": "16828",
-    "old_address": "8333 ROYAL RIDGE PKWY STE 100",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16865,
-    "parcel_id": "16865",
-    "old_address": "2545 RANCH TRAIL",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16918,
-    "parcel_id": "16918",
-    "old_address": "898 N PACIFIC COAST HWY",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16921,
-    "parcel_id": "16921",
-    "old_address": "2020 4TH ST SW STE 410",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16927,
-    "parcel_id": "16927",
-    "old_address": "4343 W ROYAL LN",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16928,
-    "parcel_id": "16928",
-    "old_address": "8480 ESTERS BLVD",
-    "corrected_address": ""
-  },
-  {
-    "feature_index": 16929,
-    "parcel_id": "16929",
-    "old_address": "7501 W MEMORIAL RD",
+    "feature_index": 16925,
+    "parcel_id": "16925",
+    "old_address": "1063 TEXAN TRL STE 750",
     "corrected_address": ""
   }
 ]

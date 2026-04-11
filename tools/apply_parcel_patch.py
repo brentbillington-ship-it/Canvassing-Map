@@ -28,29 +28,32 @@ PATCH_JSON  = os.path.join(os.path.dirname(__file__), 'parcel_address_patch.json
 # ─── Load parcels.js ─────────────────────────────────────────────────────────
 
 def load_parcels_raw(path):
-    """Return (prefix, geojson_str, suffix) from parcels.js."""
+    """Return (header_comments, prefix, geojson_str, suffix) from parcels.js.
+    Handles files that have // comment lines before the variable declaration."""
     with open(path, 'r', encoding='utf-8') as f:
         raw = f.read()
-    m = re.match(r'^((?:const|var|let)\s+\w+\s*=\s*)', raw)
+    # Use re.search so comment lines before the declaration are handled
+    m = re.search(r'((?:const|var|let)\s+\w+\s*=\s*)', raw)
     if not m:
         raise ValueError('Could not find JS variable declaration in parcels.js')
-    prefix = m.group(1)
-    rest = raw[m.end():]
-    suffix = ''
+    header   = raw[:m.start()]   # preserve comment block before declaration
+    prefix   = m.group(1)
+    rest     = raw[m.end():]
+    suffix   = ''
     if rest.rstrip().endswith(';'):
         suffix = ';'
-        rest = rest.rstrip()[:-1]
-    return prefix, rest.strip(), suffix
+        rest   = rest.rstrip()[:-1]
+    return header, prefix, rest.strip(), suffix
 
 
 def load_geojson(geojson_str):
     return json.loads(geojson_str)
 
 
-def write_parcels(path, prefix, geojson, suffix, dry_run=False):
-    """Serialize modified GeoJSON back into the JS file."""
+def write_parcels(path, header, prefix, geojson, suffix, dry_run=False):
+    """Serialize modified GeoJSON back into the JS file, preserving header comments."""
     body = json.dumps(geojson, separators=(',', ':'), ensure_ascii=False)
-    new_content = prefix + body + suffix + '\n'
+    new_content = header + prefix + body + suffix + '\n'
     if dry_run:
         print(f'[DRY RUN] Would write {len(new_content):,} chars to {path}')
         return
@@ -88,7 +91,7 @@ def main():
         return
 
     print(f'Loading {args.parcels}…')
-    prefix, geojson_str, suffix = load_parcels_raw(args.parcels)
+    header, prefix, geojson_str, suffix = load_parcels_raw(args.parcels)
     geojson = load_geojson(geojson_str)
     features = geojson.get('features', [])
     print(f'  {len(features)} features loaded.')
@@ -112,11 +115,14 @@ def main():
             continue
 
         old_addr = feat.get('properties', {}).get('addr2', '')
-        new_addr = patch.get('corrected_address', '').strip()
-        if not new_addr:
-            print(f'  [SKIP] Feature {feat_idx}: no corrected address in patch')
+        # corrected_address of '' means intentional blank (MAILING / NON_RESIDENTIAL);
+        # use sentinel None to detect a missing key vs an explicit empty string.
+        new_addr = patch.get('corrected_address')
+        if new_addr is None:
+            print(f'  [SKIP] Feature {feat_idx}: no corrected_address key in patch')
             skipped += 1
             continue
+        new_addr = new_addr.strip()
         if old_addr == new_addr:
             print(f'  [SAME] Feature {feat_idx}: address unchanged ({old_addr!r})')
             skipped += 1
@@ -133,7 +139,7 @@ def main():
         print('Nothing to write.')
         return
 
-    write_parcels(args.parcels, prefix, geojson, suffix, dry_run=args.dry_run)
+    write_parcels(args.parcels, header, prefix, geojson, suffix, dry_run=args.dry_run)
 
 
 if __name__ == '__main__':

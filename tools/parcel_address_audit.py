@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
 """
-parcel_address_audit.py
------------------------
-Audits address quality in parcels.js and cross-references DCAD ArcGIS REST API
-for corrected situs addresses using two strategies:
+parcel_address_audit.py  (v2 — full 5-category classifier)
+-----------------------------------------------------------
+Classifies every parcel in parcels.js and cross-references DCAD ArcGIS REST
+API to fix: BLANK addresses, MAILING addresses (owner mailing > 9999 or other
+heuristics), OUTLIER addresses (house number outside 0.4×–2.2× neighbor
+median), and NON_RESIDENTIAL parcels (parks, drainage, easements).
 
-  1. Spatial coordinate query (BLANK/ZERO parcels)
-     -- Converts lat/lon to Web Mercator, queries /MapServer/{layer}/query
-  2. Text address search (MISMATCH/PO_BOX/BAD_ZIP parcels)
-     -- Uses the ArcGIS /find endpoint, falls back to LIKE query
+Classification categories
+  OK             – Passes all checks; no action needed.
+  BLANK          – addr2 is null, empty, "0", or whitespace.
+  MAILING        – House number > 9999 (DCAD owner mailing address by CLAUDE.md
+                   rule); OR PO Box; OR zip in addr2 that is not a Coppell-area
+                   code; OR SUITE/APT/TRLR/#UNIT pattern not matching residential.
+  OUTLIER        – House number is outside 0.4×–2.2× of the median of 6+ spatial
+                   neighbors within 250 m.  DCAD is consulted to confirm or fix.
+  NON_RESIDENTIAL – addr2 contains PARK/CREEK/ESMT/EASEMENT/RESERVE/OPEN SPACE;
+                   OR parcel use field is non-residential; OR < 3 residential
+                   neighbors within 200 m.
 
-No browser required. Pure REST API calls.
+Usage
+    # Probe DCAD endpoint first (recommended):
+    python3 tools/parcel_address_audit.py --probe
 
-Usage:
-    # Probe only -- discover correct layer ID and field names:
-    python3 parcel_address_audit.py --probe
+    # Full audit:
+    python3 tools/parcel_address_audit.py [--skip-dcad] [--max-dcad N]
 
-    # Full audit (offline-safe if DCAD unavailable):
-    python3 parcel_address_audit.py [--skip-dcad] [--max-dcad N]
+    # After confirming layer/field from probe:
+    python3 tools/parcel_address_audit.py --layer-id 4 --addr-field SITEADDRESS
 
-    # Override discovered layer/field (use after --probe):
-    python3 parcel_address_audit.py --layer-id 4 --addr-field SITEADDRESS
-
-Requirements:
-    pip install requests
-
-Outputs:
-    tools/parcel_audit_results.csv    -- full audit with status per parcel
-    tools/parcel_address_patch.json   -- corrections for mismatched parcels
+Outputs
+    tools/parcel_audit_results.csv
+    tools/parcel_address_patch.json
 """
 
-import json, re, os, csv, time, argparse, sys, math
+import json, re, os, csv, time, argparse, sys, math, statistics
 
 try:
     import requests
@@ -38,43 +42,81 @@ try:
 except ImportError:
     HAS_REQUESTS = False
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# Paths
+# ──────────────────────────────────────────────────────────────────────────────
+TOOLS_DIR   = os.path.dirname(os.path.abspath(__file__))
+PARCELS_JS  = os.path.join(TOOLS_DIR, '..', 'parcels.js')
+RESULTS_CSV = os.path.join(TOOLS_DIR, 'parcel_audit_results.csv')
+PATCH_JSON  = os.path.join(TOOLS_DIR, 'parcel_address_patch.json')
 
-PARCELS_JS  = os.path.join(os.path.dirname(__file__), '..', 'parcels.js')
-RESULTS_CSV = os.path.join(os.path.dirname(__file__), 'parcel_audit_results.csv')
-PATCH_JSON  = os.path.join(os.path.dirname(__file__), 'parcel_address_patch.json')
+# ──────────────────────────────────────────────────────────────────────────────
+# DCAD config
+# ──────────────────────────────────────────────────────────────────────────────
+# Confirmed working endpoint (from prior Playwright intercept sessions):
+DCAD_BASE_PARCEL  = 'https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer'
+# Work-order specified endpoint to also try:
+DCAD_BASE_PROP    = 'https://maps.dcad.org/prdwa/rest/services/Property/PropMap/MapServer'
 
-DCAD_BASE    = 'https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer'
 DCAD_TIMEOUT = 15
 DCAD_HEADERS = {
     'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                    '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'),
-    'Accept':  'application/json, text/plain, */*',
-    'Referer': 'https://maps.dcad.org/prd/dpm/',
+    'Accept':     'application/json, text/plain, */*',
+    'Referer':    'https://maps.dcad.org/prd/dpm/',
 }
-SLEEP_BETWEEN_QUERIES = 0.5
+SLEEP_MIN = 0.5
+SLEEP_MAX = 1.0
 
 DEFAULT_LAYER      = 4
 DEFAULT_ADDR_FIELD = 'SITEADDRESS'
 
-CANDIDATE_LAYERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+CANDIDATE_LAYERS = list(range(10))
 CANDIDATE_ADDR_FIELDS = [
     'SITEADDRESS', 'SITE_ADDRESS', 'SITUS_ADDRESS',
     'ADDRESS', 'ADDR', 'SITE_ADDR', 'PROP_ADDR',
     'PROPERTY_ADDRESS', 'SITUSADDRESS',
 ]
 
+# Test point: 200 SLEEPY HOLLOW LN, Coppell
 TEST_LAT  = 32.9888083
 TEST_LON  = -96.996685
 TEST_ADDR = '200 SLEEPY HOLLOW LN'
 
+# Coppell-area zip prefixes (75019 is Coppell; others are adjacent/common)
 VALID_ZIP_PREFIXES = ('750', '751', '752', '760', '761')
 
-# ---------------------------------------------------------------------------
+# Outlier thresholds (tightened from prior session's 0.3×–2.5×)
+OUTLIER_LOW  = 0.4
+OUTLIER_HIGH = 2.2
+OUTLIER_MIN_NEIGHBORS = 6
+OUTLIER_RADIUS_M = 250   # meters
+
+# Non-residential neighbor isolation threshold
+NON_RES_ISOLATION_M       = 200   # meters
+NON_RES_ISOLATION_MIN     = 3     # fewer than this → non-residential
+
+# Non-residential keyword patterns in addr2.
+# STRICT — only terms that never appear in normal residential street names:
+NON_RES_KEYWORDS_STRICT = re.compile(
+    r'\b(ESMT|EASEMENT|OPEN\s+SPACE|DRAINAGE|GREENBELT|RESERVE|UTILITY\s+(LOT|EASEMENT|SITE))\b',
+    re.IGNORECASE
+)
+# BROAD — only applied when addr2 has no leading house number (e.g. "DRAINAGE LOT 3"):
+NON_RES_KEYWORDS_NONUM = re.compile(
+    r'\b(PARK|CREEK|LAKE|POND|COMMON|TRACT|DRAINAGE|RESERVE|UTILITY|GREENBELT|'
+    r'OPEN\s+SPACE|ESMT|EASEMENT|WELL\s+SITE)\b',
+    re.IGNORECASE
+)
+
+# Non-residential use field values
+NON_RES_USE = {'COMM', 'COMMERCIAL', 'INDUSTRIAL', 'IND', 'EXEMPT', 'AG',
+               'AGRICULTURE', 'VACANT', 'UTIL', 'UTILITY', 'GOV', 'GOVERNMENT',
+               'PARK', 'RECREATION', 'SCHOOL', 'CHURCH', 'OTHER'}
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Load parcels.js
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 def load_parcels_geojson(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -86,9 +128,9 @@ def load_parcels_geojson(path):
     raw = raw.rstrip().rstrip(';').rstrip()
     return json.loads(raw)
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # Geometry helpers
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 def feature_centroid(feature):
     geom = feature['geometry']
@@ -103,37 +145,125 @@ def feature_centroid(feature):
     return (sum(lats) / len(lats), sum(lons) / len(lons))
 
 
+def haversine_m(lat1, lon1, lat2, lon2):
+    """Distance in metres between two WGS84 points."""
+    R = 6_371_000
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlam/2)**2
+    return 2*R*math.asin(math.sqrt(a))
+
+
 def wgs84_to_webmercator(lat, lon):
     x = lon * 20037508.342 / 180.0
     y = math.log(math.tan((90 + lat) * math.pi / 360.0)) / (math.pi / 180.0)
     y = y * 20037508.342 / 180.0
     return x, y
 
-# ---------------------------------------------------------------------------
-# Address classification
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# Spatial bucket index for fast neighbour lookup
+# ──────────────────────────────────────────────────────────────────────────────
 
-def classify_address(addr2):
-    if not addr2 or not addr2.strip():
-        return 'BLANK'
-    a = addr2.strip()
-    if re.match(r'^0+$', a):
-        return 'ZERO'
+def build_spatial_index(centroids):
+    """
+    Returns a dict: bucket_key → list of (lat, lon, house_num, feature_idx).
+    Bucket size ≈ 0.003° (~333m), so a 250m radius search needs ±1 bucket.
+    """
+    BUCKET = 0.003
+    idx = {}
+    for i, (lat, lon, num) in enumerate(centroids):
+        if lat is None:
+            continue
+        bk = (int(lat / BUCKET), int(lon / BUCKET))
+        idx.setdefault(bk, []).append((lat, lon, num, i))
+    return idx, BUCKET
+
+
+def get_neighbors(lat, lon, spatial_idx, bucket_size, radius_m):
+    """Return list of house numbers for residential parcels within radius_m."""
+    bk_lat = int(lat / bucket_size)
+    bk_lon = int(lon / bucket_size)
+    neighbors = []
+    for dlat in (-1, 0, 1):
+        for dlon in (-1, 0, 1):
+            for nb_lat, nb_lon, nb_num, nb_idx in spatial_idx.get((bk_lat+dlat, bk_lon+dlon), []):
+                if nb_num is None:
+                    continue
+                d = haversine_m(lat, lon, nb_lat, nb_lon)
+                if 0 < d <= radius_m:
+                    neighbors.append(nb_num)
+    return neighbors
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Address classification
+# ──────────────────────────────────────────────────────────────────────────────
+
+def parse_house_num(addr2):
+    """Return integer house number or None."""
+    if not addr2:
+        return None
+    m = re.match(r'^(\d+)', addr2.strip())
+    return int(m.group(1)) if m else None
+
+
+def classify_address(addr2, props):
+    """
+    Returns (category, reason_detail).
+    Categories: BLANK, NON_RESIDENTIAL, MAILING, OK
+    OUTLIER is applied later via spatial pass.
+    """
+    a = (addr2 or '').strip()
+
+    # ── BLANK ──────────────────────────────────────────────────────────────
+    if not a or re.match(r'^0+$', a):
+        return 'BLANK', 'empty_or_zero'
+
+    # ── NON_RESIDENTIAL (keyword) ──────────────────────────────────────────
+    # Only apply broad keyword set when addr2 has no leading house number,
+    # so we don't flag residential streets named "LAKE PARK DR" or "BRUSHY CREEK TRL".
+    has_num = bool(re.match(r'^\d{1,4}\s+\w', a))
+    if has_num:
+        # Strict keywords only — terms that never appear in normal street names
+        if NON_RES_KEYWORDS_STRICT.search(a):
+            return 'NON_RESIDENTIAL', 'keyword_in_addr2'
+    else:
+        # No house number at all — any broad keyword is suspicious
+        if NON_RES_KEYWORDS_NONUM.search(a):
+            return 'NON_RESIDENTIAL', 'no_num_with_keyword'
+
+    # ── NON_RESIDENTIAL (use field) ────────────────────────────────────────
+    use_val = (props.get('use') or '').strip().upper()
+    if use_val and use_val in NON_RES_USE:
+        return 'NON_RESIDENTIAL', f'use={use_val}'
+
     upper = a.upper()
-    if 'PO BOX' in upper or 'P O BOX' in upper or 'P.O. BOX' in upper:
-        return 'PO_BOX'
+
+    # ── MAILING: PO Box ───────────────────────────────────────────────────
+    if re.search(r'\bP\.?\s*O\.?\s*BOX\b', upper):
+        return 'MAILING', 'po_box'
+
+    # ── MAILING: out-of-area zip in addr2 ─────────────────────────────────
     z_match = re.search(r'\b(\d{5})\b', a)
     if z_match and not z_match.group(1).startswith(VALID_ZIP_PREFIXES):
-        return f'BAD_ZIP:{z_match.group(1)}'
-    return 'OK'
+        return 'MAILING', f'bad_zip:{z_match.group(1)}'
 
-# ---------------------------------------------------------------------------
-# DCAD ArcGIS REST API
-# Confirmed working endpoint (from Playwright intercept):
-#   https://maps.dcad.org/prdwa/rest/services/Property/ParcelQuery/MapServer/4/query
-#   geometryType=esriGeometryEnvelope, inSR=102100, spatialRel=esriSpatialRelIntersects
-#   where= (empty), outFields=SITEADDRESS,PARCELID,LOWPARCELID, returnGeometry=false
-# ---------------------------------------------------------------------------
+    # ── MAILING: house number > 9999 (CLAUDE.md rule) ─────────────────────
+    num = parse_house_num(a)
+    if num is not None and num > 9999:
+        return 'MAILING', f'num>{num}'
+
+    # ── MAILING: suite/apt/trlr pattern (non-residential formatting) ───────
+    if re.search(r'\b(SUITE|STE|APT|APARTMENT|TRLR|TRAILER|#\s*\d+)\b', upper):
+        # Only flag as mailing if there's also a city/state suffix (out-of-area)
+        if re.search(r',\s*[A-Z]{2}\s+\d{5}', a):
+            return 'MAILING', 'suite_with_city_state'
+
+    return 'OK', ''
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DCAD REST API
+# ──────────────────────────────────────────────────────────────────────────────
 
 _session = None
 
@@ -148,33 +278,19 @@ def _get_session():
 def _extract_addr(attrs, addr_field):
     for key in [addr_field, addr_field.upper(), 'SITEADDRESS', 'SITE_ADDRESS', 'PROP_ADDR']:
         val = attrs.get(key)
-        if val:
+        if val and str(val).strip():
             return str(val).strip()
     return None
 
 
-def query_by_coords(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
-    """
-    Spatial query using a small envelope around the centroid — matches exactly
-    what the DCAD map UI sends (confirmed by Playwright intercept).
-
-    Key parameters:
-      geometryType = esriGeometryEnvelope  (NOT point + distance buffer)
-      inSR         = 102100 (Web Mercator)
-      where        = ''     (spatial filter only, no attribute filter)
-      outFields    = SITEADDRESS,PARCELID,LOWPARCELID
-    """
-    # ±0.001 degrees (~111m) converted to Web Mercator for the envelope.
-    # Using 0.001 instead of 0.0001 ensures the envelope reliably intersects the
-    # parcel polygon even for centroid estimates that land near a parcel edge.
+def query_by_coords(lat, lon, base_url, layer_id, addr_field):
+    """Spatial envelope query — matches what DCAD map UI sends."""
     PAD_DEG = 0.001
     x_min, y_min = wgs84_to_webmercator(lat - PAD_DEG, lon - PAD_DEG)
     x_max, y_max = wgs84_to_webmercator(lat + PAD_DEG, lon + PAD_DEG)
-
     params = {
         'geometry':       json.dumps({
-            'xmin': x_min, 'ymin': y_min,
-            'xmax': x_max, 'ymax': y_max,
+            'xmin': x_min, 'ymin': y_min, 'xmax': x_max, 'ymax': y_max,
             'spatialReference': {'wkid': 102100},
         }),
         'geometryType':   'esriGeometryEnvelope',
@@ -186,110 +302,52 @@ def query_by_coords(lat, lon, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FI
         'f':              'json',
     }
     try:
-        r = _get_session().get(
-            f'{DCAD_BASE}/{layer_id}/query', params=params, timeout=DCAD_TIMEOUT
-        )
+        r = _get_session().get(f'{base_url}/{layer_id}/query', params=params, timeout=DCAD_TIMEOUT)
         r.raise_for_status()
         data = r.json()
         if 'error' in data:
-            print(f'    API error: {data["error"]}', file=sys.stderr)
             return None
-        features = data.get('features', [])
-        return _extract_addr(features[0]['attributes'], addr_field) if features else None
+        feats = data.get('features', [])
+        return _extract_addr(feats[0]['attributes'], addr_field) if feats else None
     except Exception as e:
-        print(f'    Coord query error ({lat:.5f},{lon:.5f}): {e}', file=sys.stderr)
+        print(f'    coord query error ({lat:.5f},{lon:.5f}): {e}', file=sys.stderr)
         return None
 
 
-def query_by_address(address, layer_id=DEFAULT_LAYER, addr_field=DEFAULT_ADDR_FIELD):
-    """Text search: address string -> situs address. /find first, then LIKE fallback."""
-    # /find endpoint
-    try:
-        r = _get_session().get(f'{DCAD_BASE}/find', params={
-            'searchText': address.strip(), 'layers': str(layer_id),
-            'searchFields': f'{addr_field},PROP_ADDR',
-            'contains': 'true', 'returnGeometry': 'false', 'f': 'json',
-        }, timeout=DCAD_TIMEOUT)
-        r.raise_for_status()
-        data = r.json()
-        results = data.get('results', [])
-        if results:
-            return _extract_addr(results[0]['attributes'], addr_field)
-    except Exception:
-        pass
-
-    # LIKE fallback
+def query_by_address(address, base_url, layer_id, addr_field):
+    """Text search fallback."""
     safe = ' '.join(address.strip().upper().split()[:3]).replace("'", "''")
     try:
-        r = _get_session().get(f'{DCAD_BASE}/{layer_id}/query', params={
+        r = _get_session().get(f'{base_url}/{layer_id}/query', params={
             'where': f"UPPER({addr_field}) LIKE '%{safe}%'",
             'outFields': addr_field, 'returnGeometry': 'false',
             'resultRecordCount': '3', 'f': 'json',
         }, timeout=DCAD_TIMEOUT)
         r.raise_for_status()
-        data = r.json()
-        features = data.get('features', [])
-        return _extract_addr(features[0]['attributes'], addr_field) if features else None
+        feats = r.json().get('features', [])
+        return _extract_addr(feats[0]['attributes'], addr_field) if feats else None
     except Exception as e:
-        print(f'    Address query error ({address!r}): {e}', file=sys.stderr)
+        print(f'    address query error ({address!r}): {e}', file=sys.stderr)
         return None
 
 
-def dcad_lookup(item, layer_id, addr_field):
-    """Choose spatial vs text strategy based on error type."""
-    reason = item['reason']
-    lat, lon = item['centroid_lat'], item['centroid_lng']
-    addr = item['current_address']
+def dcad_lookup(lat, lon, current_addr, base_url, layer_id, addr_field):
+    """Spatial lookup first; address text fallback if blank."""
+    result = query_by_coords(lat, lon, base_url, layer_id, addr_field)
+    if not result and current_addr:
+        result = query_by_address(current_addr, base_url, layer_id, addr_field)
+    return result
 
-    if reason in ('BLANK', 'ZERO') or not addr:
-        return query_by_coords(float(lat), float(lon), layer_id, addr_field) if lat and lon else None
-    result = query_by_address(addr, layer_id, addr_field)
-    if result:
-        return result
-    return query_by_coords(float(lat), float(lon), layer_id, addr_field) if lat and lon else None
-
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # Probe
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 def probe_dcad():
-    """
-    Probe the DCAD API without relying on layer metadata field lists.
-
-    The ArcGIS service metadata (?f=json) only returns ~10 fields, but the layer
-    actually has 20+ fields and SITEADDRESS is field #15.  Checking metadata
-    causes the probe to conclude the field doesn't exist and skip the layer.
-
-    Fix: skip metadata field checking entirely — query directly with outFields=*
-    and inspect the actual response to discover available fields.
-    """
-    print(f'\n=== Probing DCAD ArcGIS REST API ===')
-    print(f'  Endpoint: {DCAD_BASE}')
-    print(f'  Test point : lat={TEST_LAT}, lon={TEST_LON}')
-    print(f'  Test address: {TEST_ADDR}\n')
-
+    print('\n=== Probing DCAD ArcGIS REST API ===')
     if not HAS_REQUESTS:
         print('  ERROR: pip install requests')
-        return None, None
+        return None, None, None
 
-    # Step 1: list layers from service info (informational only — don't gate on fields)
-    try:
-        r = _get_session().get(f'{DCAD_BASE}?f=json', timeout=DCAD_TIMEOUT)
-        r.raise_for_status()
-        svc_layers = r.json().get('layers', [])
-        if svc_layers:
-            print(f'  Service layers: {[(l["id"], l.get("name","?")) for l in svc_layers]}')
-            candidate_ids = [l['id'] for l in svc_layers]
-        else:
-            candidate_ids = CANDIDATE_LAYERS
-    except Exception as e:
-        print(f'  Service info unavailable ({e}) — trying candidate IDs {CANDIDATE_LAYERS}')
-        candidate_ids = CANDIDATE_LAYERS
-
-    print()
-
-    # Step 2: for each layer, fire a direct envelope query with outFields=*
-    # This bypasses the truncated metadata field list entirely.
     PAD_DEG = 0.001
     x_min, y_min = wgs84_to_webmercator(TEST_LAT - PAD_DEG, TEST_LON - PAD_DEG)
     x_max, y_max = wgs84_to_webmercator(TEST_LAT + PAD_DEG, TEST_LON + PAD_DEG)
@@ -298,84 +356,65 @@ def probe_dcad():
         'spatialReference': {'wkid': 102100},
     })
 
-    for lid in candidate_ids:
-        print(f'  Testing layer {lid}...')
+    for base_url in [DCAD_BASE_PARCEL, DCAD_BASE_PROP]:
+        # Get layer list
         try:
-            r = _get_session().get(f'{DCAD_BASE}/{lid}/query', params={
-                'geometry':       envelope,
-                'geometryType':   'esriGeometryEnvelope',
-                'inSR':           '102100',
-                'spatialRel':     'esriSpatialRelIntersects',
-                'where':          '',
-                'outFields':      '*',
-                'returnGeometry': 'false',
-                'resultRecordCount': '1',
-                'f':              'json',
-            }, timeout=DCAD_TIMEOUT)
+            r = _get_session().get(f'{base_url}?f=json', timeout=DCAD_TIMEOUT)
             r.raise_for_status()
-            data = r.json()
-        except Exception as e:
-            print(f'    Request failed: {e}')
-            continue
+            candidate_ids = [l['id'] for l in r.json().get('layers', [])] or CANDIDATE_LAYERS
+        except Exception:
+            candidate_ids = CANDIDATE_LAYERS
 
-        if 'error' in data:
-            print(f'    API error: {data["error"]}')
-            continue
+        for lid in candidate_ids:
+            try:
+                r = _get_session().get(f'{base_url}/{lid}/query', params={
+                    'geometry': envelope, 'geometryType': 'esriGeometryEnvelope',
+                    'inSR': '102100', 'spatialRel': 'esriSpatialRelIntersects',
+                    'where': '', 'outFields': '*', 'returnGeometry': 'false',
+                    'resultRecordCount': '1', 'f': 'json',
+                }, timeout=DCAD_TIMEOUT)
+                r.raise_for_status()
+                data = r.json()
+            except Exception as e:
+                print(f'  Layer {lid} @ {base_url}: {e}')
+                continue
 
-        features = data.get('features', [])
-        if not features:
-            print(f'    No features returned (wrong layer or envelope too small?)')
-            continue
+            if 'error' in data or not data.get('features'):
+                continue
 
-        # Found features — discover which address field is present
-        attrs = features[0].get('attributes', {})
-        all_fields = list(attrs.keys())
-        print(f'    Got {len(features)} feature(s). Fields: {all_fields}')
+            attrs = data['features'][0].get('attributes', {})
+            found_field = None
+            for cand in CANDIDATE_ADDR_FIELDS:
+                if cand in attrs:
+                    found_field = cand; break
+            if not found_field:
+                for k, v in attrs.items():
+                    if v and isinstance(v, str) and re.match(r'^\d+\s+\w', v.strip()):
+                        found_field = k; break
 
-        # Pick best address field from the actual response
-        found_field = None
-        for candidate in CANDIDATE_ADDR_FIELDS:
-            if candidate in attrs or candidate.upper() in attrs:
-                found_field = candidate if candidate in attrs else candidate.upper()
-                break
+            if not found_field:
+                continue
 
-        if not found_field:
-            # Fall back: take first field whose value looks like a street address
-            for k, v in attrs.items():
-                if v and isinstance(v, str) and re.match(r'^\d+\s+\w', v.strip()):
-                    found_field = k
-                    print(f'    Auto-detected address field: {k!r} = {v!r}')
-                    break
+            addr_value = attrs.get(found_field, '')
+            print(f'  ✓ {base_url} / layer {lid}  field={found_field!r}  value={addr_value!r}')
+            print(f'  CONFIRMED: --layer-id {lid} --addr-field {found_field}\n')
+            return base_url, lid, found_field
 
-        if not found_field:
-            print(f'    No address field recognisable in attributes — skipping')
-            continue
+    print('  No working DCAD layer found.')
+    return None, None, None
 
-        addr_value = attrs.get(found_field, '')
-        print(f'    ✓ Layer {lid}  field={found_field!r}  value={addr_value!r}')
-
-        # Also test text query
-        tx = query_by_address(TEST_ADDR, lid, found_field)
-        print(f'    Text query ("{TEST_ADDR}"): {tx!r}')
-
-        print(f'\n  CONFIRMED: --layer-id {lid} --addr-field {found_field}\n')
-        return lid, found_field
-
-    print('  No working layer found.')
-    print('  Check tools/dcad_intercept_results.json for the confirmed endpoint.')
-    return None, None
-
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # Main
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description='Audit parcels.js addresses against DCAD')
-    parser.add_argument('--probe',      action='store_true', help='Discover layer/field then exit')
-    parser.add_argument('--skip-dcad',  action='store_true', help='Skip DCAD queries')
-    parser.add_argument('--max-dcad',   type=int,   default=1245,                 help='Max DCAD queries (default: all)')
-    parser.add_argument('--layer-id',   type=int,   default=None,                 help=f'Layer ID (default: auto-discover; fallback {DEFAULT_LAYER})')
-    parser.add_argument('--addr-field', type=str,   default=None,                 help=f'Address field name (fallback {DEFAULT_ADDR_FIELD})')
+    parser = argparse.ArgumentParser(description='Audit parcels.js addresses against DCAD (v2)')
+    parser.add_argument('--probe',      action='store_true')
+    parser.add_argument('--skip-dcad',  action='store_true')
+    parser.add_argument('--max-dcad',   type=int, default=999999, help='Max DCAD queries')
+    parser.add_argument('--layer-id',   type=int, default=None)
+    parser.add_argument('--addr-field', type=str, default=None)
+    parser.add_argument('--base-url',   type=str, default=None)
     args = parser.parse_args()
 
     if args.probe:
@@ -386,17 +425,20 @@ def main():
         print('WARNING: pip install requests  (DCAD queries will be skipped)')
         args.skip_dcad = True
 
+    base_url   = args.base_url
     layer_id   = args.layer_id
     addr_field = args.addr_field
 
-    if not args.skip_dcad and (layer_id is None or addr_field is None):
-        fl, ff = probe_dcad()
+    if not args.skip_dcad and (base_url is None or layer_id is None or addr_field is None):
+        bu, fl, ff = probe_dcad()
+        base_url   = bu or DCAD_BASE_PARCEL
         layer_id   = fl if fl is not None else DEFAULT_LAYER
         addr_field = ff if ff is not None else DEFAULT_ADDR_FIELD
         if fl is None:
-            print(f'Probe failed -- using defaults: layer={layer_id}, field={addr_field}')
+            print(f'Probe failed — using defaults: base={base_url} layer={layer_id} field={addr_field}')
         print()
 
+    # ── Load ─────────────────────────────────────────────────────────────────
     print(f'Loading {PARCELS_JS}...')
     geojson  = load_parcels_geojson(PARCELS_JS)
     features = geojson.get('features', [])
@@ -405,109 +447,225 @@ def main():
         print(f'  Fields: {list(features[0].get("properties", {}).keys())}')
     print()
 
-    # Pass 1: classify
-    flagged, ok_count = [], 0
+    # ── Pass 1: compute centroids and basic classification ────────────────────
+    centroids = []   # (lat, lon, house_num_or_None)  — parallel to features[]
+    rows      = []   # one dict per feature
+
     for idx, feat in enumerate(features):
         props     = feat.get('properties', {})
         addr2     = (props.get('addr2') or '').strip()
-        reason    = classify_address(addr2)
         centroid  = feature_centroid(feat)
-        lat = round(centroid[0], 6) if centroid else ''
-        lon = round(centroid[1], 6) if centroid else ''
-        parcel_id = str(props.get('id') or props.get('GID') or props.get('OBJECTID') or idx)
+        lat = round(centroid[0], 6) if centroid else None
+        lon = round(centroid[1], 6) if centroid else None
+        num = parse_house_num(addr2)
+        centroids.append((lat, lon, num))
 
-        if reason == 'OK':
-            ok_count += 1
-        else:
-            flagged.append({
-                'feature_index': idx, 'parcel_id': parcel_id,
-                'current_address': addr2, 'owner': (props.get('owner') or '').strip(),
-                'reason': reason, 'centroid_lat': lat, 'centroid_lng': lon,
-                'dcad_situs_address': '',
-                'status': 'MISSING' if not addr2 or addr2 == '0' else 'FLAGGED',
-            })
+        cat, detail = classify_address(addr2, props)
+        parcel_id = str(props.get('acct') or props.get('id') or props.get('OBJECTID') or idx)
+        rows.append({
+            'feature_index': idx,
+            'parcel_id':     parcel_id,
+            'current_address': addr2,
+            'dcad_situs_address': '',
+            'centroid_lat':  lat or '',
+            'centroid_lng':  lon or '',
+            'category':      cat,
+            'reason':        detail,
+            'status':        'PENDING' if cat != 'OK' else 'OK',
+            'action':        'NONE',
+        })
 
-    print(f'Classification: OK={ok_count}  Flagged={len(flagged)}')
-    reasons = {}
-    for f in flagged:
-        k = f['reason'].split(':')[0]
-        reasons[k] = reasons.get(k, 0) + 1
-    for k, n in sorted(reasons.items(), key=lambda x: -x[1]):
-        print(f'  {k}: {n}')
+    counts = {}
+    for r in rows:
+        counts[r['category']] = counts.get(r['category'], 0) + 1
+    print('Classification (pass 1):')
+    for k, n in sorted(counts.items(), key=lambda x: -x[1]):
+        print(f'  {k:20s}: {n}')
     print()
 
-    # Pass 2: DCAD lookup
-    dcad_matched = dcad_not_found = dcad_queries = 0
+    # ── Pass 2: per-street outlier detection ─────────────────────────────────
+    # Group OK parcels by their street name (addr2 minus the leading house number).
+    # Only compare house numbers within the same street, so streets with 800s
+    # numbering (Mullrany Dr, Kilbridge Ln) don't flag streets with 100s
+    # (Lairds Dr, Kilmichael Dr) that happen to be geographically nearby.
+    print(f'Per-street outlier detection '
+          f'(threshold {OUTLIER_LOW}×–{OUTLIER_HIGH}×, min {OUTLIER_MIN_NEIGHBORS} addresses/street)...')
+    from collections import defaultdict
+    street_groups = defaultdict(list)  # normalised street name → [(num, row_idx)]
+    for i, row in enumerate(rows):
+        if row['category'] != 'OK':
+            continue
+        num = centroids[i][2]
+        if num is None:
+            continue
+        m = re.match(r'^\d+\s+(.+)', row['current_address'])
+        if not m:
+            continue
+        street_key = m.group(1).strip().upper()
+        street_groups[street_key].append((num, i))
 
-    if not args.skip_dcad and flagged:
-        total_to_query = min(len(flagged), args.max_dcad)
-        print(f'Querying DCAD for {total_to_query} parcels (layer={layer_id}, field={addr_field})...')
-        print('(Ctrl+C stops early -- partial results saved)\n')
+    outlier_count = 0
+    for street_name, entries in street_groups.items():
+        if len(entries) < OUTLIER_MIN_NEIGHBORS:
+            continue
+        nums = [e[0] for e in entries]
+        med  = statistics.median(nums)
+        if med == 0:
+            continue
+        for num, idx in entries:
+            ratio = num / med
+            if ratio < OUTLIER_LOW or ratio > OUTLIER_HIGH:
+                rows[idx]['category'] = 'OUTLIER'
+                rows[idx]['reason']   = (f'num={num} street_median={med:.0f} '
+                                         f'ratio={ratio:.2f} street={street_name}')
+                rows[idx]['status']   = 'PENDING'
+                outlier_count += 1
+
+    print(f'  OUTLIER: {outlier_count}')
+    print()
+
+    # ── Pass 3: NON_RESIDENTIAL spatial isolation check ───────────────────────
+    # Build spatial index from all OK centroids for neighbour lookup
+    ok_centroids_for_idx = [
+        centroids[i] for i, r in enumerate(rows)
+        if r['category'] == 'OK' and centroids[i][0] is not None and centroids[i][2] is not None
+    ]
+    spatial_idx, bucket_size = build_spatial_index(ok_centroids_for_idx)
+
+    print(f'Checking spatial isolation for NON_RESIDENTIAL '
+          f'(< {NON_RES_ISOLATION_MIN} residential neighbors within {NON_RES_ISOLATION_M}m)...')
+    isolation_count = 0
+    for i, row in enumerate(rows):
+        if row['category'] != 'OK':
+            continue
+        lat, lon, _ = centroids[i]
+        if lat is None:
+            continue
+        neighbors = get_neighbors(lat, lon, spatial_idx, bucket_size, NON_RES_ISOLATION_M)
+        if len(neighbors) < NON_RES_ISOLATION_MIN:
+            row['category'] = 'NON_RESIDENTIAL'
+            row['reason']   = f'isolated: {len(neighbors)} residential neighbors within {NON_RES_ISOLATION_M}m'
+            row['status']   = 'PENDING'
+            isolation_count += 1
+
+    print(f'  NON_RESIDENTIAL (isolated): {isolation_count}')
+    print()
+
+    # Final counts after all classification passes
+    counts2 = {}
+    for r in rows:
+        counts2[r['category']] = counts2.get(r['category'], 0) + 1
+    print('Classification (final):')
+    for k, n in sorted(counts2.items(), key=lambda x: -x[1]):
+        print(f'  {k:20s}: {n}')
+    print()
+
+    # ── Pass 4: DCAD lookups for BLANK, MAILING, OUTLIER ─────────────────────
+    to_query = [r for r in rows if r['category'] in ('BLANK', 'MAILING', 'OUTLIER')]
+    dcad_matched = dcad_confirmed = dcad_not_found = dcad_queries = 0
+
+    if not args.skip_dcad and to_query:
+        total = min(len(to_query), args.max_dcad)
+        print(f'Querying DCAD for {total} parcels '
+              f'(base={base_url}, layer={layer_id}, field={addr_field})...')
+        print('(Ctrl+C to stop early — partial results saved)\n')
         try:
-            for item in flagged:
+            for row in to_query:
                 if dcad_queries >= args.max_dcad:
                     break
                 dcad_queries += 1
                 if dcad_queries % 50 == 0:
-                    print(f'  [{dcad_queries}/{total_to_query}] matched={dcad_matched} not_found={dcad_not_found}')
+                    print(f'  [{dcad_queries}/{total}] matched={dcad_matched} '
+                          f'confirmed={dcad_confirmed} not_found={dcad_not_found}')
 
-                situs = dcad_lookup(item, layer_id, addr_field)
-                if situs:
-                    item['dcad_situs_address'] = situs
-                    item['status'] = 'MISMATCH' if situs.upper() != item['current_address'].upper() else 'OK'
-                    if item['status'] == 'MISMATCH':
-                        dcad_matched += 1
-                else:
-                    item['status'] = 'NOT_FOUND'
+                lat = row['centroid_lat']
+                lon = row['centroid_lng']
+                if not lat or not lon:
+                    row['status'] = 'NO_CENTROID'
+                    continue
+
+                situs = dcad_lookup(float(lat), float(lon), row['current_address'],
+                                    base_url, layer_id, addr_field)
+                sleep_t = SLEEP_MIN + (SLEEP_MAX - SLEEP_MIN) * (dcad_queries % 3) / 2
+                time.sleep(sleep_t)
+
+                if not situs:
+                    row['status'] = 'NOT_FOUND'
                     dcad_not_found += 1
-                time.sleep(SLEEP_BETWEEN_QUERIES)
+                    continue
+
+                row['dcad_situs_address'] = situs
+                if situs.upper() == row['current_address'].upper():
+                    # DCAD confirms current value — reclassify OK (for OUTLIER)
+                    row['status'] = 'CONFIRMED_OK'
+                    row['action'] = 'NONE'
+                    dcad_confirmed += 1
+                else:
+                    row['status'] = 'MISMATCH'
+                    row['action'] = 'CORRECT'
+                    dcad_matched += 1
+
         except KeyboardInterrupt:
-            print(f'\n  Stopped at query {dcad_queries}. Saving partial results.')
+            print(f'\n  Stopped at {dcad_queries}. Saving partial results.')
 
-    # Write CSV
-    flagged_by_idx = {f['feature_index']: f for f in flagged}
-    all_rows = []
-    for feat_idx, feat in enumerate(features):
-        props    = feat.get('properties', {})
-        addr2    = (props.get('addr2') or '').strip()
-        parcel_id = str(props.get('id') or props.get('GID') or props.get('OBJECTID') or feat_idx)
-        centroid = feature_centroid(feat)
-        lat = round(centroid[0], 6) if centroid else ''
-        lon = round(centroid[1], 6) if centroid else ''
-        fi = flagged_by_idx.get(feat_idx)
-        if fi:
-            all_rows.append({'feature_index': feat_idx, 'parcel_id': fi['parcel_id'],
-                             'current_address': addr2, 'dcad_situs_address': fi['dcad_situs_address'],
-                             'centroid_lat': lat, 'centroid_lng': lon, 'status': fi['status'], 'reason': fi['reason']})
-        else:
-            all_rows.append({'feature_index': feat_idx, 'parcel_id': parcel_id,
-                             'current_address': addr2, 'dcad_situs_address': '',
-                             'centroid_lat': lat, 'centroid_lng': lon, 'status': 'OK', 'reason': 'OK'})
+    # NON_RESIDENTIAL action: blank addr2 (no DCAD query needed)
+    for row in rows:
+        if row['category'] == 'NON_RESIDENTIAL' and row['action'] == 'NONE':
+            row['action'] = 'BLANK'
+            row['status'] = 'NON_RES_BLANK'
 
+    # ── Write CSV ──────────────────────────────────────────────────────────────
+    fieldnames = ['feature_index', 'parcel_id', 'current_address', 'dcad_situs_address',
+                  'centroid_lat', 'centroid_lng', 'category', 'reason', 'status', 'action']
     with open(RESULTS_CSV, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=['feature_index','parcel_id','current_address',
-                                               'dcad_situs_address','centroid_lat','centroid_lng','status','reason'])
-        writer.writeheader(); writer.writerows(all_rows)
-    print(f'Audit CSV written:  {RESULTS_CSV}')
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f'\nAudit CSV written: {RESULTS_CSV}')
 
-    patches = [{'feature_index': r['feature_index'], 'parcel_id': r['parcel_id'],
-                'old_address': r['current_address'], 'corrected_address': r['dcad_situs_address']}
-               for r in all_rows if r['status'] == 'MISMATCH' and r['dcad_situs_address']]
+    # ── Write patch JSON ───────────────────────────────────────────────────────
+    patches = []
+    for row in rows:
+        if row['action'] == 'CORRECT' and row['dcad_situs_address']:
+            patches.append({
+                'feature_index':     row['feature_index'],
+                'parcel_id':         row['parcel_id'],
+                'old_address':       row['current_address'],
+                'corrected_address': row['dcad_situs_address'],
+            })
+        elif row['action'] == 'BLANK':
+            patches.append({
+                'feature_index':     row['feature_index'],
+                'parcel_id':         row['parcel_id'],
+                'old_address':       row['current_address'],
+                'corrected_address': '',
+            })
+
     with open(PATCH_JSON, 'w', encoding='utf-8') as f:
         json.dump(patches, f, indent=2)
-    print(f'Patch JSON written: {PATCH_JSON}  ({len(patches)} corrections)')
+    print(f'Patch JSON written: {PATCH_JSON}  ({len(patches)} entries)')
 
+    # ── Summary ────────────────────────────────────────────────────────────────
     print(f"""
 Summary
 -------
-  Total:   {len(features)}  OK: {ok_count}  Flagged: {len(flagged)}
-  Queries: {dcad_queries}  Matched: {dcad_matched}  Not found: {dcad_not_found}
-  Patch:   {len(patches)} corrections
+  Total features : {len(features)}
+  OK (no change) : {counts2.get('OK', 0)}
+  BLANK          : {counts2.get('BLANK', 0)}
+  MAILING        : {counts2.get('MAILING', 0)}
+  OUTLIER        : {counts2.get('OUTLIER', 0)}
+  NON_RESIDENTIAL: {counts2.get('NON_RESIDENTIAL', 0)}
+
+  DCAD queries   : {dcad_queries}
+  Corrections    : {dcad_matched}
+  DCAD confirmed : {dcad_confirmed}
+  Not found      : {dcad_not_found}
+  Patch entries  : {len(patches)}
 
 Next step:
   Review {RESULTS_CSV}
-  Then:  python3 tools/apply_parcel_patch.py --dry-run
-         python3 tools/apply_parcel_patch.py
+  Then: python3 tools/apply_parcel_patch.py --dry-run
+        python3 tools/apply_parcel_patch.py
 """)
 
 

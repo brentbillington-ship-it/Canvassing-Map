@@ -42,21 +42,22 @@ const MapModule = {
       { attribution: '© Esri', maxZoom: 19, opacity: 0.65, crossOrigin: true }
     );
 
-    // v5.21: Road Labels is an opt-in overlay, NOT added to the map by default.
-    // The Street base layer is a full voyager raster that already has street
-    // names baked in, so toggling to Street still shows labels. When Aerial is
-    // active, labels stay hidden unless the user explicitly enables "Road Labels"
-    // in the layer control. Fixes persistent street-name bleed-through on aerial.
+    // v5.23: Road Labels is ON by default. The label-only tile is darkened via
+    // CSS filter so text reads clearly on the satellite/aerial basemap. The
+    // Street base layer already has street names baked in — toggling to Street
+    // still shows labels, just double-layered (harmless and very readable).
     this.map.createPane('labelsPane');
     this.map.getPane('labelsPane').style.zIndex = 580;
     this.map.getPane('labelsPane').style.pointerEvents = 'none';
+    // Darken the label tile so street names read clearly against satellite imagery
+    this.map.getPane('labelsPane').style.filter = 'brightness(0.6) contrast(1.3)';
     const labels = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
       { attribution: '', maxZoom: 20, subdomains: 'abcd', pane: 'labelsPane' }
     );
 
     // Pane z-index order (low -> high):
-    //   labelsPane (580)   — opt-in voyager street labels (hidden by default on aerial)
+    //   labelsPane (580)   — voyager street labels, on by default, darkened for aerial
     //   markerPane (600)   — Leaflet default
     //   addrPane   (610)   — unassigned residential parcel markers (neutral gray)
     //   housePane  (620)   — canvassing house-dots (turf colors, knock diamonds)
@@ -81,8 +82,7 @@ const MapModule = {
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
-    // labels layer NOT added by default — see Road Labels overlay below.
-    // Aerial tile opacity 0.65 on all devices for consistent look
+    labels.addTo(this.map);  // v5.23: Road Labels on by default
 
     // CISD boundary layer
     this._cisdLayer = null;

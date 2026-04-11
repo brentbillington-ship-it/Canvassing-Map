@@ -8,7 +8,7 @@ const MapModule = {
   houseMarkers: {},
   _legend: null,
   _gpsPanDone: false,
-  _labelZoomMin: 18,
+  _labelZoomMin: 17,  // v5.20: show every-parcel circles starting at zoom 17
 
   init() {
     // Compute CISD bounds for maxBounds
@@ -55,14 +55,18 @@ const MapModule = {
     this.map.getPane('turfLabelPane').style.zIndex = 645;
     this.map.getPane('turfLabelPane').style.pointerEvents = 'auto';
 
-    // Dedicated house marker pane — hidden below _minMarkerZoom without touching markerPane
+    // Dedicated house marker pane — canvassing markers (knock/hanger) render HERE
     this.map.createPane('housePane');
     this.map.getPane('housePane').style.zIndex = 620;
     this.map.getPane('housePane').style.pointerEvents = 'auto';
 
-    // Address label pane — above default markerPane
+    // Address-label pane — every residential parcel gets a circle marker here.
+    // z 610 is BELOW housePane (620) so canvassing markers render on top of
+    // address markers. This unifies the visual style: every parcel shows a
+    // consistent white circle, then hanger circles / knock diamonds overlay
+    // for parcels with canvassing state.
     this.map.createPane('addrPane');
-    this.map.getPane('addrPane').style.zIndex = 660;
+    this.map.getPane('addrPane').style.zIndex = 610;
     this.map.getPane('addrPane').style.pointerEvents = 'none';
 
     satellite.addTo(this.map);
@@ -140,50 +144,44 @@ const MapModule = {
     }, () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 });
   },
 
-  // ── Address labels from parcels.js — zoom-gated, local-street filter ──────
+  // ── Residential parcel markers — every house gets a consistent circle ────
+  // Renders at zoom 17+ (same as hanger markers). Each residential parcel shows
+  // a small white circle with its house number. Canvassing markers (knock diamonds,
+  // hanger circles) render in housePane ABOVE this pane, so for turfs with state
+  // the colored marker is what the user sees. For untouched parcels, the consistent
+  // white circle is visible — no more plain-text numbers floating on the basemap.
   _renderAddressLabels() {
     this.addressLabelGroup.clearLayers();
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
 
     const bounds = this.map.getBounds().pad(0.05);
+    const seen = new Set();
 
-    // Pass 1: collect all addr2 street names for parcels in viewport
-    // A street name is "local" if 3+ parcels in the viewport share it
-    const streetCount = {};
-    const inViewport  = [];
     for (const f of PARCELS_GEOJSON.features) {
       const addr2 = (f.properties.addr2 || '').trim();
-      if (!addr2 || ParcelsUtil.isCommercialOrApt(addr2, f.properties)) continue;
+      if (!addr2) continue;
+      if (ParcelsUtil.isCommercialOrApt(addr2, f.properties)) continue;
+      // Must start with a street number
+      const num = addr2.match(/^(\d+)/)?.[1];
+      if (!num || parseInt(num, 10) > 9999) continue;
       const c = ParcelsUtil.featureCentroid(f);
       if (!c || !bounds.contains([c.lat, c.lon])) continue;
-      // Extract street name (everything after the leading number)
-      const streetMatch = addr2.match(/^\d+\s+(.+)$/);
-      if (!streetMatch) continue;
-      const street = streetMatch[1].toUpperCase().trim();
-      streetCount[street] = (streetCount[street] || 0) + 1;
-      inViewport.push({ f, addr2, street, c });
-    }
-
-    // Pass 2: render all parcels with a valid street number
-    const seen = new Set();
-    for (const { f, addr2, street, c } of inViewport) {
-      if ((streetCount[street] || 0) < 1) continue;
+      // Dedupe by addr2 — prevents the same number showing twice from co-owner records
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
-      const num = addr2.match(/^(\d+)/)?.[1];
-      if (!num || parseInt(num, 10) > 9999) continue;
 
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
-          html: `<div class="addr-label">${num}</div>`,
+          html: `<div class="addr-marker"><span class="addr-marker-num">${num}</span></div>`,
           className: '',
-          iconSize: null,
-          iconAnchor: [0, 0],
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         }),
         pane: 'addrPane',
         interactive: false,
+        keyboard: false,
       }).addTo(this.addressLabelGroup);
     }
   },

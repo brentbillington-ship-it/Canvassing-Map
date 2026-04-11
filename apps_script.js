@@ -81,6 +81,7 @@ function handleAction(data) {
       case 'getUsers':        return json(getUsers());
       case 'createUser':      return json(createUser(data.email, data.name, data.color));
       case 'updateUser':      return json(updateUser(data.email, data.fields));
+      case 'renameVolunteer': return json(renameVolunteer(data.email, data.oldName, data.newName));
       case 'getUser':         return json(getUser(data.email));
       case 'backupZone':      return json(backupZone(data.letter));
       case 'bulkSetResult':   return json(bulkSetResult(data.items));
@@ -701,6 +702,28 @@ function updateUser(email, fields) {
     }
   }
   return { error: 'User not found' };
+}
+
+function renameVolunteer(email, oldName, newName) {
+  if (!email || !oldName || !newName) return { error: 'email, oldName, and newName required' };
+  // 1. Update name in users sheet
+  const userResult = updateUser(email, { name: newName.trim() });
+  if (userResult.error) return userResult;
+  // 2. Update all turf records where volunteer == oldName
+  const turfsSheet = getSheet('turfs');
+  const data       = turfsSheet.getDataRange().getValues();
+  const hdrs       = data[0];
+  const volCol     = hdrs.indexOf('volunteer');
+  if (volCol < 0) return { error: 'volunteer column not found in turfs sheet' };
+  let updated = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][volCol]).trim() === String(oldName).trim()) {
+      turfsSheet.getRange(i + 1, volCol + 1).setValue(newName.trim());
+      updated++;
+    }
+  }
+  SpreadsheetApp.flush();
+  return { success: true, turfsUpdated: updated };
 }
 
 // ─── Zone Backup (before delete) ──────────────────────────────────────────────

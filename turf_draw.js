@@ -381,6 +381,10 @@ const TurfDraw = (() => {
   }
 
   // ── Load saved turf polygons ──────────────────────────────────────────────
+  // These are INVISIBLE data containers for the edit-boundary flow.
+  // The visible polygon rendering is done by MapModule._renderTurfPolygon (which
+  // uses _turfColor to look up the volunteer's actual color from UI._users).
+  // Having these be transparent prevents color conflicts with MapModule's render.
   function loadTurfs(turfs) {
     _drawnLayers.clearLayers();
     _turfLetters = {};
@@ -389,8 +393,6 @@ const TurfDraw = (() => {
       let geojson = turf.polygon_geojson;
       if (typeof geojson === 'string') { try { geojson = JSON.parse(geojson); } catch(e) { return; } }
       try {
-        const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
-        const color = isUnassigned ? '#000000' : (turf.color || CONFIG.TURF_COLORS[i % CONFIG.TURF_COLORS.length]);
         // Wrap bare Geometry in Feature so L.geoJSON can parse it
         let gjInput = geojson;
         if (gjInput.type === 'Polygon' || gjInput.type === 'MultiPolygon') {
@@ -398,7 +400,8 @@ const TurfDraw = (() => {
         }
         L.geoJSON(gjInput).eachLayer(gjLayer => {
           const poly = L.polygon(gjLayer.getLatLngs(), {
-            color, fillColor: color, fillOpacity: 0.12, weight: 2.5, dashArray: null, opacity: 1.0
+            color: 'transparent', fillColor: 'transparent',
+            fillOpacity: 0, weight: 0, opacity: 0, interactive: false,
           });
           _drawnLayers.addLayer(poly);
           _turfLetters[_drawnLayers.getLayerId(poly)] = turf.letter;
@@ -443,14 +446,73 @@ const TurfDraw = (() => {
     if (!foundLayer) { UI.toast('Layer not found — try refreshing', 'error'); _editingLetter = null; return; }
 
     _editLayer = foundLayer;
+    // Make the edit-target visible (loadTurfs renders these as transparent for normal display)
+    if (_editLayer.setStyle) {
+      _editLayer.setStyle({
+        color: '#FFE600', fillColor: '#FFE600', fillOpacity: 0.18,
+        weight: 3.5, opacity: 1, interactive: true,
+      });
+    }
     try {
       const editFG  = L.featureGroup([foundLayer]);
       const handler = new L.EditToolbar.Edit(_map, { featureGroup: editFG });
       handler.enable();
       _editLayer._ckEditHandler = handler;
+      // Wire right-click on vertex markers to delete the vertex (Fix 5)
+      setTimeout(() => _attachEditVertexContextMenu(handler), 50);
     } catch(e) { console.warn('Edit handler error:', e); }
 
     UI.showEditBoundaryBanner(letter);
+  }
+
+  // Right-click on a vertex in edit mode → delete that vertex (Leaflet.draw doesn't
+  // expose a clean public API, so we look up the edit handler's internal marker group
+  // and bind contextmenu handlers that simulate the shift-click vertex deletion path).
+  function _attachEditVertexContextMenu(handler) {
+    if (!_editLayer) return;
+    // Leaflet.draw adds an `editing` plugin to the polygon when enabled.
+    // The vertex markers are stored in `editing._verticesHandlers[0]._markerGroup` for
+    // a normal polygon, OR via `editing._markerGroup`, depending on the version.
+    const editing = _editLayer.editing;
+    if (!editing) {
+      setTimeout(() => _attachEditVertexContextMenu(handler), 100);
+      return;
+    }
+    let markerGroup = editing._markerGroup;
+    if (!markerGroup && editing._verticesHandlers && editing._verticesHandlers[0]) {
+      markerGroup = editing._verticesHandlers[0]._markerGroup;
+    }
+    if (!markerGroup) {
+      setTimeout(() => _attachEditVertexContextMenu(handler), 100);
+      return;
+    }
+    const verticesHandler = (editing._verticesHandlers && editing._verticesHandlers[0]) || editing;
+    markerGroup.eachLayer(marker => {
+      if (marker._ckEditRcAttached) return;
+      marker._ckEditRcAttached = true;
+      marker.on('contextmenu', e => {
+        L.DomEvent.preventDefault(e.originalEvent || e);
+        L.DomEvent.stopPropagation(e.originalEvent || e);
+        try {
+          // Mid-markers (added between vertices) cannot be deleted — only main markers can
+          if (marker._index === undefined) {
+            UI.toast('Cannot delete a midpoint marker', 'info', 1500); return;
+          }
+          // Simulate Leaflet.draw's shift-click deletion path
+          if (typeof verticesHandler._removeMarker === 'function') {
+            verticesHandler._removeMarker(marker);
+          } else if (typeof editing._removeMarker === 'function') {
+            editing._removeMarker(marker);
+          } else {
+            // Fallback: dispatch a synthetic shift-click on the marker
+            marker.fire('click', { originalEvent: { shiftKey: true, preventDefault: () => {}, stopPropagation: () => {} } });
+          }
+          UI.toast('Vertex removed', 'info', 1500);
+          // Re-bind handlers since Leaflet.draw recreates markers after a delete
+          setTimeout(() => _attachEditVertexContextMenu(handler), 50);
+        } catch(err) { console.warn('Vertex delete failed:', err); }
+      });
+    });
   }
 
   function _commitEdit() {

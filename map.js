@@ -213,18 +213,20 @@ const MapModule = {
     const z = this.map.getZoom();
     const belowThreshold = z < this._minMarkerZoom;
 
-    // Interpolate size and opacity across zoom range 13-18
+    // Interpolate size and opacity across zoom range 13-19
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const lerp  = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
     const t = (z - 13) / (18 - 13); // 0 at zoom 13, 1 at zoom 18
     const size    = Math.round(lerp(8, 26, t));
     const opacity = lerp(0.65, 0.95, t).toFixed(2);
     const anchor  = Math.round(size / 2);
-    const polyFill = lerp(0.28, 0.15, t).toFixed(2);
+    // Polygon fill opacity: 0.30 at zoom 13 (visible from far) → 0.05 at zoom 18+
+    // (very transparent so markers dominate). Markers appear at zoom 16.
+    const polyFill = lerp(0.30, 0.05, t).toFixed(2);
 
     // Update polygon fill opacity
     this.turfPolygonGroup?.eachLayer(layer => {
-      if (layer.setStyle) layer.setStyle({ fillOpacity: belowThreshold ? 0.25 : parseFloat(polyFill) });
+      if (layer.setStyle) layer.setStyle({ fillOpacity: parseFloat(polyFill) });
     });
 
     const wrap = document.getElementById('map');
@@ -234,43 +236,29 @@ const MapModule = {
       wrap.classList.toggle('hide-turf-labels', z >= this._labelZoomMin);
     }
 
-    if (belowThreshold) {
-      // Below hanger threshold (zoom 15-16) — only knock markers visible, still scale them
-      this.houseGroup?.eachLayer(marker => {
-        if (!marker._icon) return;
-        const icon = marker._icon.querySelector('.house-dot');
-        if (icon) {
-          icon.style.width  = size + 'px';
-          icon.style.height = size + 'px';
-        }
-        if (marker._icon) {
-          marker._icon.style.marginLeft = -anchor + 'px';
-          marker._icon.style.marginTop  = -anchor + 'px';
-          marker._icon.style.width      = size + 'px';
-          marker._icon.style.height     = size + 'px';
-        }
-      });
-      return;
-    }
-
     // Ensure housePane is visible above threshold
     const housePane = this.map.getPane('housePane');
     if (housePane) housePane.style.display = '';
 
-    // Update all marker icon sizes without full re-render
+    // Update all marker icon sizes without full re-render.
+    // Knock diamonds get a smaller size (~55% of hanger circles) so they don't
+    // obscure hanger markers at the same lat/lon.
+    const diamondSize   = Math.round(size * 0.55);
+    const diamondAnchor = Math.round(diamondSize / 2);
     this.houseGroup?.eachLayer(marker => {
       if (!marker._icon) return;
       const icon = marker._icon.querySelector('.house-dot');
+      const isDiamond = icon && icon.classList.contains('diamond');
+      const sz = isDiamond ? diamondSize : size;
+      const an = isDiamond ? diamondAnchor : anchor;
       if (icon) {
-        icon.style.width  = size + 'px';
-        icon.style.height = size + 'px';
+        icon.style.width  = sz + 'px';
+        icon.style.height = sz + 'px';
       }
-      if (marker._icon) {
-        marker._icon.style.marginLeft = -anchor + 'px';
-        marker._icon.style.marginTop  = -anchor + 'px';
-        marker._icon.style.width      = size + 'px';
-        marker._icon.style.height     = size + 'px';
-      }
+      marker._icon.style.marginLeft = -an + 'px';
+      marker._icon.style.marginTop  = -an + 'px';
+      marker._icon.style.width      = sz + 'px';
+      marker._icon.style.height     = sz + 'px';
     });
   },
 
@@ -303,8 +291,8 @@ const MapModule = {
     const turfs = this._allTurfsCache;
     if (!turfs) return;
 
-    // Below zoom 15: no house markers of any type — clear everything for performance
-    if (zoom < 15) {
+    // Below zoom 16: no house markers of any type — clear everything for performance
+    if (zoom < 16) {
       this.houseGroup.clearLayers();
       this.houseMarkers = {};
       return;
@@ -316,8 +304,8 @@ const MapModule = {
 
     turfs.forEach((turf) => {
       const isKnock = (turf.mode || 'hanger') === 'knock';
-      // Two-tier zoom: knock diamonds at 15, hanger circles at 17
-      const minZoom = isKnock ? 15 : this._minMarkerZoom;
+      // Two-tier zoom: knock diamonds at 16 (one level before hangers), hanger circles at 17
+      const minZoom = isKnock ? 16 : this._minMarkerZoom;
       if (zoom < minZoom) return;
       const color = _turfColor(turf);
       turf.houses.forEach((house, idx) => {
@@ -339,13 +327,15 @@ const MapModule = {
       geojson = { type: 'Feature', geometry: geojson, properties: {} };
     }
     // Unassigned zones: black border + black fill. Assigned zones: volunteer color for both border and fill.
+    // Initial fillOpacity is set high (0.30); _updateZoomStyle interpolates lower as you zoom in
+    // so polygons don't compete with marker visibility at zoom 16+.
     const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
     const borderColor  = isUnassigned ? '#000000' : color;
     const fillColor    = isUnassigned ? '#000000' : color;
     const labelBg      = isUnassigned ? '#000000' : color;
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color: borderColor, fillColor, fillOpacity: 0.18, weight: 2.5, opacity: 1.0, dashArray: null }
+        style: { color: borderColor, fillColor, fillOpacity: 0.30, weight: 2.5, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
       this._turfPolyByLetter[String(turf.letter)] = poly; // track for instant setStyle (Item 4)
       const bounds = poly.getBounds();
@@ -395,6 +385,8 @@ const MapModule = {
         }
       }
     });
+    // Re-apply current zoom-based fill opacity so the new fill color shows correctly
+    this._updateZoomStyle();
   },
 
   // ── House dot — blank, color = result status, shape = turf mode ───────────
@@ -467,9 +459,11 @@ const MapModule = {
     }
 
     const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
-    // Circle = hanger, diamond = knock. Knock diamonds render smaller + higher z so both visible at shared addresses.
+    // Circle = hanger, diamond = knock. Knock diamonds are SMALL and translated up-right
+    // via the .diamond CSS rule so they sit beside (not on top of) hanger circles
+    // at the same address. The translate is part of the CSS transform so :hover scale still works.
     const cls = `house-dot${isDone ? ' done' : ''}${isDoorKnock ? ' diamond' : ''}${isOtherZone ? ' other-zone' : ''}`;
-    const markerSize = isDoorKnock ? 20 : 26;
+    const markerSize = isDoorKnock ? 14 : 26;
     const markerAnchor = Math.round(markerSize / 2);
     return L.marker([house.lat, house.lon], {
       icon: L.divIcon({
@@ -479,7 +473,8 @@ const MapModule = {
         iconAnchor: [markerAnchor, markerAnchor],
       }),
       pane: 'housePane',
-      zIndexOffset: isOtherZone ? -200 : (isDoorKnock ? 300 : (isDone ? 0 : 100)),
+      // Hangers above knocks so the circle is the click-target when stacked.
+      zIndexOffset: isOtherZone ? -200 : (isDoorKnock ? 50 : (isDone ? 0 : 100)),
     });
   },
 

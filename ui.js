@@ -342,7 +342,8 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
+          <button class="admin-btn" onclick="UI.showEditUserColorModal()">Edit Volunteer</button>`;
       }
       this._renderTop3();
     } else {
@@ -403,7 +404,8 @@ const UI = {
           <button class="admin-btn" onclick="UI.showImportModal()">Import</button>
           <button class="admin-btn" onclick="UI.exportCSV()">Export</button>
           <button class="admin-btn" onclick="UI.exportZonesCSV()">Export Zones</button>
-          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>`;
+          <button class="admin-btn" onclick="UI.showImportZonesModal()">Import Zones</button>
+          <button class="admin-btn" onclick="UI.showEditUserColorModal()">Edit Volunteer</button>`;
       }
       App.render();
       UI.toast('Admin mode active', 'success');

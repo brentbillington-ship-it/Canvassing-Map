@@ -15,6 +15,8 @@ const UI = {
   _userColorPalette: [
     '#e05c4b','#c9831a','#2d9e5f','#2e6ec2','#8b5e9e','#c4487a',
     '#1a9e9e','#c27a1a','#4d8c2f','#4a7abf','#a0522d','#2e8b57',
+    '#d946a8','#7c3aed','#0891b2','#65a30d','#dc2626','#ea580c',
+    '#0d9488','#4f46e5','#db2777','#16a34a','#9333ea','#b45309',
   ],
   _expandedTurfs: new Set(),
   _multiSelectTurf: null,      // letter of zone in multi-select mode
@@ -2241,18 +2243,20 @@ const UI = {
     document.getElementById('knock-place-banner')?.remove();
   },
 
-  // ── Admin: edit user color (#16) ───────────────────────────────────────────
+  // ── Admin: edit user color + rename (#16) ─────────────────────────────────
   showEditUserColorModal() {
     if (!this._users.length) { this.toast('No users found', 'error'); return; }
     const palette = this._userColorPalette;
     const userOpts = this._users.map(u =>
       `<option value="${_esc(u.email)}">${_esc(u.name)} (${_esc(u.email)})</option>`
     ).join('');
-    this._modal('Edit User Color', `
-      <label class="f-label">User</label>
+    this._modal('Edit Volunteer', `
+      <label class="f-label">Volunteer</label>
       <select id="euc-user" class="f-input" onchange="UI._previewUserColor()">${userOpts}</select>
-      <label class="f-label" style="margin-top:8px">New color</label>
-      <div class="color-swatch-row" id="euc-swatches">
+      <label class="f-label" style="margin-top:8px">Display name</label>
+      <input id="euc-newname" class="f-input" type="text" placeholder="Leave blank to keep current name" />
+      <label class="f-label" style="margin-top:8px">Color</label>
+      <div class="color-swatch-row" id="euc-swatches" style="flex-wrap:wrap;gap:6px">
         ${palette.map(c => `<div class="color-swatch euc-sw" style="background:${c}" data-color="${c}" onclick="UI._selectUserColor('${c}')"></div>`).join('')}
       </div>
       <div id="euc-preview" style="margin-top:8px;display:flex;align-items:center;gap:8px">
@@ -2260,19 +2264,32 @@ const UI = {
         <span id="euc-name" style="font-weight:700;font-size:13px"></span>
       </div>
     `, async () => {
-      const email = document.getElementById('euc-user')?.value;
-      const color = UI._selectedUserColor;
-      if (!color) { UI.toast('Pick a color', 'error'); return false; }
+      const email   = document.getElementById('euc-user')?.value;
+      const color   = UI._selectedUserColor;
+      const newName = (document.getElementById('euc-newname')?.value || '').trim();
+      if (!color && !newName) { UI.toast('Pick a color or enter a new name', 'error'); return false; }
       try {
-        await SheetsAPI.updateUser(email, { color });
+        const fields = {};
+        if (color)   fields.color = color;
+        if (newName) fields.name  = newName;
         const u = this._users.find(u => u.email === email);
-        if (u) u.color = color;
+        const oldName = u?.name || '';
+        if (newName && newName !== oldName) {
+          // Rename: update user record + all turf records with old name
+          await SheetsAPI.renameVolunteer(email, oldName, newName);
+          if (u) u.name = newName;
+          // Update local turf state
+          App.state.turfs.forEach(t => { if (t.volunteer === oldName) t.volunteer = newName; });
+        } else if (color) {
+          await SheetsAPI.updateUser(email, { color });
+        }
+        if (color && u) u.color = color;
         UI._selectedUserColor = null;
         App.render();
-        UI.toast('User color updated', 'success');
+        UI.toast('Volunteer updated', 'success');
         return true;
-      } catch(e) { UI.toast('Failed to update color', 'error'); return false; }
-    }, 'Save Color');
+      } catch(e) { UI.toast('Failed to update volunteer', 'error'); return false; }
+    }, 'Save');
     UI._selectedUserColor = null;
     setTimeout(() => UI._previewUserColor(), 80);
   },

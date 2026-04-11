@@ -42,6 +42,7 @@ const SheetsAPI = {
   getUsers()                            { return this._call({ action: 'getUsers' }); },
   createUser(email, name, color)        { return this._call({ action: 'createUser', email, name, color }); },
   updateUser(email, fields)             { return this._call({ action: 'updateUser', email, fields }); },
+  renameVolunteer(email, oldName, newName) { return this._call({ action: 'renameVolunteer', email, oldName, newName }); },
   getUser(email)                        { return this._call({ action: 'getUser', email }); },
   backupZone(letter)                    { return this._call({ action: 'backupZone', letter }); },
   // POST for large payloads (#10)

@@ -282,3 +282,100 @@ data with broader precinct coverage or lower vote thresholds for NW-area precinc
 
 - **ui.js `renderSidebar`**: Removed `isKnock` check from claim/unclaim buttons
   (was redundant since knock zones are now consolidated and don't show claim buttons).
+
+---
+
+## v5.18 Critical Bug Fixes
+
+### Item 1 — Polygon Color (REAL ROOT CAUSE FOUND)
+- **map.js `_renderTurfPolygon` (line 347):** `fillColor` was HARDCODED to `'#000000'`
+  regardless of assignment. Border was correct (volunteer color) but fill was always
+  black at 14% opacity, making polygons look dark/grey on satellite. **Fix:** changed
+  to `fillColor: isUnassigned ? '#000000' : color`. Bumped fillOpacity to 0.18 for
+  better visibility of assigned colors.
+- **map.js `setZoneStyle`:** Was only updating `color` (border), not `fillColor`.
+  After claim/assign the border updated but the fill stayed wrong. **Fix:** updates
+  both `color` and `fillColor` in one `setStyle()` call. Also updates the zone label
+  background color in turfLabelGroup so it matches immediately.
+- **ui.js login flow:** `getUsers()` was fired with `.then()` (no await), so first
+  `App.render()` could happen before `_users` cache loaded. `_turfColor()` would
+  fall back to `turf.color` which may be wrong. **Fix:** awaited `getUsers()` in
+  both `init()` (saved login path) and `_completeLogin()` (new login path) before
+  calling `_postLogin() → App.init() → render()`.
+
+### Item 2 — Knock Data Gap (1,301 → 1,730 markers)
+- **Architectural change per user directive**: knock markers no longer depend on
+  Sheets house_data. They're synthesized at runtime from voter_data + parcels.
+- **tools/build_voter_data.py (NEW):** Builds `voter_data.js` (2,086 keys) and
+  `voter_knocks.js` (1,730 parcel-matched entries) from the source CSV with
+  abbreviation normalization (DR/DRIVE, ST/STREET, LN/LANE, etc.) and city
+  stripping (`, COPPELL`, `, IRVING`).
+- **voter_knocks.js (NEW):** Static asset loaded by index.html. Each entry has
+  `{lat, lon, address, normKey, precinct, voterCount}`.
+- **app.js `_buildVirtualKnockTurf`:** At `loadData()` and every `_silentRefresh()`,
+  builds a synthetic `_VK` turf from VOTER_KNOCKS containing every voter address
+  not already in a Sheet knock turf (dedup by normalized address). The virtual
+  turf has `mode: 'knock'` and flows through the existing rendering pipeline.
+- **app.js `setResult` interception:** When a virtual house (id starts with `vk_`,
+  `_virtual: true` flag) gets a result recorded, calls `addHouse` first to
+  materialize it into Sheets, then proceeds with the real result write.
+- **Result**: 1,730 knock markers will render (vs 1,301 before). The remaining
+  ~356 voter addresses can't match Coppell parcels (Irving / Las Colinas
+  addresses outside the Coppell parcel data).
+
+### Item 3 — Valley Ranch Duplicate Parcels & Missing Numbers
+- **Root cause found:** parcels.js source data has 927 duplicate `addr2` groups
+  totaling 1,786 excess parcels. Two patterns:
+  1. **Mailing-address contamination** — HOA / property management LLCs use their
+     office address (e.g. `8360 E VIA DE VENTURA STE L100` x19, `1722 ROUTH ST
+     STE 770` x136) as the situs address for many properties they own.
+  2. **Owner mailing leaks** — investor/landlord owners have their personal home
+     address (e.g. `140 LEVEE PL` x9 owned by NAULT SHAE, `723 MADISON ST` x2
+     owned by GOWDA) leaking into addr2 for their other rental properties.
+- **tools/dedupe_parcels.py (NEW):** Smart dedup script that:
+  1. Identifies mailing/commercial dups (STE/SUITE in addr2, 10+ copies, or
+     all-commercial owners) → blanks ALL of them (definitely wrong).
+  2. For residential dups, builds a CLEAN street index excluding all dup
+     parcels, then uses linear interpolation between the closest non-dup
+     neighbors above and below the duplicate's number to predict where it
+     SHOULD be. Picks the parcel whose centroid is closest (must be <60m AND
+     1.3x closer than runner-up). If no clear winner, blanks all in the group.
+- **Backup:** parcels.js was backed up to `temp/parcels.js.backup-v5.18` before
+  modification (md5 verified identical to pre-edit state).
+- **Result:** 2,280 parcels' addr2 blanked. 695 mailing-address dups eliminated.
+  433 residential dup groups had clean spatial winners kept. 395 ambiguous
+  residential groups had all parcels blanked. Spot-checked Valley Ranch test
+  cases (9413 RUIDOSA TRL x5, 9405 RUIDOSA TRL x3, 505 SIERRA BLANCA PASS x3,
+  9401 RUIDOSA TRL x2) — all reduced to 1 parcel each, correctly placed.
+- **Trade-off:** 41 voter addresses lost their parcel match (down from 1771 to
+  1730 matches). These were previously matching the WRONG parcel (a dup at the
+  wrong location). Better to have 1730 correct knocks than 1771 with 41
+  wrong-positioned ones.
+
+### Item 6 — Apps Script CLASP Sync
+- Manual `clasp login` still required (no interactive OAuth in this session).
+- DEPLOYMENT.md from v5.17 documents the manual workflow.
+
+### Item 5 — Testing
+- **Static smoke test (passed):** All v5.18 code changes verified at source level.
+  Valley Ranch dups confirmed reduced to 1 parcel each. voter_knocks.js loads
+  correctly (1730 entries). voter_data.js loads correctly (2086 keys).
+- **Node.js data integrity (passed):** All JS data files parse without errors.
+  Sample VOTER_KNOCKS entry verified to have lat/lon/address/normKey/precinct.
+- **Browser test (blocked):** Playwright browser test couldn't run because the
+  egress proxy blocks the leaflet CDN (unpkg.com), preventing the page from
+  fully initializing. Visual verification needs to happen on the live deployed
+  site after push.
+
+## Files Changed in v5.18
+- map.js — polygon color fixes (Item 1)
+- ui.js — await getUsers in login (Item 1)
+- app.js — virtual knock turf, setResult interception (Item 2)
+- index.html — load voter_knocks.js, version bumps (Items 2, 6)
+- voter_data.js — REGENERATED from CSV (Item 2)
+- voter_knocks.js — NEW (Item 2)
+- parcels.js — DEDUPED (Item 3) — backup at temp/parcels.js.backup-v5.18
+- tools/build_voter_data.py — NEW
+- tools/dedupe_parcels.py — NEW
+- tools/dedupe_report.txt — NEW (audit log)
+- version.js — v5.17 → v5.18

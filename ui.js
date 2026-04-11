@@ -23,7 +23,7 @@ const UI = {
   // localStorage key version — bump to force relogin after schema changes
   _LOGIN_KEY: 'ck_user_v2',
 
-  init() {
+  async init() {
     localStorage.setItem('ck_sess', this.sessionId);
     // Migrate: clear old key if present
     if (localStorage.getItem('ck_user')) { localStorage.removeItem('ck_user'); }
@@ -35,7 +35,11 @@ const UI = {
       this.currentEmail = saved.email || '';
       this.isAdmin      = saved.isAdmin;
       this.userMode     = saved.userMode || 'hanger';
-      SheetsAPI.getUsers().then(r => { this._users = r.users || []; }).catch(() => {});
+      // Await users so _turfColor has the cache before first render — fixes polygon color bug (v5.18)
+      try {
+        const r = await SheetsAPI.getUsers();
+        this._users = r.users || [];
+      } catch(e) {}
       this._postLogin();
     } else {
       this._showLoginModal();
@@ -303,7 +307,11 @@ const UI = {
     this._saveLogin(name, this.isAdmin, this.userMode, email);
     document.getElementById('login-overlay')?.remove();
     try { SheetsAPI.logLogin(name, this.sessionId, this.userMode); } catch(e) {}
-    SheetsAPI.getUsers().then(r => { this._users = r.users || []; }).catch(() => {});
+    // Await users so _turfColor has the cache before first render — fixes polygon color bug (v5.18)
+    try {
+      const r = await SheetsAPI.getUsers();
+      this._users = r.users || [];
+    } catch(e) {}
     this._postLogin();
   },
 

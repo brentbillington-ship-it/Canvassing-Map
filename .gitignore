@@ -1,3 +1,5 @@
 node_modules/
 test-results/
 .clasprc.json
+# Backup files (should not be committed)
+temp/*.backup-*

@@ -338,13 +338,14 @@ const MapModule = {
     if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
       geojson = { type: 'Feature', geometry: geojson, properties: {} };
     }
-    // Unassigned zones: solid black border and black label. Assigned: zone color, fully opaque.
+    // Unassigned zones: black border + black fill. Assigned zones: volunteer color for both border and fill.
     const isUnassigned = !turf.volunteer || turf.volunteer === '[UNASSIGNED]';
     const borderColor  = isUnassigned ? '#000000' : color;
+    const fillColor    = isUnassigned ? '#000000' : color;
     const labelBg      = isUnassigned ? '#000000' : color;
     try {
       const poly = L.geoJSON(geojson, {
-        style: { color: borderColor, fillColor: '#000000', fillOpacity: 0.14, weight: 2.5, opacity: 1.0, dashArray: null }
+        style: { color: borderColor, fillColor, fillOpacity: 0.18, weight: 2.5, opacity: 1.0, dashArray: null }
       }).addTo(this.turfPolygonGroup);
       this._turfPolyByLetter[String(turf.letter)] = poly; // track for instant setStyle (Item 4)
       const bounds = poly.getBounds();
@@ -375,14 +376,24 @@ const MapModule = {
     } catch(e) { console.warn('Polygon render error:', e, geojson); }
   },
 
-  // ── Instant zone color update — no full re-render needed (Item 4) ─────────
+  // ── Instant zone color update — updates BOTH border and fill (v5.18) ─────
   setZoneStyle(letter, color) {
     const poly = this._turfPolyByLetter[String(letter)];
     if (!poly) return;
     const isUnassigned = !color || color === '#6b7280';
-    const borderColor  = isUnassigned ? '#000000' : color;
+    const newColor = isUnassigned ? '#000000' : color;
     poly.eachLayer(l => {
-      if (l.setStyle) l.setStyle({ color: borderColor });
+      if (l.setStyle) l.setStyle({ color: newColor, fillColor: newColor });
+    });
+    // Also update the zone label background
+    this.turfLabelGroup.eachLayer(m => {
+      const icon = m._icon;
+      if (icon) {
+        const labelDiv = icon.querySelector('.turf-label');
+        if (labelDiv && labelDiv.textContent === String(letter)) {
+          labelDiv.style.background = newColor;
+        }
+      }
     });
   },
 

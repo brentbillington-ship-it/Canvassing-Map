@@ -48,6 +48,52 @@ const App = {
     return Object.values(seen);
   },
 
+  // ── Build virtual knock turf from VOTER_KNOCKS (v5.18) ────────────────────
+  // Per user directive: knock markers are derived from voter_data + parcels at runtime,
+  // independent of Sheets. Existing Sheet knock houses (with results) win the dedup.
+  _buildVirtualKnockTurf(turfs) {
+    if (typeof VOTER_KNOCKS === 'undefined') return null;
+    // Build set of normalized addresses already in Sheet knock turfs
+    const sheetKnockAddrs = new Set();
+    turfs.forEach(t => {
+      if ((t.mode || 'hanger') !== 'knock') return;
+      t.houses.forEach(h => {
+        const norm = (h.address || '').toUpperCase().replace(/\s+/g, ' ').trim();
+        if (norm) sheetKnockAddrs.add(norm);
+      });
+    });
+    // Build virtual houses for VOTER_KNOCKS not already in Sheet
+    const virtualHouses = [];
+    for (const vk of VOTER_KNOCKS) {
+      if (sheetKnockAddrs.has(vk.normKey)) continue;
+      virtualHouses.push({
+        id: 'vk_' + vk.normKey.replace(/\s+/g, '_'),
+        address: vk.address,
+        owner: '',
+        lat: vk.lat,
+        lon: vk.lon,
+        result: '',
+        result_by: '',
+        result_date: '',
+        notes: '',
+        _virtual: true,  // Flag for setResult interception
+        _normKey: vk.normKey,
+        _precinct: vk.precinct,
+      });
+    }
+    if (!virtualHouses.length) return null;
+    return {
+      letter: '_VK',
+      name: 'Voter Knocks',
+      color: '#b3a8c8',
+      volunteer: '[UNASSIGNED]',
+      mode: 'knock',
+      houses: virtualHouses,
+      polygon_geojson: '',
+      _virtual: true,
+    };
+  },
+
   async loadData() {
     if (this._loadInProgress) return;
     this._loadInProgress = true;
@@ -59,6 +105,8 @@ const App = {
       if (data.error) throw new Error(data.error);
       this.state.turfs = this._dedupTurfs(data.turfs);
       this._mergePolygons(polyData?.polygons);
+      const virtualTurf = this._buildVirtualKnockTurf(this.state.turfs);
+      if (virtualTurf) this.state.turfs.push(virtualTurf);
       this.render();
       UI.setOffline(false);
     } catch(e) {
@@ -72,6 +120,8 @@ const App = {
         if (data.error) throw new Error(data.error);
         this.state.turfs = this._dedupTurfs(data.turfs);
         this._mergePolygons(polyData?.polygons);
+        const virtualTurf = this._buildVirtualKnockTurf(this.state.turfs);
+        if (virtualTurf) this.state.turfs.push(virtualTurf);
         this.render();
         UI.setOffline(false);
       } catch(e2) {
@@ -190,6 +240,9 @@ const App = {
       this.state.turfs = this._dedupTurfs(data.turfs);
       // Now merge fresh polygons on top — after state is set so we don't overwrite with stale
       if (freshPolygons) this._mergePolygons(freshPolygons);
+      // Re-add virtual knock turf so VOTER_KNOCKS still render after silent refresh (v5.18)
+      const virtualTurf = this._buildVirtualKnockTurf(this.state.turfs);
+      if (virtualTurf) this.state.turfs.push(virtualTurf);
       this.render();
     } catch(e) {
       this._silentRefreshFailures = (this._silentRefreshFailures || 0) + 1;
@@ -230,9 +283,57 @@ const App = {
   },
 
   // ── Actions ───────────────────────────────────────────────────────────────────
+  // Materialize a virtual VOTER_KNOCKS house into a real Sheet row.
+  // The virtual house has id `vk_*` and lives in the `_VK` turf.
+  // Adding a Sheet row needs a real (non-virtual) turf — use the first existing knock turf,
+  // or fall back to creating houses under the `_VK` letter if no real knock turf exists.
+  async _materializeVirtualHouse(virtualHouse) {
+    // Pick a real knock turf to host the new row
+    const targetTurf = this.state.turfs.find(t => (t.mode || 'hanger') === 'knock' && !t._virtual);
+    const turfLetter = targetTurf ? targetTurf.letter : '_VK';
+    const payload = {
+      turf: turfLetter,
+      address: virtualHouse.address,
+      owner: virtualHouse.owner || '',
+      lat: virtualHouse.lat,
+      lon: virtualHouse.lon,
+    };
+    const res = await SheetsAPI.addHouse(payload);
+    if (res.error) throw new Error(res.error);
+    return { id: res.id, turfLetter };
+  },
+
   async setResult(houseId, resultKey) {
-    const { turf, house, idx } = this._findHouse(houseId);
+    let { turf, house, idx } = this._findHouse(houseId);
     if (!house) return;
+
+    // ── Virtual house path: materialize first, then setResult on real ID ────
+    if (house._virtual) {
+      UI.setSyncStatus('syncing');
+      try {
+        const { id: realId, turfLetter } = await this._materializeVirtualHouse(house);
+        // Move the house from the virtual turf to the real turf
+        const vkTurf = this.state.turfs.find(t => t.letter === '_VK');
+        if (vkTurf) {
+          vkTurf.houses = vkTurf.houses.filter(h => h.id !== houseId);
+        }
+        const targetTurf = this.state.turfs.find(t => String(t.letter) === String(turfLetter));
+        const newHouse = {
+          ...house, id: realId, _virtual: false,
+        };
+        delete newHouse._virtual; delete newHouse._normKey; delete newHouse._precinct;
+        if (targetTurf) targetTurf.houses.push(newHouse);
+        // Re-find with new ID and proceed
+        const found = this._findHouse(realId);
+        turf = found.turf; house = found.house; idx = found.idx;
+        houseId = realId;
+      } catch(e) {
+        UI.setSyncStatus('error');
+        UI.toast('Could not save result — failed to create row', 'error');
+        return;
+      }
+    }
+
     house.result    = resultKey;
     house.result_by = UI.currentUser;
     house.result_date = new Date().toISOString();

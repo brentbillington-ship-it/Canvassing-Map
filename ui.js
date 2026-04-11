@@ -1436,6 +1436,7 @@ const UI = {
     this._selectedHouseIds = new Set();
     this._expandedTurfs.add(key);
     App.render();
+    this._msShowFloatBar(letter);
     // Scroll to zone card so user sees the active multi-select bar
     setTimeout(() => {
       const el = document.getElementById('turf-block-' + letter);
@@ -1446,6 +1447,7 @@ const UI = {
   _msCancel() {
     this._multiSelectTurf = null;
     this._selectedHouseIds = new Set();
+    this._msHideFloatBar();
     App.render();
   },
 
@@ -1455,11 +1457,13 @@ const UI = {
     const houses = this._filterHouses(turf.houses);
     houses.forEach(h => this._selectedHouseIds.add(h.id));
     App.render();
+    this._msUpdateCount();
   },
 
   _msSelectNone(letter) {
     this._selectedHouseIds = new Set();
     App.render();
+    this._msUpdateCount();
   },
 
   _selectByStreet(letter, streetName) {
@@ -1472,6 +1476,7 @@ const UI = {
       if (st === streetName) this._selectedHouseIds.add(h.id);
     });
     App.render();
+    this._msUpdateCount();
   },
 
   async _msApply(letter) {
@@ -1497,7 +1502,39 @@ const UI = {
     // Clear selection after successful apply but keep multi-select mode active
     this._selectedHouseIds = new Set();
     App.render();
+    this._msUpdateCount();
     this.toast(`Applied to ${ids.length} — select more or ✕ to exit`, 'success');
+  },
+
+  // ── Multi-select floating bar helpers ────────────────────────────────────
+  _msShowFloatBar(letter) {
+    const bar = document.getElementById('ms-float-bar');
+    if (!bar) return;
+    bar.innerHTML = `
+      <span class="ms-float-label">Zone ${_esc(String(letter))}</span>
+      <button id="ms-float-apply" class="ms-btn ms-apply ms-float-applyb"
+              onclick="UI._msApply('${_esc(String(letter))}')">Apply (0)</button>
+      <button class="ms-btn ms-cancel ms-float-cancelb"
+              onclick="UI._msCancel()">✕ Cancel</button>`;
+    bar.style.display = 'flex';
+  },
+
+  _msHideFloatBar() {
+    const bar = document.getElementById('ms-float-bar');
+    if (bar) bar.style.display = 'none';
+  },
+
+  // Updates the Apply count in both the sidebar ms-bar and the floating bar.
+  // Called after every individual marker toggle (no full re-render needed).
+  _msUpdateCount() {
+    const n = this._selectedHouseIds ? this._selectedHouseIds.size : 0;
+    const letter = this._multiSelectTurf;
+    const floatApply = document.getElementById('ms-float-apply');
+    if (floatApply) floatApply.textContent = `Apply (${n})`;
+    if (letter != null) {
+      const sideApply = document.querySelector(`#ms-bar-${letter} .ms-apply`);
+      if (sideApply) sideApply.textContent = `Apply (${n})`;
+    }
   },
 
   async _inlineAssignVolunteer(letter, volunteerName) {

@@ -472,14 +472,26 @@ const MapModule = {
     marker.on('click', () => {
       // Suppress all popups while a zone is being drawn — clicks belong to the polygon tool
       if (TurfDraw.isActive()) return;
-      // In multi-select mode: toggle selection instead of opening popup
+      // In multi-select mode: toggle selection without a full re-render.
+      // Directly update just this marker's icon + the Apply count display.
       if (UI._multiSelectTurf && String(UI._multiSelectTurf) === String(turf.letter)) {
-        if (UI._selectedHouseIds.has(house.id)) {
+        const wasSelected = UI._selectedHouseIds.has(house.id);
+        if (wasSelected) {
           UI._selectedHouseIds.delete(house.id);
         } else {
           UI._selectedHouseIds.add(house.id);
         }
-        App.render();
+        const isSelected  = !wasSelected;
+        const isDK        = (turf?.mode || 'hanger') === 'knock';
+        const msCls       = `house-dot ms-dot${isSelected ? ' ms-dot-selected' : ''}${isDK ? ' diamond' : ''}`;
+        marker.setIcon(L.divIcon({
+          html: `<div class="${msCls}">${isSelected ? '✓' : ''}</div>`,
+          className: '',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        }));
+        marker.setZIndexOffset(isSelected ? 200 : 100);
+        UI._msUpdateCount();
         return;
       }
       // Auto-expand this zone in sidebar

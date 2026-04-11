@@ -239,12 +239,12 @@ const MapModule = {
       if (nearTurfHouse(c.lat, c.lon)) continue;
 
       // Render using the same house-dot visual as real hanger markers —
-      // dark grey (#6b7280), white ring, black number label. Placed in
-      // addrPane (z610, non-interactive) so colored canvassing dots in
-      // housePane (z620) always render on top when present.
+      // #9ca3af (legend "Not visited" grey), white ring, black number label.
+      // Placed in addrPane (z610, non-interactive) so colored canvassing dots
+      // in housePane (z620) always render on top when present.
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
-          html: `<div class="house-dot parcel-only" style="--dc:#6b7280"><span class="house-dot-num">${num}</span></div>`,
+          html: `<div class="house-dot parcel-only" style="--dc:#9ca3af"><span class="house-dot-num">${num}</span></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
@@ -531,7 +531,8 @@ const MapModule = {
       });
     }
 
-    const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#6b7280');
+    // Unvisited hanger: #9ca3af matches the legend "Not visited" swatch.
+    const dotColor     = resultDef ? resultDef.color : (isDoorKnock ? '#b3a8c8' : '#9ca3af');
     // Circle = hanger, diamond = knock. Knock diamonds are SMALL and translated up-right
     // via the .diamond CSS rule so they sit beside (not on top of) hanger circles
     // at the same address. The translate is part of the CSS transform so :hover scale still works.

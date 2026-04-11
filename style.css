@@ -711,14 +711,16 @@ body {
 }
 
 /* ─── House dot number label ────────────────────────────────────────────────
-   Black street number shown inside every hanger circle (turf markers and
-   parcel-only dots at zoom 17+). Not shown for knock diamonds (too small)
-   or apartment complex badges (use cbadge-id instead).
-   House-dot uses display:flex so this span is auto-centered. */
+   Street number shown inside hanger circles (turf markers and parcel-only
+   dots at zoom 17+). Not shown for knock diamonds (too small) or apartment
+   complex badges (use cbadge-id instead).
+   White text-shadow gives the dark number a glow so it reads on any
+   background color — especially on #9ca3af (legend "Not visited" grey). */
 .house-dot-num {
   font-size: 9px;
   font-weight: 800;
-  color: #000;
+  color: #1f2937;
+  text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 2px rgba(255,255,255,0.9);
   line-height: 1;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: -0.4px;
@@ -730,7 +732,7 @@ body {
 /* ─── House dot ─────────────────────────────────────────────────────────────── */
 .house-dot {
   width: var(--dot-size, 20px); height: var(--dot-size, 20px); border-radius: 50%;
-  background: var(--dc, #6b7280);
+  background: var(--dc, #9ca3af);  /* fallback = legend "Not visited" grey */
   border: 2px solid rgba(255,255,255,0.95);
   box-shadow: 0 2px 5px rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;

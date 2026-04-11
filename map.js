@@ -159,28 +159,62 @@ const MapModule = {
   },
 
   // ── Unassigned residential parcel markers ───────────────────────────────
-  // v5.21: Renders at zoom 17+ (same as hanger markers). Each residential parcel
-  // that is NOT already represented by a canvassing house-dot gets a small
-  // neutral-gray circle in the same visual language as hanger circles. Parcels
-  // WITH a turf house are deduped out — their colored house-dot is the only
-  // marker at that location. Result: every home has exactly one marker, every
-  // marker uses the same visual language (solid circle), no more mixed
-  // white-with-text labels floating alongside colored dots.
+  // v5.22: Renders at zoom 17+. Every residential parcel in viewport gets a
+  // dark-grey circle with the house number in black text inside ("dark grey
+  // markers encapsulating black text" per user spec). Parcels that already
+  // have a canvassing house-dot at or near the same location are deduped out
+  // — but via LAT/LON proximity (not address string), because existing sheet
+  // rows were created from the OLD parcels.js and have different addr2
+  // strings than the new Coppell site addresses. String-based dedupe was the
+  // v5.21 bug that left ghost "double markers" everywhere.
+  //
+  // Dedupe strategy:
+  //   1. Internal: one unassigned marker per normalized addr2 (handled by `seen`)
+  //   2. Against turf houses: proximity within 15 m of any turf house centroid
+  //      (spatial bucket index, 0.0003° / ~33 m buckets, 3x3 window).
+  //      15 m is tight enough to preserve neighboring lots (~15-25 m apart
+  //      centroid-to-centroid) while catching the ~5-15 m aerial-alignment
+  //      drift between old DCAD sheet rows and new Coppell KMZ geometries.
   _renderUnassignedMarkers() {
     this.addressLabelGroup.clearLayers();
     if (typeof PARCELS_GEOJSON === 'undefined') return;
     if (this.map.getZoom() < this._labelZoomMin) return;
 
-    // Build dedupe set of addresses that already have a canvassing marker.
-    // _refreshVisibleMarkers runs before this so every in-viewport turf house
-    // is already rendered as a .house-dot in housePane. We match by normalized
-    // address string — same normalization the click handler / list view use.
-    const turfAddrs = new Set();
+    // Build spatial index of turf house centroids — bucketed by ~33 m.
+    const TURF_BUCKET = 0.0003;
+    const turfBuckets = new Map();
+    const tBK = (lat, lon) => Math.floor(lat / TURF_BUCKET) + ':' + Math.floor(lon / TURF_BUCKET);
     for (const turf of (this._allTurfsCache || [])) {
       for (const house of (turf.houses || [])) {
-        const k = (house.address || '').toUpperCase().replace(/\s+/g, ' ').trim();
-        if (k) turfAddrs.add(k);
+        if (!house.lat || !house.lon) continue;
+        const k = tBK(house.lat, house.lon);
+        let arr = turfBuckets.get(k);
+        if (!arr) { arr = []; turfBuckets.set(k, arr); }
+        arr.push([house.lat, house.lon]);
       }
+    }
+
+    // 15 m radius in meters^2 — compared using (deg * meters_per_deg) math.
+    const M_PER_DEG_LAT = 111_000;
+    const COS_LAT = Math.cos(32.95 * Math.PI / 180);
+    const M_PER_DEG_LNG = M_PER_DEG_LAT * COS_LAT;
+    const RADIUS_M = 15;
+    const RADIUS_M_SQ = RADIUS_M * RADIUS_M;
+    function nearTurfHouse(lat, lon) {
+      const bx = Math.floor(lat / TURF_BUCKET);
+      const by = Math.floor(lon / TURF_BUCKET);
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const arr = turfBuckets.get((bx + dx) + ':' + (by + dy));
+          if (!arr) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const dy_m = (arr[i][0] - lat) * M_PER_DEG_LAT;
+            const dx_m = (arr[i][1] - lon) * M_PER_DEG_LNG;
+            if (dx_m * dx_m + dy_m * dy_m < RADIUS_M_SQ) return true;
+          }
+        }
+      }
+      return false;
     }
 
     const bounds = this.map.getBounds().pad(0.05);
@@ -190,19 +224,26 @@ const MapModule = {
       const addr2 = (f.properties.addr2 || '').trim();
       if (!addr2) continue;
       if (ParcelsUtil.isCommercialOrApt(addr2, f.properties)) continue;
-      // Must start with a street number (skip PO boxes / weird DCAD records)
-      const num = addr2.match(/^(\d+)/)?.[1];
-      if (!num || parseInt(num, 10) > 9999) continue;
+      // Require number + whitespace + at least one non-whitespace char.
+      // Catches garbage entries like "9001", "803", "HIGHLAND DR" that have
+      // no real street address — those should never render as markers.
+      if (!/^\d+\s+\S/.test(addr2)) continue;
+      const num = addr2.match(/^(\d+)/)[1];
+      if (parseInt(num, 10) > 99999) continue;
       const c = ParcelsUtil.featureCentroid(f);
       if (!c || !bounds.contains([c.lat, c.lon])) continue;
+
       const dedupeKey = addr2.toUpperCase().replace(/\s+/g, ' ').trim();
       if (seen.has(dedupeKey)) continue;
-      if (turfAddrs.has(dedupeKey)) continue;  // already rendered as a turf house-dot
       seen.add(dedupeKey);
+
+      // Proximity dedupe against canvassing house-dots — fixes the stale-
+      // sheet-address problem that left ghost duplicates in v5.21.
+      if (nearTurfHouse(c.lat, c.lon)) continue;
 
       L.marker([c.lat, c.lon], {
         icon: L.divIcon({
-          html: `<div class="house-dot unassigned"></div>`,
+          html: `<div class="addr-label"><span class="addr-label-num">${num}</span></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
